@@ -1,6 +1,5 @@
 return function()
     local parity, head, tail, capacity, version, buf = false, 0, 0, 1, 0, {}
-    local ret = {}
     local function size()
         if parity then
             return capacity - (tail - head)
@@ -8,7 +7,20 @@ return function()
             return head - tail
         end
     end
-    ret.size = size()
+
+    local MT = {
+        __metatable = function() end,
+        __index = function(_, key)
+            if type(key) == 'number' and key >= 1 and key <= size() then
+                local i = tail + key
+                if i > capacity then
+                    i = i - capacity
+                end
+                return buf[i]
+            end
+        end,
+    }
+    local ret = setmetatable({ size = size }, MT)
 
     local function iterator()
         local h = head
@@ -87,6 +99,7 @@ return function()
                 parity, head = not parity, capacity
             end
             local r = buf[head]
+            buf[head] = nil
             head, version = head - 1, version + 1
             return r
         end

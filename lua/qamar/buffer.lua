@@ -3,157 +3,178 @@ local function copy_transaction(self)
 end
 
 local function new_transaction()
-    return { index = 0, fileindex = 0, row = 0, col = 0, copy = copy_transaction }
+    local ret
+    ret = {
+        index = 0,
+        fileIndex = 0,
+        row = 0,
+        col = 0,
+        copy = function()
+            copy_transaction(ret)
+        end,
+    }
+    return ret
+end
+
+---comment Create a buffered iterator reader
+---@param input function An iterator which provides utf-8 codepoints
+local buffer = function(input)
+    if type(input) ~= 'function' then
+        return nil, 'expected a function as input'
+    end
+    do
+        local _input
+        input = function()
+            local ret = _input()
+            if ret == nil then
+                return ''
+            elseif type(ret) ~= 'string' or ret == '' then
+                error 'iterator must return non-empty string or nil'
+            end
+            return ret
+        end
+    end
+    local lookahead = {}
+    local transactions = {}
+    local closed = false
+    local s = new_transaction()
+
+    local function hasNoTransactions()
+        return #transactions == 0
+    end
+
+    local function lookaheadBufferSize()
+        return #lookahead
+    end
+
+    local function normalizeLookaheadBuffer()
+        if hasNoTransactions() and s.index > 0 then
+            local available = lookaheadBufferSize() - s.index
+            for i = 0, available - 1 do
+                lookahead[i + 1] = lookahead[s.index + i + 1]
+            end
+            local newsize = lookaheadBufferSize() - s.index
+            s.index = 0
+            while #lookahead > newsize do
+                table.remove(lookahead)
+            end
+        end
+    end
+
+    local function updateRowCol(c)
+        if c == '\n' then
+            s.row, s.col = s.row + 1, 0
+        else
+            s.col = s.col + 1
+        end
+    end
+
+    local ret = {}
+    function ret.location()
+        return { fileIndex = s.fileIndex, row = s.row, col = s.col }
+    end
+
+    function ret.begin()
+        normalizeLookaheadBuffer()
+        table.insert(transactions, s)
+        s = s.copy()
+    end
+
+    function ret.undo()
+        if hasNoTransactions() then
+            error 'no transactions to roll back'
+        end
+        s = table.remove(transactions)
+        normalizeLookaheadBuffer()
+    end
+
+    function ret.commit()
+        if hasNoTransactions() then
+            error 'no transactions to roll back'
+        end
+        table.remove(transactions)
+        normalizeLookaheadBuffer()
+    end
+
+    function ret.peek(amt)
+        if amt == nil then
+            amt = 0
+        end
+    end
+
+    function ret.take(amt)
+        if amt == nil then
+            if hasNoTransactions() then
+                if s.index < lookaheadBufferSize() then
+                    local c = lookahead[s.index + 1]
+                    if c == '' then
+                        return -1
+                    end
+                    s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
+                    updateRowCol(c)
+                    return c
+                elseif input.hasNext() then
+                    s.fileIndex = s.fileIndex + 1
+                    local c = input()
+                    updateRowCol(c)
+                    return c
+                else
+                    return -1
+                end
+            elseif s.index < lookaheadBufferSize() then
+                local c = lookahead[s.index + 1]
+                if c == '' then
+                    return -1
+                end
+                updateRowCol(c)
+                s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
+                return c
+            elseif input.hasNext() then
+                local c = input()
+                updateRowCol(c)
+                table.insert(lookahead, c)
+                s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
+                return c
+            else
+                table.insert(lookahead, -1)
+                return -1
+            end
+        else
+            if ret.peek(amt - 1) ~= '' then
+                return false
+            end
+            for _ = 1, amt do
+                ret.take()
+            end
+            return true
+        end
+    end
+
+    function ret.takech(amt)
+        if ret.peek(amt - 1) ~= '' then
+            local r = {}
+            for _ = amt, 1, -1 do
+                table.insert(r, ret.take())
+            end
+            return table.concat(r)
+        end
+    end
+
+    function ret.takeUntil(fileIndex)
+        while s.fileIndex < fileIndex do
+            if ret.peek() == '' then
+                return false
+            end
+            ret.take()
+        end
+        return true
+    end
+
+    return ret
 end
 
 local java = [[
 public class CodePointTransactionalBuffer implements AutoCloseable {
-	private final Iterator<Integer> input;
-	private final ArrayList<Integer> lookahead;
-	private final Stack<Transaction> transactions;
-	private boolean closed;
-
-	private Transaction s = new Transaction();
-
-	private boolean hasNoTransactions() {
-		return transactions.isEmpty();
-	}
-
-	public Location location() {
-		return new Location(s.fileIndex, s.row, s.col);
-	}
-
-	public CodePointTransactionalBuffer(final int[] input) {
-		this(IntStream.of(input).iterator());
-	}
-
-	public CodePointTransactionalBuffer(final Integer[] input) {
-		this(Arrays.stream(input).iterator());
-	}
-
-	public CodePointTransactionalBuffer(final Iterable<Integer> input) {
-		this(input.iterator());
-	}
-
-	public CodePointTransactionalBuffer(final Iterator<Integer> input) {
-		if (input == null)
-			throw new NullPointerException("input");
-		this.input = input;
-		lookahead = new ArrayList<>();
-		transactions = new Stack<>();
-	}
-
-	private int lookaheadBufferSize() {
-		return lookahead.size();
-	}
-
-	private void normalizeLookaheadBuffer() {
-		if (hasNoTransactions() && s.index > 0) {
-			final var available = lookaheadBufferSize() - s.index;
-			for (var i = 0; i < available; i++)
-				lookahead.set(i, lookahead.get(s.index + i));
-			final var newsize = lookaheadBufferSize() - s.index;
-			s.index = 0;
-			while (lookahead.size() > newsize)
-				lookahead.remove(lookahead.size() - 1);
-		}
-	}
-
-	public void begin() {
-		normalizeLookaheadBuffer();
-		transactions.push(s);
-		s = s.copy();
-	}
-
-	public void undo() {
-		if (hasNoTransactions())
-			throw new IllegalStateException("no transactions to roll back");
-		s = transactions.pop();
-		normalizeLookaheadBuffer();
-	}
-
-	public void end() {
-		if (hasNoTransactions())
-			throw new IllegalStateException("no transactions to roll back");
-		transactions.pop();
-		normalizeLookaheadBuffer();
-	}
-
-	private void updateRowCol(final int c) {
-		if (c == '\n') {
-			s.row++;
-			s.col = 0;
-		} else
-			s.col++;
-	}
-
-	public String takech(final int amt) {
-		assert amt > 0 : "amt must be larger than 0";
-		if (peek(amt - 1) < 0)
-			return null;
-		final var r = new StringBuilder();
-		for (int i = amt; i > 0; --i)
-			r.appendCodePoint(take());
-		return r.toString();
-	}
-
-	public boolean take(final int amt) {
-		assert amt > 0 : "amt must be larger than 0";
-		if (peek(amt - 1) < 0)
-			return false;
-		for (int i = 0; i < amt; ++i)
-			take();
-		return true;
-	}
-
-	public boolean takeUntil(final long fileIndex) {
-		assert fileIndex >= s.fileIndex : "tried to consume backwards";
-		while (s.fileIndex < fileIndex) {
-			if (peek() < 0)
-				return false;
-			take();
-		}
-		return true;
-	}
-
-	public int take() {
-		if (hasNoTransactions())
-			if (s.index < lookaheadBufferSize()) {
-				final var c = lookahead.get(s.index);
-				if (c < 0)
-					return -1;
-				s.index++;
-				s.fileIndex++;
-				updateRowCol(c);
-				return c;
-			} else if (input.hasNext()) {
-				s.fileIndex++;
-				final var c = input.next();
-				updateRowCol(c);
-				return c;
-			} else
-				return -1;
-		else if (s.index < lookaheadBufferSize()) {
-			final var c = lookahead.get(s.index);
-			if (c < 0)
-				return -1;
-			updateRowCol(c);
-			s.index++;
-			s.fileIndex++;
-			return c;
-		} else if (input.hasNext()) {
-			final var c = input.next();
-			updateRowCol(c);
-			lookahead.add(c);
-			s.index++;
-			s.fileIndex++;
-			return c;
-		} else {
-			lookahead.add(-1);
-			return -1;
-		}
-	}
-
 	private void populateLookaheadBuffer(final int targetSize) {
 		while (lookaheadBufferSize() < targetSize) {
 			if (input.hasNext())
@@ -167,8 +188,6 @@ public class CodePointTransactionalBuffer implements AutoCloseable {
 	}
 
 	public int peek(final int skip) {
-		if (skip < 0)
-			throw new IllegalArgumentException();
 		normalizeLookaheadBuffer();
 		final var targetIndex = s.index + skip;
 		if (targetIndex < lookaheadBufferSize())
@@ -225,7 +244,7 @@ public class CodePointTransactionalBuffer implements AutoCloseable {
 	}
 
 	public boolean isEof() {
-		return peek() < 0;
+		return peek() == '';
 	}
 
 	@Override
@@ -249,3 +268,4 @@ public class CodePointTransactionalBuffer implements AutoCloseable {
 	}
 }
 ]]
+return buffer
