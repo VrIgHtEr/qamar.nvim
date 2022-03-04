@@ -6,7 +6,11 @@ local function new_transaction()
         row = 0,
         col = 0,
         copy = function()
-            return vim.tbl_extend('force', {}, ret)
+            local r = {}
+            for k, v in pairs(ret) do
+                r[k] = v
+            end
+            return r
         end,
     }
     return ret
