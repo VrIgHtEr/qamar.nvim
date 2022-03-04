@@ -1,4 +1,4 @@
-local grammar = [[
+local _grammar = [[
 chunk ::= block
 
 	block ::= {stat} [retstat]
@@ -56,14 +56,66 @@ chunk ::= block
 
 	fieldlist ::= field {fieldsep field} [fieldsep]
 
-	field ::= ‘[’ exp ‘]’ ‘=’ exp | Name ‘=’ exp | exp
-
-	fieldsep ::= ‘,’ | ‘;’
-
-	binop ::=  ‘+’ | ‘-’ | ‘*’ | ‘/’ | ‘//’ | ‘^’ | ‘%’ | 
-		 ‘&’ | ‘~’ | ‘|’ | ‘>>’ | ‘<<’ | ‘..’ | 
-		 ‘<’ | ‘<=’ | ‘>’ | ‘>=’ | ‘==’ | ‘~=’ | 
-		 and | or
-
-	unop ::= ‘-’ | not | ‘#’ | ‘~’
 ]]
+local str = "print('hello world')"
+local string = require 'toolshed.util.string'
+local buffer = require 'qamar.buffer'(string.codepoints(str))
+
+local function alt(...)
+    for _, s in ipairs { ... } do
+        local t = type(s)
+        if t == 'string' then
+            if buffer.tryConsumeString(s) then
+                return s
+            end
+        elseif t == 'function' then
+            t = t()
+            if t ~= nil then
+                return t
+            end
+        end
+    end
+end
+
+local function seq(...)
+    local ret = {}
+    buffer.begin()
+    for _, x in ipairs { ... } do
+        buffer.skipws()
+        local t = type(x)
+        if t == 'function' then
+            t = t()
+        elseif t == 'string' then
+            t = alt(t)
+        else
+            t = nil
+        end
+        if t == nil then
+            buffer.undo()
+            return nil
+        end
+        table.insert(ret, t)
+    end
+    buffer.commit()
+    return ret
+end
+
+local g = {}
+
+function g.unop()
+    return alt('-', 'not', '#', '~')
+end
+
+function g.binop()
+    return alt('+', '-', '*', '/', '//', '^', '%', '&', '~', '|', '>>', '<<', '..', '<', '<=', '>', '>=', '==', '~=', 'and', 'or')
+end
+
+function g.fieldsep()
+    return alt(',', ';')
+end
+
+function g.field()
+    return alt(seq('[', g.exp, ']', '=', g.exp), seq(g.name, '=', g.exp), g.exp)
+end
+
+return g
