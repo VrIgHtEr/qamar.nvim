@@ -1,3 +1,5 @@
+local string = require 'toolshed.util.string'
+
 local function new_transaction()
     local ret
     ret = {
@@ -220,49 +222,51 @@ local buffer = function(input)
         end
     end
 
-    return ret
+    function ret.tryConsumeString(str, predicate)
+        if str:len() == 0 then
+            return true
+        end
+        local loc = 0
+        for c in string.codepoints(str) do
+            local x = ret.peek(loc)
+            loc = loc + 1
+            if x ~= c then
+                return false
+            end
+        end
+        if predicate ~= nil and not predicate(loc) then
+            return false
+        end
+        ret.take(loc)
+        return true
+    end
+
+    return setmetatable(ret, {
+        __metatable = function() end,
+        __tostring = function()
+            local sb = {}
+            for i = 0, lookaheadBufferSize() - 1 do
+                table.insert(sb '\n')
+                table.insert(sb, i == s.index and '==> ' or '    ')
+                local st = lookahead[i + 1]
+                if st == nil then
+                    table.insert(sb, '~~ EOF ~~')
+                elseif st >= 32 and st < 127 then
+                    table.insert(sb, "'")
+                    table.insert(sb, st)
+                    table.insert(sb, "'")
+                else
+                    table.insert(sb, st)
+                end
+            end
+            if s.index == lookaheadBufferSize() then
+                table.insert(sb, '\n')
+                table.insert(sb, '==> ')
+            end
+            table.insert(sb, '\n')
+            return table.concat(sb)
+        end,
+    })
 end
 
-local java = [[
-public class CodePointTransactionalBuffer implements AutoCloseable {
-	public boolean tryConsumeString(final String s, final Function<Integer, Boolean> predicate) {
-		if (s == null)
-			throw new NullPointerException();
-		if (s.length() == 0)
-			return true;
-		int loc = 0;
-		for (final int c : s.codePoints().toArray())
-			if (peek(loc++) != c)
-				return false;
-		if (predicate != null && !predicate.apply(loc))
-			return false;
-		take(loc);
-		return true;
-	}
-
-	public boolean tryConsumeString(final String s) {
-		return tryConsumeString(s, null);
-	}
-
-	@Override
-	public String toString() {
-		final var sb = new StringBuilder();
-		for (var i = 0; i < lookaheadBufferSize(); ++i) {
-			sb.append("\n");
-			sb.append(i == s.index ? "==> " : "    ");
-			final var st = lookahead.get(i);
-			if (st == null)
-				sb.append("~~ EOF ~~");
-			else if (st >= 32 && st < 127)
-				sb.append('\'').appendCodePoint(st).append('\'');
-			else
-				sb.append(st);
-		}
-		if (s.index == lookaheadBufferSize())
-			sb.append("\n").append("==> ");
-		sb.append('\n');
-		return sb.toString();
-	}
-}
-]]
 return buffer
