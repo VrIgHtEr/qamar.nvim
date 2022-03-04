@@ -1,7 +1,3 @@
-local function copy_transaction(self)
-    return vim.tbl_extend('force', {}, self)
-end
-
 local function new_transaction()
     local ret
     ret = {
@@ -10,7 +6,7 @@ local function new_transaction()
         row = 0,
         col = 0,
         copy = function()
-            copy_transaction(ret)
+            return vim.tbl_extend('force', {}, ret)
         end,
     }
     return ret
@@ -61,6 +57,20 @@ local buffer = function(input)
         end
     end
 
+    local function populateLookaheadBuffer(targetSize)
+        while lookaheadBufferSize() < targetSize do
+            local next = input()
+            if next ~= '' then
+                table.insert(lookahead, next)
+            else
+                if #lookahead == 0 or lookahead[#lookahead] ~= '' then
+                    table.insert(lookahead, '')
+                end
+                break
+            end
+        end
+    end
+
     local function updateRowCol(c)
         if c == '\n' then
             s.row, s.col = s.row + 1, 0
@@ -96,9 +106,21 @@ local buffer = function(input)
         normalizeLookaheadBuffer()
     end
 
-    function ret.peek(amt)
-        if amt == nil then
-            amt = 0
+    function ret.peek(skip)
+        if skip == nil then
+            skip = 0
+        end
+        normalizeLookaheadBuffer()
+        local targetIndex = s.index + skip
+        if targetIndex < lookaheadBufferSize() then
+            return lookahead[targetIndex + 1]
+        else
+            populateLookaheadBuffer(targetIndex + 1)
+            if targetIndex >= lookaheadBufferSize() then
+                return ''
+            else
+                return lookahead[targetIndex + 1]
+            end
         end
     end
 
@@ -108,36 +130,40 @@ local buffer = function(input)
                 if s.index < lookaheadBufferSize() then
                     local c = lookahead[s.index + 1]
                     if c == '' then
-                        return -1
+                        return ''
                     end
                     s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
                     updateRowCol(c)
                     return c
-                elseif input.hasNext() then
-                    s.fileIndex = s.fileIndex + 1
-                    local c = input()
-                    updateRowCol(c)
-                    return c
                 else
-                    return -1
+                    local c = input()
+                    if c ~= '' then
+                        s.fileIndex = s.fileIndex + 1
+                        updateRowCol(c)
+                        return c
+                    else
+                        return ''
+                    end
                 end
             elseif s.index < lookaheadBufferSize() then
                 local c = lookahead[s.index + 1]
                 if c == '' then
-                    return -1
+                    return ''
                 end
                 updateRowCol(c)
                 s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
                 return c
-            elseif input.hasNext() then
-                local c = input()
-                updateRowCol(c)
-                table.insert(lookahead, c)
-                s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
-                return c
             else
-                table.insert(lookahead, -1)
-                return -1
+                local c = input()
+                if c ~= '' then
+                    updateRowCol(c)
+                    table.insert(lookahead, c)
+                    s.index, s.fileIndex = s.index + 1, s.fileIndex + 1
+                    return c
+                else
+                    table.insert(lookahead, '')
+                    return ''
+                end
             end
         else
             if ret.peek(amt - 1) ~= '' then
@@ -170,46 +196,31 @@ local buffer = function(input)
         return true
     end
 
+    function ret.isEof()
+        return ret.peek() == ''
+    end
+
+    function ret.close()
+        if not closed then
+            lookahead, s.index, closed = { '' }, 0, true
+        end
+    end
+
+    function ret.skipws()
+        while true do
+            local c = ret.peek()
+            if c ~= ' ' and c ~= '\t' and c ~= '\r' and c ~= '\n' then
+                break
+            end
+            ret.take()
+        end
+    end
+
     return ret
 end
 
 local java = [[
 public class CodePointTransactionalBuffer implements AutoCloseable {
-	private void populateLookaheadBuffer(final int targetSize) {
-		while (lookaheadBufferSize() < targetSize) {
-			if (input.hasNext())
-				lookahead.add(input.next());
-			else {
-				if (lookahead.size() == 0 || lookahead.get(lookahead.size() - 1) != -1)
-					lookahead.add(-1);
-				break;
-			}
-		}
-	}
-
-	public int peek(final int skip) {
-		normalizeLookaheadBuffer();
-		final var targetIndex = s.index + skip;
-		if (targetIndex < lookaheadBufferSize())
-			return lookahead.get(targetIndex);
-		else {
-			populateLookaheadBuffer(targetIndex + 1);
-			if (targetIndex >= lookaheadBufferSize())
-				return -1;
-			else
-				return lookahead.get(targetIndex);
-		}
-	}
-
-	public void skipws() {
-		while (true) {
-			final var c = peek();
-			if (c != ' ' && c != '\t' && c != '\r' && c != '\n')
-				break;
-			take();
-		}
-	}
-
 	public boolean tryConsumeString(final String s, final Function<Integer, Boolean> predicate) {
 		if (s == null)
 			throw new NullPointerException();
@@ -227,24 +238,6 @@ public class CodePointTransactionalBuffer implements AutoCloseable {
 
 	public boolean tryConsumeString(final String s) {
 		return tryConsumeString(s, null);
-	}
-
-	public int peek() {
-		return peek(0);
-	}
-
-	@Override
-	public void close() throws Exception {
-		if (closed)
-			return;
-		lookahead.clear();
-		lookahead.add(-1);
-		s.index = 0;
-		closed = true;
-	}
-
-	public boolean isEof() {
-		return peek() == '';
 	}
 
 	@Override
