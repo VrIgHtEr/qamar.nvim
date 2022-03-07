@@ -25,7 +25,7 @@ local buffer = function(input)
         return nil, 'expected a function as input'
     end
     do
-        local _input
+        local _input = input
         input = function()
             local ret = _input()
             if ret == nil then

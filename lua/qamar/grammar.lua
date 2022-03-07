@@ -1,4 +1,4 @@
-local str = "print('hello world')"
+local str = '::lbl:: goto lbl'
 local string = require 'toolshed.util.string'
 local buffer = require 'qamar.buffer'(string.filteredcodepoints(str))
 
@@ -64,14 +64,14 @@ end
 
 local function alt(...)
     skipws()
-    for _, s in ipairs { ... } do
-        local t = type(s)
+    for _, x in ipairs { ... } do
+        local t = type(x)
         if t == 'string' then
-            if buffer.tryConsumeString(s) then
-                return s
+            if buffer.tryConsumeString(x) then
+                return x
             end
         elseif t == 'function' then
-            t = t()
+            t = x()
             if t ~= nil then
                 return t
             end
@@ -122,7 +122,7 @@ local function seq(...)
         skipws()
         local t = type(x)
         if t == 'function' then
-            t = t()
+            t = x()
         elseif t == 'string' then
             t = alt(t)
         else
@@ -444,7 +444,6 @@ function g.literalstring()
         resume_skip_ws()
     end
     local ret = {}
-
     local t = alt("'", '"')
     if t then
         while true do
@@ -575,4 +574,7 @@ function g.literalstring()
     return ret
 end
 
+local success, chunk = pcall(g.chunk)
+print(vim.inspect(chunk))
+print(buffer)
 return g
