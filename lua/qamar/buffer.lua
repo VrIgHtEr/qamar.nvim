@@ -115,7 +115,7 @@ local buffer = function(input)
         for x in string.codepoints(s) do
             local c = buffer.peek(i)
             if c ~= x then
-                return false
+                return
             end
             i = i + 1
         end
@@ -132,7 +132,25 @@ local buffer = function(input)
         end
     end
 
-    return buffer
+    return setmetatable(buffer, {
+        __tostring = function()
+            local ret = {}
+            print('SIZE: ' .. la.size())
+            for i = 1, la.size() do
+                local line = { (i - 1 == t.index) and '==> "' or '    "' }
+                local c = la[i]
+                if c ~= '' and string.byte(c) >= 32 and string.byte(c) < 127 then
+                    table.insert(line, c)
+                end
+                table.insert(line, '"')
+                table.insert(ret, table.concat(line))
+            end
+            if t.index == la.size() then
+                table.insert(ret, '==>')
+            end
+            return table.concat(ret, '\n')
+        end,
+    })
 end
 
 return buffer

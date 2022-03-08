@@ -1,4 +1,6 @@
-local str = '::lbl:: goto lbl'
+package.loaded['qamar.buffer'] = nil
+
+local str = '::lbl::goto lbl'
 local string = require 'toolshed.util.string'
 local buffer = require 'qamar.buffer'(string.filteredcodepoints(str))
 
@@ -73,61 +75,60 @@ function g.alt(...)
     for _, x in ipairs { ... } do
         local t = type(x)
         if t == 'string' then
-            if g.string(x) then
-                return x
-            end
+            t = g.string(x)
         elseif t == 'function' then
             t = x()
-            if t ~= nil then
-                return t
-            end
+        else
+            t = nil
+        end
+        if t ~= nil then
+            return t
         end
     end
 end
 local alt = function(...)
-    g.alt(...)
+    return g.alt(...)
 end
 
 function g.opt(x)
     local t = type(x)
     skipws()
-    local v
     if t == 'string' then
-        v = alt(x)
+        t = g.string(x)
     elseif t == 'function' then
         t = x()
     else
         return nil
     end
-    if v == nil then
+    if t == nil then
         return {}
     end
 end
 local opt = function(...)
-    g.opt(...)
+    return g.opt(...)
 end
 
 function g.zom(x)
     local ret = {}
     local t = type(x)
-    while true do
+    while buffer.peek() ~= '' do
         skipws()
         local v
         if t == 'string' then
-            v = alt(x)
+            v = g.string(x)
         elseif t == 'function' then
-            t = x()
+            v = x()
         else
             v = nil
         end
-        if v == nil then
+        if t == nil then
             return ret
         end
         table.insert(ret, v)
     end
 end
 local zom = function(...)
-    g.zom(...)
+    return g.zom(...)
 end
 
 function g.seq(...)
@@ -139,7 +140,7 @@ function g.seq(...)
         if t == 'function' then
             t = x()
         elseif t == 'string' then
-            t = alt(x)
+            t = g.string(x)
         else
             t = nil
         end
@@ -153,7 +154,7 @@ function g.seq(...)
     return ret
 end
 local seq = function(...)
-    g.seq(...)
+    return g.seq(...)
 end
 
 function g.alpha()
@@ -238,28 +239,12 @@ function g.field()
     return alt(seq('[', g.exp, ']', '=', g.exp), seq(g.name, '=', g.exp), g.exp)
 end
 
-function g.chunk()
-    return g.block()
-end
-
-function g.block()
-    return seq(zom(g.stat), opt(g.retstat))
-end
-
 function g.attnamelist()
     return seq(g.name, g.attrib, zom(seq(',', g.name, g.attrib)))
 end
 
 function g.attrib()
     return opt(seq('<', g.name, '>'))
-end
-
-function g.retstat()
-    return seq('return', opt(g.explist), opt ';')
-end
-
-function g.label()
-    return seq('::', g.name, '::')
 end
 
 function g.funcname()
@@ -341,26 +326,6 @@ function g.name()
     buffer.commit()
     resume_skip_ws()
     return ret
-end
-
-function g.stat()
-    return alt(
-        ';',
-        g.label,
-        seq('goto', g.name),
-        seq(g.varlist, '=', g.explist),
-        g.functioncall,
-        'break',
-        seq('do', g.block, 'end'),
-        seq('while', g.exp, 'do', g.block, 'end'),
-        seq('repeat', g.block, 'until', g.exp),
-        seq('if', g.exp, 'then', g.block, zom(seq('elseif', g.exp, 'then', g.block)), opt(seq('else', g.block)), 'end'),
-        seq('for', g.name, '=', g.exp, ',', g.exp, opt(seq(',', g.exp)), 'do', g.block, 'end'),
-        seq('for', g.namelist, 'in', g.explist, 'do', g.block, 'end'),
-        seq('function', g.funcname, g.funcbody),
-        seq('local', 'function', g.name, g.funcbody),
-        seq('local', g.attnamelist, opt(seq('=', g.explist)))
-    )
 end
 
 function g.exp()
@@ -590,6 +555,43 @@ function g.literalstring()
     return ret
 end
 
+function g.chunk()
+    return g.block()
+end
+
+function g.block()
+    return seq(zom(g.stat), opt(g.retstat))
+end
+
+function g.retstat()
+    --return seq('return', opt(g.explist), opt ';')
+    return seq('return', opt ';')
+end
+
+function g.stat()
+    return alt(
+        ';',
+        g.label,
+        seq('goto', g.name)
+        --[[ seq(g.varlist, '=', g.explist),
+        g.functioncall,
+        'break',
+        seq('do', g.block, 'end'),
+        seq('while', g.exp, 'do', g.block, 'end'),
+        seq('repeat', g.block, 'until', g.exp),
+        seq('if', g.exp, 'then', g.block, zom(seq('elseif', g.exp, 'then', g.block)), opt(seq('else', g.block)), 'end'),
+        seq('for', g.name, '=', g.exp, ',', g.exp, opt(seq(',', g.exp)), 'do', g.block, 'end'),
+        seq('for', g.namelist, 'in', g.explist, 'do', g.block, 'end'),
+        seq('function', g.funcname, g.funcbody),
+        seq('local', 'function', g.name, g.funcbody),
+        seq('local', g.attnamelist, opt(seq('=', g.explist)))]]
+    )
+end
+
+function g.label()
+    return seq('::', g.name, '::')
+end
+
 local indent = 0
 local function genindent()
     local ret = {}
@@ -599,19 +601,21 @@ local function genindent()
     return table.concat(ret)
 end
 for k, v in pairs(g) do
-    local name, func = k, v
-    g[k] = function(...)
-        print(genindent() .. 'ENTER: ' .. name)
-        indent = indent + 1
-        local ret = func(...)
-        indent = indent - 1
-        print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name)
-        print(buffer)
-        return ret
+    if k ~= 'string' then
+        local name, func = k, v
+        g[k] = function(...)
+            print(genindent() .. 'ENTER: ' .. name)
+            indent = indent + 1
+            local ret = func(...)
+            indent = indent - 1
+            print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name)
+            print(buffer)
+            return ret
+        end
     end
 end
 
-local _, chunk = pcall(g.label)
+local _, chunk = pcall(g.chunk)
 print '-------------------------------------------'
 print(vim.inspect(chunk))
 return g
