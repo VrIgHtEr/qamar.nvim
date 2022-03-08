@@ -64,104 +64,98 @@ local function skipws()
     end
 end
 
-local g = {}
-
-function g.string(s)
-    return buffer.try_consume_string(s)
+local function alt(...)
+    local args = { ... }
+    return function()
+        skipws()
+        for _, x in ipairs(args) do
+            local t = type(x)
+            if t == 'string' then
+                t = buffer.try_consume_string(x)
+            elseif t == 'function' then
+                t = x()
+            else
+                t = nil
+            end
+            if t ~= nil then
+                return t
+            end
+        end
+    end
 end
 
-function g.alt(...)
-    skipws()
-    for _, x in ipairs { ... } do
+local function opt(x)
+    return function()
         local t = type(x)
+        skipws()
+        if buffer.peek() == '' then
+            return {}
+        end
         if t == 'string' then
-            t = g.string(x)
+            t = buffer.try_consume_string(x)
         elseif t == 'function' then
             t = x()
         else
-            t = nil
+            return nil
         end
-        if t ~= nil then
-            return t
+        if t == nil then
+            return {}
         end
     end
-end
-local alt = function(...)
-    return g.alt(...)
 end
 
-function g.opt(x)
-    local t = type(x)
-    skipws()
-    if buffer.peek() == '' then
-        return {}
-    end
-    if t == 'string' then
-        t = g.string(x)
-    elseif t == 'function' then
-        t = x()
-    else
-        return nil
-    end
-    if t == nil then
-        return {}
-    end
-end
-local opt = function(...)
-    return g.opt(...)
-end
-
-function g.zom(x)
-    local ret = {}
-    local t = type(x)
-    while buffer.peek() ~= '' do
-        skipws()
-        local v
-        if t == 'string' then
-            v = g.string(x)
-        elseif t == 'function' then
-            v = x()
-        else
-            v = nil
+local function zom(x)
+    return function()
+        local ret = {}
+        local t = type(x)
+        while buffer.peek() ~= '' do
+            skipws()
+            local v
+            if t == 'string' then
+                v = buffer.try_consume_string(x)
+            elseif t == 'function' then
+                v = x()
+            else
+                v = nil
+            end
+            if v == nil then
+                return ret
+            end
+            table.insert(ret, v)
         end
-        if v == nil then
+        if buffer.peek() == '' then
             return ret
         end
-        table.insert(ret, v)
     end
-    if buffer.peek() == '' then
+end
+
+local function seq(...)
+    local args = { ... }
+    return function()
+        local ret = {}
+        buffer.begin()
+        for _, x in ipairs(args) do
+            skipws()
+            local t = type(x)
+            if t == 'function' then
+                t = x()
+            elseif t == 'string' then
+                t = buffer.try_consume_string(x)
+            else
+                t = nil
+            end
+            if t == nil then
+                buffer.undo()
+                return nil
+            end
+            table.insert(ret, t)
+        end
+        buffer.commit()
         return ret
     end
 end
-local zom = function(...)
-    return g.zom(...)
-end
 
-function g.seq(...)
-    local ret = {}
-    buffer.begin()
-    for _, x in ipairs { ... } do
-        skipws()
-        local t = type(x)
-        if t == 'function' then
-            t = x()
-        elseif t == 'string' then
-            t = g.string(x)
-        else
-            t = nil
-        end
-        if t == nil then
-            buffer.undo()
-            return nil
-        end
-        table.insert(ret, t)
-    end
-    buffer.commit()
-    return ret
-end
-local seq = function(...)
-    return g.seq(...)
-end
+local g = {}
 
 function g.alpha()
     return alt(
@@ -218,91 +212,91 @@ function g.alpha()
         'X',
         'Y',
         'Z'
-    )
+    )()
 end
 
 function g.numeric()
-    return alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+    return alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')()
 end
 
 function g.alphanumeric()
-    return alt(g.alpha, g.numeric)
+    return alt(g.alpha, g.numeric)()
 end
 
 function g.unop()
-    return alt('-', 'not', '#', '~')
+    return alt('-', 'not', '#', '~')()
 end
 
 function g.binop()
-    return alt('+', '-', '*', '/', '//', '^', '%', '&', '~', '|', '>>', '<<', '..', '<', '<=', '>', '>=', '==', '~=', 'and', 'or')
+    return alt('+', '-', '*', '/', '//', '^', '%', '&', '~', '|', '>>', '<<', '..', '<', '<=', '>', '>=', '==', '~=', 'and', 'or')()
 end
 
 function g.fieldsep()
-    return alt(',', ';')
+    return alt(',', ';')()
 end
 
 function g.field()
-    return alt(seq('[', g.exp, ']', '=', g.exp), seq(g.name, '=', g.exp), g.exp)
+    return alt(seq('[', g.exp, ']', '=', g.exp), seq(g.name, '=', g.exp), g.exp)()
 end
 
 function g.attnamelist()
-    return seq(g.name, g.attrib, zom(seq(',', g.name, g.attrib)))
+    return seq(g.name, g.attrib, zom(seq(',', g.name, g.attrib)))()
 end
 
 function g.attrib()
-    return opt(seq('<', g.name, '>'))
+    return opt(seq('<', g.name, '>'))()
 end
 
 function g.funcname()
-    return seq(g.name, zom(seq('.', g.name)), opt(seq(':', g.name)))
+    return seq(g.name, zom(seq('.', g.name)), opt(seq(':', g.name)))()
 end
 
 function g.varlist()
-    return seq(g.var, zom(seq(',', g.name)))
+    return seq(g.var, zom(seq(',', g.name)))()
 end
 
 function g.var()
-    return alt(g.name, seq(g.prefixexp, '[', g.exp, ']'), seq(g.prefixexp, '.', g.name))
+    return alt(g.name, seq(g.prefixexp, '[', g.exp, ']'), seq(g.prefixexp, '.', g.name))()
 end
 
 function g.namelist()
-    return seq(g.name, zom(seq(',', g.name)))
+    return seq(g.name, zom(seq(',', g.name)))()
 end
 
 function g.explist()
-    return seq(g.exp, zom(seq(',', g.exp)))
+    return seq(g.exp, zom(seq(',', g.exp)))()
 end
 
 function g.prefixexp()
-    return alt(g.var, g.functioncall, seq('(', g.exp, ')'))
+    return alt(g.var, g.functioncall, seq('(', g.exp, ')'))()
 end
 
 function g.functioncall()
-    return alt(seq(g.prefixexp, g.args), seq(g.prefixexp, ':', g.name, g.args))
+    return alt(seq(g.prefixexp, g.args), seq(g.prefixexp, ':', g.name, g.args))()
 end
 
 function g.args()
-    return alt(seq('(', g.explist, ')'), g.tableconstructor, g.literalstring)
+    return alt(seq('(', g.explist, ')'), g.tableconstructor, g.literalstring)()
 end
 
 function g.functiondef()
-    return seq('function', g.funcbody)
+    return seq('function', g.funcbody)()
 end
 
 function g.funcbody()
-    return seq('(', opt(g.parlist), ')', g.block, 'end')
+    return seq('(', opt(g.parlist), ')', g.block, 'end')()
 end
 
 function g.parlist()
-    return alt(seq(g.namelist, opt(seq(',', '...'))), '...')
+    return alt(seq(g.namelist, opt(seq(',', '...'))), '...')()
 end
 
 function g.tableconstructor()
-    return seq('{', opt(g.fieldlist), '}')
+    return seq('{', opt(g.fieldlist), '}')()
 end
 
 function g.fieldlist()
-    return seq(g.field, zom(seq(g.fieldsep, g.field)), opt(g.fieldsep))
+    return seq(g.field, zom(seq(g.fieldsep, g.field)), opt(g.fieldsep))()
 end
 
 function g.name()
@@ -347,7 +341,7 @@ function g.exp()
         g.tableconstructor,
         seq(g.exp, g.binop, g.exp),
         seq(g.unop, g.exp)
-    )
+    )()
     -- TODO: implement expression parser
 end
 
@@ -566,24 +560,22 @@ function g.chunk()
 end
 
 function g.block()
-    --return seq(zom(g.stat), opt(g.retstat))
-    return seq(zom(g.stat))
+    return seq(zom(g.stat), opt(g.retstat))()
 end
 
 function g.retstat()
-    --return seq('return', opt(g.explist), opt ';')
-    return seq('return', opt ';')
+    return seq('return', opt(g.explist), opt ';')()
 end
 
 function g.go_to()
-    return seq('goto', g.name)
+    return seq('goto', g.name)()
 end
 function g.stat()
     return alt(
         ';',
         g.label,
-        g.go_to
-        --[[ seq(g.varlist, '=', g.explist),
+        g.go_to,
+        seq(g.varlist, '=', g.explist),
         g.functioncall,
         'break',
         seq('do', g.block, 'end'),
@@ -594,12 +586,12 @@ function g.stat()
         seq('for', g.namelist, 'in', g.explist, 'do', g.block, 'end'),
         seq('function', g.funcname, g.funcbody),
         seq('local', 'function', g.name, g.funcbody),
-        seq('local', g.attnamelist, opt(seq('=', g.explist)))]]
-    )
+        seq('local', g.attnamelist, opt(seq('=', g.explist)))
+    )()
 end
 
 function g.label()
-    return seq('::', g.name, '::')
+    return seq('::', g.name, '::')()
 end
 
 local indent = 0
@@ -615,7 +607,7 @@ for k, v in pairs(g) do
         local name, func = k, v
         g[k] = function(...)
             if name ~= 'string' then
-                print(genindent() .. 'ENTER: ' .. name .. ': ' .. vim.inspect { ... })
+                print(genindent() .. 'ENTER: ' .. name)
             end
             indent = indent + 1
             local ret = func(...)
