@@ -62,12 +62,18 @@ local function skipws()
     end
 end
 
-local function alt(...)
+local g = {}
+
+function g.string(s)
+    return buffer.try_consume_string(s)
+end
+
+function g.alt(...)
     skipws()
     for _, x in ipairs { ... } do
         local t = type(x)
         if t == 'string' then
-            if buffer.tryConsumeString(x) then
+            if g.string(x) then
                 return x
             end
         elseif t == 'function' then
@@ -78,8 +84,11 @@ local function alt(...)
         end
     end
 end
+local alt = function(...)
+    g.alt(...)
+end
 
-local function opt(x)
+function g.opt(x)
     local t = type(x)
     skipws()
     local v
@@ -94,8 +103,11 @@ local function opt(x)
         return {}
     end
 end
+local opt = function(...)
+    g.opt(...)
+end
 
-local function zom(x)
+function g.zom(x)
     local ret = {}
     local t = type(x)
     while true do
@@ -114,8 +126,11 @@ local function zom(x)
         table.insert(ret, v)
     end
 end
+local zom = function(...)
+    g.zom(...)
+end
 
-local function seq(...)
+function g.seq(...)
     local ret = {}
     buffer.begin()
     for _, x in ipairs { ... } do
@@ -124,7 +139,7 @@ local function seq(...)
         if t == 'function' then
             t = x()
         elseif t == 'string' then
-            t = alt(t)
+            t = alt(x)
         else
             t = nil
         end
@@ -137,8 +152,9 @@ local function seq(...)
     buffer.commit()
     return ret
 end
-
-local g = {}
+local seq = function(...)
+    g.seq(...)
+end
 
 function g.alpha()
     return alt(
@@ -330,11 +346,11 @@ end
 function g.stat()
     return alt(
         ';',
+        g.label,
+        seq('goto', g.name),
         seq(g.varlist, '=', g.explist),
         g.functioncall,
-        g.label,
         'break',
-        seq('goto', g.name),
         seq('do', g.block, 'end'),
         seq('while', g.exp, 'do', g.block, 'end'),
         seq('repeat', g.block, 'until', g.exp),
@@ -544,7 +560,7 @@ function g.literalstring()
                 buffer.take()
             end
             while true do
-                local closed = buffer.tryConsumeString(closing)
+                local closed = buffer.try_consume_string(closing)
                 if closed then
                     break
                 end
@@ -574,7 +590,28 @@ function g.literalstring()
     return ret
 end
 
-local success, chunk = pcall(g.chunk)
+local indent = 0
+local function genindent()
+    local ret = {}
+    for i = 1, indent do
+        ret[i] = ' '
+    end
+    return table.concat(ret)
+end
+for k, v in pairs(g) do
+    local name, func = k, v
+    g[k] = function(...)
+        print(genindent() .. 'ENTER: ' .. name)
+        indent = indent + 1
+        local ret = func(...)
+        indent = indent - 1
+        print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name)
+        print(buffer)
+        return ret
+    end
+end
+
+local _, chunk = pcall(g.label)
+print '-------------------------------------------'
 print(vim.inspect(chunk))
-print(buffer)
 return g
