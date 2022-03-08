@@ -93,6 +93,9 @@ end
 function g.opt(x)
     local t = type(x)
     skipws()
+    if buffer.peek() == '' then
+        return {}
+    end
     if t == 'string' then
         t = g.string(x)
     elseif t == 'function' then
@@ -121,10 +124,13 @@ function g.zom(x)
         else
             v = nil
         end
-        if t == nil then
+        if v == nil then
             return ret
         end
         table.insert(ret, v)
+    end
+    if buffer.peek() == '' then
+        return ret
     end
 end
 local zom = function(...)
@@ -560,7 +566,8 @@ function g.chunk()
 end
 
 function g.block()
-    return seq(zom(g.stat), opt(g.retstat))
+    --return seq(zom(g.stat), opt(g.retstat))
+    return seq(zom(g.stat))
 end
 
 function g.retstat()
@@ -568,11 +575,14 @@ function g.retstat()
     return seq('return', opt ';')
 end
 
+function g.go_to()
+    return seq('goto', g.name)
+end
 function g.stat()
     return alt(
         ';',
         g.label,
-        seq('goto', g.name)
+        g.go_to
         --[[ seq(g.varlist, '=', g.explist),
         g.functioncall,
         'break',
@@ -601,15 +611,19 @@ local function genindent()
     return table.concat(ret)
 end
 for k, v in pairs(g) do
-    if k ~= 'string' then
+    if k ~= 'alpha' and k ~= 'numeric' and k ~= 'alphanumeric' then
         local name, func = k, v
         g[k] = function(...)
-            print(genindent() .. 'ENTER: ' .. name)
+            if name ~= 'string' then
+                print(genindent() .. 'ENTER: ' .. name .. ': ' .. vim.inspect { ... })
+            end
             indent = indent + 1
             local ret = func(...)
             indent = indent - 1
-            print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name)
-            print(buffer)
+            if name ~= 'string' or ret ~= nil then
+                print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name .. ': ' .. vim.inspect(ret))
+            end
+            --print(buffer)
             return ret
         end
     end
