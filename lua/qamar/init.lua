@@ -1,5 +1,9 @@
 local qamar = {}
 
+local function inspect(c)
+    return vim.inspect(c):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')
+end
+
 function qamar.run()
     do
         local to_unload = {}
@@ -26,9 +30,9 @@ as well]] x = 7 + 3
 local y = '😊😊😊😊😊😊😊'
     ]====]
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
-
+    t.begin()
     while t.peek() do
-        print(vim.inspect(t.take()))
+        print(inspect(t.take()))
     end
 end
 

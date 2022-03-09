@@ -320,7 +320,6 @@ return function(input)
     return setmetatable(buffer, {
         __tostring = function()
             local ret = {}
-            print('SIZE: ' .. la.size())
             for i = 1, la.size() do
                 local line = { (i - 1 == t.index) and '==> ' or '    ' }
                 local c = la[i]
