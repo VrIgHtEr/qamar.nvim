@@ -567,14 +567,11 @@ function g.retstat()
     return seq('return', opt(g.explist), opt ';')()
 end
 
-function g.go_to()
-    return seq('goto', g.name)()
-end
 function g.stat()
     return alt(
         ';',
         g.label,
-        g.go_to,
+        seq('goto', g.name),
         seq(g.varlist, '=', g.explist),
         g.functioncall,
         'break',
@@ -615,7 +612,7 @@ for k, v in pairs(g) do
             if name ~= 'string' or ret ~= nil then
                 print(genindent() .. 'EXIT' .. (ret == nil and 'F' or 'S') .. ': ' .. name .. ': ' .. vim.inspect(ret))
             end
-            --print(buffer)
+            print(buffer)
             return ret
         end
     end

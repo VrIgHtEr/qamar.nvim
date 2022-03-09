@@ -20,7 +20,7 @@ end
 
 ---comment Create a buffered iterator reader
 ---@param input function An iterator which provides utf-8 codepoints
-local buffer = function(input)
+return function(input)
     if type(input) ~= 'function' then
         return nil, 'expected a function as input'
     end
@@ -45,6 +45,7 @@ local buffer = function(input)
     local ts, tc = {}, 0
     local t = new_transaction()
 
+    local skip_ws_ctr = 0
     local buffer = {}
 
     function buffer.begin()
@@ -102,12 +103,22 @@ local buffer = function(input)
             if c == '' then
                 break
             else
+                t.fileIndex = t.fileIndex + 1
+                if c == '\n' then
+                    t.row, t.col = t.row + 1, 0
+                else
+                    t.col = t.col + 1
+                end
                 ret[i] = c
             end
             t.index = t.index + 1
         end
         normalize_la()
         return #ret > 0 and table.concat(ret) or nil
+    end
+
+    function buffer.pos()
+        return { fileIndex = t.fileIndex, row = t.row, col = t.col }
     end
 
     function buffer.try_consume_string(s)
@@ -123,13 +134,184 @@ local buffer = function(input)
     end
 
     function buffer.skipws()
-        while true do
-            local c = buffer.peek()
-            if c ~= ' ' and c ~= '\t' and c ~= '\r' and c ~= '\n' then
-                break
+        if skip_ws_ctr == 0 then
+            while true do
+                local c = buffer.peek()
+                if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
+                    break
+                end
+                buffer.take()
             end
-            buffer.take()
         end
+    end
+
+    function buffer.suspend_skip_ws()
+        skip_ws_ctr = skip_ws_ctr + 1
+    end
+
+    function buffer.resume_skip_ws()
+        if skip_ws_ctr > 0 then
+            skip_ws_ctr = skip_ws_ctr - 1
+        end
+    end
+
+    buffer.combinators = {
+        alt = function(...)
+            local args = { ... }
+            return function()
+                buffer.skipws()
+                for _, x in ipairs(args) do
+                    local T = type(x)
+                    if T == 'string' then
+                        T = buffer.try_consume_string(x)
+                    elseif T == 'function' then
+                        T = x()
+                    else
+                        T = nil
+                    end
+                    if T ~= nil then
+                        return T
+                    end
+                end
+            end
+        end,
+
+        opt = function(x)
+            return function()
+                local T = type(x)
+                buffer.skipws()
+                if buffer.peek() == '' then
+                    return {}
+                end
+                if T == 'string' then
+                    T = buffer.try_consume_string(x)
+                elseif T == 'function' then
+                    T = x()
+                else
+                    return nil
+                end
+                if T == nil then
+                    return {}
+                end
+            end
+        end,
+
+        zom = function(x)
+            return function()
+                local ret = {}
+                local T = type(x)
+                while buffer.peek() ~= '' do
+                    buffer.skipws()
+                    local v
+                    if T == 'string' then
+                        v = buffer.try_consume_string(x)
+                    elseif T == 'function' then
+                        v = x()
+                    else
+                        v = nil
+                    end
+                    if v == nil then
+                        return ret
+                    end
+                    table.insert(ret, v)
+                end
+                if buffer.peek() == '' then
+                    return ret
+                end
+            end
+        end,
+
+        seq = function(...)
+            local args = { ... }
+            return function()
+                local ret = {}
+                buffer.begin()
+                for _, x in ipairs(args) do
+                    buffer.skipws()
+                    local T = type(x)
+                    if T == 'function' then
+                        T = x()
+                    elseif T == 'string' then
+                        T = buffer.try_consume_string(x)
+                    else
+                        T = nil
+                    end
+                    if T == nil then
+                        buffer.undo()
+                        return nil
+                    end
+                    table.insert(ret, T)
+                end
+                buffer.commit()
+                return ret
+            end
+        end,
+    }
+
+    function buffer.alpha()
+        return buffer.combinators.alt(
+            '_',
+            'a',
+            'b',
+            'c',
+            'd',
+            'e',
+            'f',
+            'g',
+            'h',
+            'i',
+            'j',
+            'k',
+            'l',
+            'm',
+            'n',
+            'o',
+            'p',
+            'q',
+            'r',
+            's',
+            't',
+            'u',
+            'v',
+            'w',
+            'x',
+            'y',
+            'z',
+            'A',
+            'B',
+            'C',
+            'D',
+            'E',
+            'F',
+            'G',
+            'H',
+            'I',
+            'J',
+            'K',
+            'L',
+            'M',
+            'N',
+            'O',
+            'P',
+            'Q',
+            'R',
+            'S',
+            'T',
+            'U',
+            'V',
+            'W',
+            'X',
+            'Y',
+            'Z'
+        )()
+    end
+
+    function buffer.numeric()
+        return buffer.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')()
+    end
+
+    function buffer.alphanumeric()
+        return buffer.combinators.alt(buffer.alpha, buffer.numeric)()
     end
 
     return setmetatable(buffer, {
@@ -137,12 +319,9 @@ local buffer = function(input)
             local ret = {}
             print('SIZE: ' .. la.size())
             for i = 1, la.size() do
-                local line = { (i - 1 == t.index) and '==> "' or '    "' }
+                local line = { (i - 1 == t.index) and '==> ' or '    ' }
                 local c = la[i]
-                if c ~= '' and string.byte(c) >= 32 and string.byte(c) < 127 then
-                    table.insert(line, c)
-                end
-                table.insert(line, '"')
+                table.insert(line, vim.inspect(c))
                 table.insert(ret, table.concat(line))
             end
             if t.index == la.size() then
@@ -152,5 +331,3 @@ local buffer = function(input)
         end,
     })
 end
-
-return buffer
