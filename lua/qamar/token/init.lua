@@ -79,7 +79,7 @@ return function(buffer)
     local function ensure_filled(amt)
         while la.size() < amt do
             local c = input()
-            if not c then
+            if c then
                 la.push_back(c)
             elseif la.size() == 0 or la[la.size()] then
                 la.push_back(false)
@@ -110,7 +110,7 @@ return function(buffer)
             t.index = t.index + 1
         end
         normalize_la()
-        return #ret > 0 and table.concat(ret) or nil
+        return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
     end
 
     return setmetatable(tokenizer, {
