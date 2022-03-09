@@ -198,6 +198,8 @@ return function(buffer, disallow_short_form)
                         buffer.take()
                     end
                     table.insert(ret, '\n')
+                else
+                    table.insert(ret, t)
                 end
             end
         else

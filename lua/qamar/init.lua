@@ -17,7 +17,13 @@ function qamar.run()
     local buffer = require 'qamar.buffer'
     local tokenizer = require 'qamar.token'
 
-    local s = '::lbl::'
+    local s = [====[
+::lbl::   -- this is a comment
+
+--[[
+this is a comment 
+as well]] x = 7 + 3
+    ]====]
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
 
     while t.peek() do
