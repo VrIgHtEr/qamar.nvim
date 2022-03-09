@@ -121,8 +121,7 @@ return function(buffer)
             for i = 1, la.size() do
                 local line = { (i - 1 == t.index) and '==> ' or '    ' }
                 local c = la[i]
-                local str = vim.inspect(c):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')
-                table.insert(line, str)
+                table.insert(line, (vim.inspect(c):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')))
                 table.insert(ret, table.concat(line))
             end
             if t.index == la.size() then
