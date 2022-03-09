@@ -4,9 +4,11 @@ local function new_transaction()
     local ret
     ret = {
         index = 0,
-        fileIndex = 0,
-        row = 0,
-        col = 0,
+        file_char = 0,
+        row = 1,
+        col = 1,
+        byte = 0,
+        file_byte = 0,
         copy = function(self)
             local r = {}
             for k, v in pairs(self) do
@@ -103,11 +105,12 @@ return function(input)
             if c == '' then
                 break
             else
-                t.fileIndex = t.fileIndex + 1
+                local off = c:len()
+                t.file_char, t.file_byte = t.file_char + 1, t.file_byte + off
                 if c == '\n' then
-                    t.row, t.col = t.row + 1, 0
+                    t.row, t.col, t.byte = t.row + 1, 1, 0
                 else
-                    t.col = t.col + 1
+                    t.col, t.byte = t.col + 1, t.byte + off
                 end
                 ret[i] = c
             end
@@ -118,7 +121,7 @@ return function(input)
     end
 
     function buffer.pos()
-        return { fileIndex = t.fileIndex, row = t.row, col = t.col }
+        return { file_char = t.file_char, row = t.row, col = t.col, file_byte = t.file_byte, byte = t.byte }
     end
 
     function buffer.try_consume_string(s)

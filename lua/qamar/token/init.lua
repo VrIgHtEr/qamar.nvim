@@ -34,7 +34,7 @@ return function(buffer)
             end
             buffer.skipws()
             if buffer.peek() ~= '' then
-                error('invalid token on line ' .. (buffer.pos().row + 1) .. ', col ' .. (buffer.pos().col + 1))
+                error('invalid token on line ' .. buffer.pos().row .. ', col ' .. buffer.pos().col)
             else
                 tokenizers = nil
                 return false

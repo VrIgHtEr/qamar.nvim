@@ -23,6 +23,7 @@ function qamar.run()
 --[[
 this is a comment 
 as well]] x = 7 + 3
+local y = '😊😊😊😊😊😊😊'
     ]====]
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
 
