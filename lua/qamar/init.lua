@@ -20,11 +20,7 @@ function qamar.run()
     local s = '::lbl::'
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
 
-    while true do
-        local x = t.peek()
-        if not x then
-            break
-        end
+    while t.peek() do
         print(vim.inspect(t.take()))
     end
 end
