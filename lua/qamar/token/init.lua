@@ -1,12 +1,9 @@
-local deque, string = require 'qamar.deque', require 'toolshed.util.string'
+local deque = require 'qamar.deque'
 
 local function new_transaction()
     local ret
     ret = {
         index = 0,
-        fileIndex = 0,
-        row = 0,
-        col = 0,
         copy = function(self)
             local r = {}
             for k, v in pairs(self) do
@@ -27,20 +24,23 @@ return function(buffer)
         require 'qamar.token.name',
         require 'qamar.token.string',
     }
-    local input
-    do
-        input = function()
-            if not _input then
-                return ''
+    local function input()
+        if tokenizers then
+            for _, x in ipairs(tokenizers) do
+                local ret = x(buffer)
+                if ret then
+                    return ret
+                end
             end
-            local ret = _input()
-            if ret == nil then
-                _input = nil
-                return ''
-            elseif type(ret) ~= 'string' or ret == '' then
-                error 'iterator must return non-empty string or nil'
+            buffer.skipws()
+            if buffer.peek() ~= '' then
+                error('invalid token on line ' .. (buffer.pos().row + 1) .. ', col ' .. (buffer.pos().col + 1))
+            else
+                tokenizers = nil
+                return false
             end
-            return ret
+        else
+            return false
         end
     end
 
@@ -79,10 +79,10 @@ return function(buffer)
     local function ensure_filled(amt)
         while la.size() < amt do
             local c = input()
-            if c ~= '' then
+            if not c then
                 la.push_back(c)
-            elseif la.size() == 0 or la[la.size()] ~= '' then
-                la.push_back ''
+            elseif la.size() == 0 or la[la.size()] then
+                la.push_back(false)
                 break
             end
         end
@@ -92,7 +92,7 @@ return function(buffer)
         skip = skip == nil and 0 or skip
         local idx = t.index + skip + 1
         ensure_filled(idx)
-        return la[idx] or ''
+        return la[idx] or false
     end
 
     function tokenizer.take(amt)
@@ -102,47 +102,15 @@ return function(buffer)
         local ret = {}
         for i = 1, amt do
             local c = la[t.index + 1]
-            if c == '' then
+            if not c then
                 break
             else
-                t.fileIndex = t.fileIndex + 1
-                if c == '\n' then
-                    t.row, t.col = t.row + 1, 0
-                else
-                    t.col = t.col + 1
-                end
                 ret[i] = c
             end
             t.index = t.index + 1
         end
         normalize_la()
         return #ret > 0 and table.concat(ret) or nil
-    end
-
-    function tokenizer.pos()
-        return { fileIndex = t.fileIndex, row = t.row, col = t.col }
-    end
-
-    function tokenizer.try_consume_string(s)
-        local i = 0
-        for x in string.codepoints(s) do
-            local c = tokenizer.peek(i)
-            if c ~= x then
-                return
-            end
-            i = i + 1
-        end
-        return tokenizer.take(i)
-    end
-
-    function tokenizer.skipws()
-        while true do
-            local c = tokenizer.peek()
-            if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
-                break
-            end
-            tokenizer.take()
-        end
     end
 
     return setmetatable(tokenizer, {
