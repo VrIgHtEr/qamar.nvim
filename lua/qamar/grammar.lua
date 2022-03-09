@@ -1,8 +1,6 @@
-package.loaded['qamar.buffer'] = nil
-
 local str = '::lbl::goto lbl'
 local string = require 'toolshed.util.string'
-local buffer = require 'qamar.buffer'(string.filteredcodepoints(str))
+local buffer = require 'qamar.token.buffer'(string.filteredcodepoints(str))
 
 local reserved_keywords = {
     ['and'] = true,

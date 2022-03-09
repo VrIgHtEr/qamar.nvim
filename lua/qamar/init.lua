@@ -14,7 +14,7 @@ function qamar.run()
     end
 
     local string = require 'toolshed.util.string'
-    local buffer = require 'qamar.buffer'
+    local buffer = require 'qamar.token.buffer'
     local tokenizer = require 'qamar.token'
 
     local s = [====[
