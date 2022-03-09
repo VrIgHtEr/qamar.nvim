@@ -1,7 +1,7 @@
 local qamar = {}
 
 local function inspect(c)
-    return vim.inspect(c):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')
+    return (vim.inspect(c):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' '))
 end
 
 function qamar.run()
