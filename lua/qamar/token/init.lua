@@ -20,6 +20,7 @@ end
 
 return function(buffer)
     local tokenizers = {
+        require 'qamar.token.comment',
         require 'qamar.token.symbol',
         require 'qamar.token.keyword',
         require 'qamar.token.number',

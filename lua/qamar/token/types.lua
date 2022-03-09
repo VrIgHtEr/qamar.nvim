@@ -1,6 +1,7 @@
 local ret = {}
 for i, name in
     ipairs {
+        'comment',
         'name',
         'string',
         'number',

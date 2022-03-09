@@ -67,18 +67,21 @@ local function utf8_encode(hex)
     end
 end
 
-return function(buffer)
+return function(buffer, disallow_short_form)
     buffer.begin()
     buffer.skipws()
     local pos = buffer.pos()
     buffer.suspend_skip_ws()
     local function fail()
-        buffer.undo()
         buffer.resume_skip_ws()
+        buffer.undo()
     end
     local ret = {}
     local t = buffer.combinators.alt("'", '"')()
     if t then
+        if disallow_short_form then
+            return fail()
+        end
         while true do
             local c = buffer.take()
             if c == t then
