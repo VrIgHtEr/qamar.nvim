@@ -5,7 +5,7 @@ local prefix_token_type_mappings = require 'qamar.parse.prefix_token_type_mappin
 local precedences = require 'qamar.parse.precedence'
 
 local print_modes = { prefix = 'prefix', infix = 'infix', postfix = 'postfix' }
-local print_mode = print_modes.postfix
+local print_mode = print_modes.infix
 
 local new_parser = function(tokenizer)
     local parser = {}
@@ -142,10 +142,10 @@ local new_parser = function(tokenizer)
         [token_types.lparen] = {
             precedence = precedences.atom,
             right_associative = false,
-            parse = function(self, token)
+            parse = function(_, token)
                 local left = token.pos.left
                 tokenizer.begin()
-                local exp = parser.parse_exp(self.precedence)
+                local exp = parser.parse_exp()
                 if not exp then
                     tokenizer.undo()
                     return nil
@@ -222,7 +222,7 @@ local new_parser = function(tokenizer)
 
         local prefix = prefix_parselets[token.type]
         if not prefix then
-            return fail
+            return fail()
         end
 
         local left = prefix:parse(token)
