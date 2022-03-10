@@ -4,6 +4,9 @@ local infix_token_type_mappings = require 'qamar.parse.infix_token_type_mappings
 local prefix_token_type_mappings = require 'qamar.parse.prefix_token_type_mappings'
 local precedences = require 'qamar.parse.precedence'
 
+local print_modes = { prefix = 'prefix', infix = 'infix', postfix = 'postfix' }
+local print_mode = print_modes.infix
+
 local new_parser = function(tokenizer)
     local parser = {}
 
@@ -16,28 +19,53 @@ local new_parser = function(tokenizer)
             type = infix_token_type_mappings[token.type],
             left = left,
             right = right,
+            precedence = self.precedence,
+            right_associative = self.right_associative,
             pos = { left = left.pos.left, right = right.pos.right },
         }, {
             __tostring = function(node)
-                local ret = {}
-                local paren = node.left.type ~= node_types.name and node.left.type ~= node_types.number
-                if paren then
-                    table.insert(ret, '(')
+                if print_mode == print_modes.infix then
+                    local ret = {}
+                    local paren
+                    if node.left.type == node_types.name or node.left.type == node_types.number then
+                        paren = false
+                    elseif node.left.precedence < node.precedence then
+                        paren = true
+                    elseif node.left.precedence == node.precedence then
+                        paren = node.left.type == node.type and node.right_associative
+                    else
+                        paren = false
+                    end
+                    if paren then
+                        table.insert(ret, '(')
+                    end
+                    table.insert(ret, tostring(node.left))
+                    if paren then
+                        table.insert(ret, ')')
+                    end
+                    table.insert(ret, node_types[node.type])
+                    if node.right.type == node_types.name or node.right.type == node_types.number then
+                        paren = false
+                    elseif node.right.precedence < node.precedence then
+                        paren = true
+                    elseif node.right.precedence == node.precedence then
+                        paren = node.right.type == node.type and not node.right_associative
+                    else
+                        paren = false
+                    end
+                    if paren then
+                        table.insert(ret, '(')
+                    end
+                    table.insert(ret, tostring(node.right))
+                    if paren then
+                        table.insert(ret, ')')
+                    end
+                    return table.concat(ret)
+                elseif print_mode == print_modes.prefix then
+                    return node_types[node.type] .. ' ' .. tostring(node.left) .. ' ' .. tostring(node.right)
+                elseif print_mode == print_modes.postfix then
+                    return tostring(node.left) .. ' ' .. tostring(node.right) .. ' ' .. node_types[node.type]
                 end
-                table.insert(ret, tostring(node.left))
-                if paren then
-                    table.insert(ret, ')')
-                end
-                table.insert(ret, node_types[node.type])
-                paren = node.right.type ~= node_types.name and node.right.type ~= node_types.number
-                if paren then
-                    table.insert(ret, '(')
-                end
-                table.insert(ret, tostring(node.right))
-                if paren then
-                    table.insert(ret, ')')
-                end
-                return table.concat(ret)
             end,
         })
     end
@@ -50,19 +78,32 @@ local new_parser = function(tokenizer)
         return setmetatable({
             type = prefix_token_type_mappings[token.type],
             operand = operand,
+            precedence = self.precedence,
+            right_associative = self.right_associative,
             pos = { left = token.pos.left, right = operand.pos.right },
         }, {
             __tostring = function(node)
-                local ret = { node_types[node.type] }
-                local paren = node.operand.type ~= node_types.name and node.operand.type ~= node_types.number
-                if paren then
-                    table.insert(ret, '(')
+                if print_mode == print_modes.infix then
+                    local ret = { node_types[node.type] }
+                    local paren
+                    if node.operand.type == node_types.name or node.operand.type == node_types.number or node.operand.precedence > node.precedence then
+                        paren = false
+                    else
+                        paren = true
+                    end
+                    if paren then
+                        table.insert(ret, '(')
+                    end
+                    table.insert(ret, tostring(node.operand))
+                    if paren then
+                        table.insert(ret, ')')
+                    end
+                    return table.concat(ret)
+                elseif print_mode == print_modes.prefix then
+                    return ' un(' .. node_types[node.type] .. ') ' .. tostring(node.operand)
+                elseif print_mode == print_modes.postfix then
+                    return tostring(node.operand) .. ' un(' .. node_types[node.type] .. ')'
                 end
-                table.insert(ret, tostring(node.operand))
-                if paren then
-                    table.insert(ret, ')')
-                end
-                return table.concat(ret)
             end,
         })
     end
@@ -99,10 +140,12 @@ local new_parser = function(tokenizer)
         [token_types.name] = {
             precedence = precedences.atom,
             right_associative = false,
-            parse = function(_, token)
+            parse = function(self, token)
                 return setmetatable({
                     value = token.value,
                     type = prefix_token_type_mappings[token.type],
+                    precedence = self.precedence,
+                    right_associative = self.right_associative,
                     pos = token.pos,
                 }, {
                     __tostring = function(node)
@@ -114,10 +157,12 @@ local new_parser = function(tokenizer)
         [token_types.number] = {
             precedence = precedences.atom,
             right_associative = false,
-            parse = function(_, token)
+            parse = function(self, token)
                 return setmetatable({
                     value = token.value,
                     type = prefix_token_type_mappings[token.type],
+                    precedence = self.precedence,
+                    right_associative = self.right_associative,
                     pos = token.pos,
                 }, {
                     __tostring = function(node)
@@ -193,7 +238,7 @@ local new_parser = function(tokenizer)
     return parser.parse_exp
 end
 
-local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+b*3^4+4')))
+local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^4^7+4')))
 local parsed = ppp()
 print(parsed)
 return new_parser
