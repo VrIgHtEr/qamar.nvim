@@ -27,7 +27,7 @@ local new_parser = function(tokenizer)
                 if print_mode == print_modes.infix then
                     local ret = {}
                     local paren
-                    if node.left.type == node_types.name or node.left.type == node_types.number then
+                    if node.left.precedence == precedences.atom then
                         paren = false
                     elseif node.left.precedence < node.precedence then
                         paren = true
@@ -44,7 +44,7 @@ local new_parser = function(tokenizer)
                         table.insert(ret, ')')
                     end
                     table.insert(ret, node_types[node.type])
-                    if node.right.type == node_types.name or node.right.type == node_types.number then
+                    if node.right.precedence == precedences.atom then
                         paren = false
                     elseif node.right.precedence < node.precedence then
                         paren = true
@@ -86,7 +86,7 @@ local new_parser = function(tokenizer)
                 if print_mode == print_modes.infix then
                     local ret = { node_types[node.type] }
                     local paren
-                    if node.operand.type == node_types.name or node.operand.type == node_types.number or node.operand.precedence > node.precedence then
+                    if node.operand.precedence == precedences.atom or node.operand.precedence > node.precedence then
                         paren = false
                     else
                         paren = true
@@ -102,7 +102,7 @@ local new_parser = function(tokenizer)
                 elseif print_mode == print_modes.prefix then
                     return ' un(' .. node_types[node.type] .. ') ' .. tostring(node.operand)
                 elseif print_mode == print_modes.postfix then
-                    return tostring(node.operand) .. ' un(' .. node_types[node.type] .. ')'
+                    return tostring(node.operand) .. ' $' .. node_types[node.type]
                 end
             end,
         })
@@ -137,6 +137,28 @@ local new_parser = function(tokenizer)
         [token_types.len] = { precedence = precedences.unary, right_associative = false, parse = prefix_parselet },
         [token_types.sub] = { precedence = precedences.unary, right_associative = false, parse = prefix_parselet },
         [token_types.bitnot] = { precedence = precedences.unary, right_associative = false, parse = prefix_parselet },
+        [token_types.lparen] = {
+            precedence = precedences.atom,
+            right_associative = false,
+            parse = function(self, token)
+                local left = token.pos.left
+                tokenizer.begin()
+                local exp = parser.parse_exp(self.precedence)
+                if not exp then
+                    tokenizer.undo()
+                    return nil
+                end
+                token = tokenizer.peek()
+                if not token or token.type ~= token_types.rparen then
+                    tokenizer.undo()
+                    return nil
+                end
+                tokenizer.take()
+                tokenizer.commit()
+                exp.pos.left, exp.pos.right = left, token.pos.right
+                return exp
+            end,
+        },
         [token_types.name] = {
             precedence = precedences.atom,
             right_associative = false,
@@ -238,7 +260,7 @@ local new_parser = function(tokenizer)
     return parser.parse_exp
 end
 
-local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^4^7+4')))
+local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^((4 or 7)+6)^7+4')))
 local parsed = ppp()
 print(parsed)
 return new_parser
