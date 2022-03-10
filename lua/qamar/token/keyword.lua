@@ -12,7 +12,9 @@ return function(buffer)
     local ret = buffer.combinators.alt(unpack(keywords))()
     if ret then
         buffer.begin()
+        buffer.suspend_skip_ws()
         local next = buffer.alphanumeric()
+        buffer.resume_skip_ws()
         buffer.undo()
         if not next then
             buffer.commit()
