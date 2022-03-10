@@ -162,8 +162,10 @@ return function(input)
         alt = function(...)
             local args = { ... }
             return function()
-                buffer.skipws()
+                local ret, right = nil, nil
                 for _, x in ipairs(args) do
+                    buffer.begin()
+                    buffer.skipws()
                     local T = type(x)
                     if T == 'string' then
                         T = buffer.try_consume_string(x)
@@ -173,8 +175,17 @@ return function(input)
                         T = nil
                     end
                     if T ~= nil then
-                        return T
+                        if not right or t.file_char > right then
+                            ret, right = T, t.file_char
+                        end
                     end
+                    buffer.undo()
+                end
+                if ret then
+                    while t.file_char < right do
+                        buffer.take()
+                    end
+                    return ret
                 end
             end
         end,

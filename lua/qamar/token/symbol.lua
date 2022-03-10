@@ -41,9 +41,6 @@ do
         symbols[k] = types[v]
         table.insert(t, k)
     end
-    table.sort(t, function(a, b)
-        return #b < #a
-    end)
 end
 
 return function(buffer)
