@@ -27,9 +27,7 @@ local new_parser = function(tokenizer)
                 if print_mode == print_modes.infix then
                     local ret = {}
                     local paren
-                    if node.left.precedence == precedences.atom then
-                        paren = false
-                    elseif node.left.precedence < node.precedence then
+                    if node.left.precedence < node.precedence then
                         paren = true
                     elseif node.left.precedence == node.precedence then
                         paren = node.left.type == node.type and node.right_associative
@@ -46,9 +44,7 @@ local new_parser = function(tokenizer)
                     table.insert(ret, ' ')
                     table.insert(ret, node_types[node.type])
                     table.insert(ret, ' ')
-                    if node.right.precedence == precedences.atom then
-                        paren = false
-                    elseif node.right.precedence < node.precedence then
+                    if node.right.precedence < node.precedence then
                         paren = true
                     elseif node.right.precedence == node.precedence then
                         paren = node.right.type == node.type and not node.right_associative
