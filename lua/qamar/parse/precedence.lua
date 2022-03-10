@@ -1,5 +1,4 @@
 return {
-    atom = 0,
     lor = 1,
     land = 2,
     comparison = 3,
@@ -12,4 +11,5 @@ return {
     mul = 10,
     unary = 11,
     exp = 12,
+    atom = 13,
 }
