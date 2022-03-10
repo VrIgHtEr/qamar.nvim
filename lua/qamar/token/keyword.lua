@@ -1,33 +1,15 @@
 local types = require 'qamar.token.types'
 
+local keywords = {}
+for x in pairs(require 'qamar.token.keyword_list') do
+    table.insert(keywords, x)
+end
+
 return function(buffer)
     buffer.begin()
     buffer.skipws()
     local pos = buffer.pos()
-    local ret = buffer.combinators.alt(
-        'and',
-        'break',
-        'do',
-        'else',
-        'elseif',
-        'end',
-        'false',
-        'for',
-        'function',
-        'goto',
-        'if',
-        'in',
-        'local',
-        'nil',
-        'not',
-        'or',
-        'repeat',
-        'return',
-        'then',
-        'true',
-        'until',
-        'while'
-    )()
+    local ret = buffer.combinators.alt(unpack(keywords))()
     if ret then
         buffer.begin()
         local next = buffer.alphanumeric()

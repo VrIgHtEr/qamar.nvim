@@ -28,9 +28,7 @@ local new_parser = function(tokenizer)
                 if paren then
                     table.insert(ret, ')')
                 end
-                table.insert(ret, ' ')
                 table.insert(ret, node_types[node.type])
-                table.insert(ret, ' ')
                 paren = node.right.type ~= node_types.name and node.right.type ~= node_types.number
                 if paren then
                     table.insert(ret, '(')
@@ -195,8 +193,9 @@ local new_parser = function(tokenizer)
     return parser.parse_exp
 end
 
-local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+b*3+4')))
+local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+b*not 3^4+4')))
 local parsed = ppp()
 print(parsed)
 
+print(vim.inspect(parsed))
 return new_parser
