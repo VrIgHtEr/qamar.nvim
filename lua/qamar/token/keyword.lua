@@ -29,16 +29,21 @@ return function(buffer)
         'while'
     )()
     if ret then
-        buffer.commit()
-        buffer.resume_skip_ws()
-        return {
-            value = ret,
-            type = types['kw_' .. ret],
-            pos = {
-                left = pos,
-                right = buffer.pos(),
-            },
-        }
+        buffer.begin()
+        local next = buffer.alphanumeric()
+        buffer.undo()
+        if not next then
+            buffer.commit()
+            buffer.resume_skip_ws()
+            return {
+                value = ret,
+                type = types['kw_' .. ret],
+                pos = {
+                    left = pos,
+                    right = buffer.pos(),
+                },
+            }
+        end
     end
     buffer.undo()
 end

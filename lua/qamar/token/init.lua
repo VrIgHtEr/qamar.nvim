@@ -1,5 +1,4 @@
 local deque = require 'qamar.deque'
-local token_names = require 'qamar.token.token_names'
 
 local function new_transaction()
     local ret
@@ -30,7 +29,6 @@ return function(buffer)
             for _, x in ipairs(tokenizers) do
                 local ret = x(buffer)
                 if ret then
-                    ret.name = token_names[ret.type]
                     return ret
                 end
             end
