@@ -5,7 +5,7 @@ local prefix_token_type_mappings = require 'qamar.parse.prefix_token_type_mappin
 local precedences = require 'qamar.parse.precedence'
 
 local print_modes = { prefix = 'prefix', infix = 'infix', postfix = 'postfix' }
-local print_mode = print_modes.postfix
+local print_mode = print_modes.infix
 
 local new_parser = function(tokenizer)
     local parser = {}
@@ -102,7 +102,7 @@ local new_parser = function(tokenizer)
                     end
                     return table.concat(ret)
                 elseif print_mode == print_modes.prefix then
-                    return '$' .. node_types[node.type] .. ' ' .. tostring(node.operand)
+                    return ' $' .. node_types[node.type] .. ' ' .. tostring(node.operand)
                 elseif print_mode == print_modes.postfix then
                     return tostring(node.operand) .. ' $' .. node_types[node.type]
                 end
@@ -262,7 +262,7 @@ local new_parser = function(tokenizer)
     return parser.parse_exp
 end
 
-local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^((4 or 7)+6)^7+4+(7+5)')))
+local ppp = new_parser(require 'qamar.token'(require 'qamar.token.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^((4 or 7)+6)^7+4')))
 local parsed = ppp()
 print(parsed)
 return new_parser
