@@ -43,7 +43,9 @@ local new_parser = function(tokenizer)
                     if paren then
                         table.insert(ret, ')')
                     end
+                    table.insert(ret, ' ')
                     table.insert(ret, node_types[node.type])
+                    table.insert(ret, ' ')
                     if node.right.precedence == precedences.atom then
                         paren = false
                     elseif node.right.precedence < node.precedence then
@@ -84,7 +86,7 @@ local new_parser = function(tokenizer)
         }, {
             __tostring = function(node)
                 if print_mode == print_modes.infix then
-                    local ret = { node_types[node.type] }
+                    local ret = { node_types[node.type], ' ' }
                     local paren
                     if node.operand.precedence == precedences.atom or node.operand.precedence > node.precedence then
                         paren = false
@@ -100,7 +102,7 @@ local new_parser = function(tokenizer)
                     end
                     return table.concat(ret)
                 elseif print_mode == print_modes.prefix then
-                    return ' un(' .. node_types[node.type] .. ') ' .. tostring(node.operand)
+                    return ' $' .. node_types[node.type] .. ' ' .. tostring(node.operand)
                 elseif print_mode == print_modes.postfix then
                     return tostring(node.operand) .. ' $' .. node_types[node.type]
                 end
