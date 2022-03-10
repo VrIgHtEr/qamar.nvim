@@ -1,0 +1,15 @@
+return {
+    atom = 0,
+    lor = 1,
+    land = 2,
+    comparison = 3,
+    bor = 4,
+    bxor = 5,
+    band = 6,
+    shift = 7,
+    concat = 8,
+    add = 9,
+    mul = 10,
+    unary = 11,
+    exp = 12,
+}

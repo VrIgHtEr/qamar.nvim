@@ -1,0 +1,25 @@
+local token_types = require 'qamar.token.types'
+local nodetypes = require 'qamar.parse.types'
+return {
+    [token_types.kw_or] = nodetypes.lor,
+    [token_types.kw_and] = nodetypes.land,
+    [token_types.lt] = nodetypes.lt,
+    [token_types.gt] = nodetypes.gt,
+    [token_types.leq] = nodetypes.leq,
+    [token_types.geq] = nodetypes.geq,
+    [token_types.neq] = nodetypes.neq,
+    [token_types.eq] = nodetypes.eq,
+    [token_types.bitor] = nodetypes.bor,
+    [token_types.bitnot] = nodetypes.bxor,
+    [token_types.bitand] = nodetypes.band,
+    [token_types.lshift] = nodetypes.lshift,
+    [token_types.rshift] = nodetypes.rshift,
+    [token_types.concat] = nodetypes.concat,
+    [token_types.add] = nodetypes.add,
+    [token_types.sub] = nodetypes.sub,
+    [token_types.mul] = nodetypes.mul,
+    [token_types.div] = nodetypes.div,
+    [token_types.fdiv] = nodetypes.fdiv,
+    [token_types.mod] = nodetypes.mod,
+    [token_types.exp] = nodetypes.exp,
+}

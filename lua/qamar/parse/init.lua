@@ -1,77 +1,7 @@
 local token_types = require 'qamar.token.types'
-local nodetypes = {
-    name = 1,
-    lnot = 2,
-    bnot = 7,
-    neg = 6,
-    lor = 7,
-    land = 8,
-    lt = 9,
-    gt = 10,
-    leq = 11,
-    geq = 12,
-    neq = 13,
-    eq = 14,
-    bor = 15,
-    bxor = 16,
-    band = 17,
-    lshift = 18,
-    rshift = 19,
-    concat = 20,
-    add = 21,
-    sub = 22,
-    mul = 23,
-    div = 24,
-    fdiv = 25,
-    mod = 26,
-    exp = 27,
-    len = 28,
-    number = 29,
-}
-local infix_token_type_mappings = {
-    [token_types.kw_or] = nodetypes.lor,
-    [token_types.kw_and] = nodetypes.land,
-    [token_types.lt] = nodetypes.lt,
-    [token_types.gt] = nodetypes.gt,
-    [token_types.leq] = nodetypes.leq,
-    [token_types.geq] = nodetypes.geq,
-    [token_types.neq] = nodetypes.neq,
-    [token_types.eq] = nodetypes.eq,
-    [token_types.bitor] = nodetypes.bor,
-    [token_types.bitnot] = nodetypes.bxor,
-    [token_types.bitand] = nodetypes.band,
-    [token_types.lshift] = nodetypes.lshift,
-    [token_types.rshift] = nodetypes.rshift,
-    [token_types.concat] = nodetypes.concat,
-    [token_types.add] = nodetypes.add,
-    [token_types.sub] = nodetypes.sub,
-    [token_types.mul] = nodetypes.mul,
-    [token_types.div] = nodetypes.div,
-    [token_types.fdiv] = nodetypes.fdiv,
-    [token_types.mod] = nodetypes.mod,
-    [token_types.exp] = nodetypes.exp,
-}
-local prefix_token_type_mappings = {
-    [token_types.kw_not] = nodetypes.lnot,
-    [token_types.len] = nodetypes.len,
-    [token_types.sub] = nodetypes.neg,
-    [token_types.bitnot] = nodetypes.bnot,
-}
-local precedences = {
-    atom = 0,
-    lor = 1,
-    land = 2,
-    comparison = 3,
-    bor = 4,
-    bxor = 5,
-    band = 6,
-    shift = 7,
-    concat = 8,
-    add = 9,
-    mul = 10,
-    unary = 11,
-    exp = 12,
-}
+local infix_token_type_mappings = require 'qamar.parse.infix_token_type_mappings'
+local prefix_token_type_mappings = require 'qamar.parse.prefix_token_type_mappings'
+local precedences = require 'qamar.parse.precedence'
 
 return function(tokenizer)
     local parser = {}
@@ -121,14 +51,14 @@ return function(tokenizer)
             precedence = precedences.atom,
             right_associative = false,
             parse = function(_, token)
-                return { value = token.value, type = nodetypes.name, pos = token.pos }
+                return { value = token.value, type = prefix_token_type_mappings[token.type], pos = token.pos }
             end,
         },
         [token_types.number] = {
             precedence = precedences.atom,
             right_associative = false,
             parse = function(_, token)
-                return { value = token.value, type = nodetypes.number, pos = token.pos }
+                return { value = token.value, type = prefix_token_type_mappings[token.type], pos = token.pos }
             end,
         },
         [token_types.kw_not] = { precedence = precedences.unary, right_associative = false, parse = prefix_parselet },
