@@ -26,6 +26,18 @@ local types = {
     exp = '^',
     len = '#',
     number = '$number',
+    fieldsep = '$fieldsep',
+    field = '$field',
+    fieldlist = '$fieldlist',
+    tableconstructor = '$tableconstructor',
+    namelist = '$namelist',
+    parlist = '$parlist',
+    explist = '$explist',
+    attrib = '$attrib',
+    attnamelist = '$attnamelist',
+    retstat = '$retstat',
+    label = '$label',
+    funcname = '$funcname',
 }
 
 do

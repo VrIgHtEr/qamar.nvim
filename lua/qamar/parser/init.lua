@@ -1,4 +1,4 @@
-local parselet, t = require 'qamar.parser.parselet', require 'qamar.tokenizer.types'
+local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()
@@ -9,6 +9,16 @@ local function get_precedence(tokenizer)
         end
     end
     return 0
+end
+
+local function wrap(type, parser)
+    return function()
+        local ret = parser()
+        if ret then
+            ret.type = type
+        end
+        return ret
+    end
 end
 
 return function(tokenizer)
@@ -65,18 +75,18 @@ return function(tokenizer)
         return left
     end
 
-    p.fieldsep = alt(t.comma, t.semicolon)
-    p.field = alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression)
-    p.fieldlist = seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep))
-    p.tableconstructor = seq(t.lbrace, p.fieldlist, t.rbrace)
-    p.namelist = seq(t.name, zom(seq(t.comma, t.name)))
-    p.parlist = alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot)
-    p.explist = seq(p.expression, zom(seq(t.comma, t.expression)))
-    p.attrib = opt(seq(t.less, t.name, t.greater))
-    p.attnamelist = seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib)))
-    p.retstat = seq(t.kw_return, opt(p.explist), opt(t.semicolon))
-    p.label = seq(t.doublecolon, t.name, t.doublecolon)
-    p.funcname = seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name)))
+    p.fieldsep = wrap(n.fieldsep, alt(t.comma, t.semicolon))
+    p.field = wrap(n.field, alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression))
+    p.fieldlist = wrap(n.fieldlist, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
+    p.tableconstructor = wrap(n.tableconstructor, seq(t.lbrace, p.fieldlist, t.rbrace))
+    p.namelist = wrap(n.namelist, seq(t.name, zom(seq(t.comma, t.name))))
+    p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot))
+    p.explist = wrap(n.explist, seq(p.expression, zom(seq(t.comma, t.expression))))
+    p.attrib = wrap(n.attrib, opt(seq(t.less, t.name, t.greater)))
+    p.attnamelist = wrap(n.attnamelist, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
+    p.retstat = wrap(n.retstat, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
+    p.label = wrap(n.label, seq(t.doublecolon, t.name, t.doublecolon))
+    p.funcname = wrap(n.funcname, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
 
     return p
 end
