@@ -12,6 +12,32 @@ local token_node_mapping = {
     [token_types.bitnot] = node_types.bnot,
 }
 
+local MT = {
+    __tostring = function(self)
+        if display_modes.selected_print_mode == display_modes.print_modes.infix then
+            local ret = { node_types[self.type], ' ' }
+            local paren
+            if self.operand.precedence > self.precedence then
+                paren = false
+            else
+                paren = true
+            end
+            if paren then
+                table.insert(ret, '(')
+            end
+            table.insert(ret, tostring(self.operand))
+            if paren then
+                table.insert(ret, ')')
+            end
+            return table.concat(ret)
+        elseif display_modes.selected_print_mode == display_modes.print_modes.prefix then
+            return '$' .. node_types[self.type] .. ' ' .. tostring(self.operand)
+        elseif display_modes.selected_print_mode == display_modes.print_modes.postfix then
+            return tostring(self.operand) .. ' $' .. node_types[self.type]
+        end
+    end,
+}
+
 return function(self, parser, token)
     local operand = parser.expression(self.precedence - (self.right_associative and 1 or 0))
     if not operand then
@@ -23,29 +49,5 @@ return function(self, parser, token)
         precedence = self.precedence,
         right_associative = self.right_associative,
         pos = { left = token.pos.left, right = operand.pos.right },
-    }, {
-        __tostring = function(node)
-            if display_modes.selected_print_mode == display_modes.print_modes.infix then
-                local ret = { node_types[node.type], ' ' }
-                local paren
-                if node.operand.precedence > node.precedence then
-                    paren = false
-                else
-                    paren = true
-                end
-                if paren then
-                    table.insert(ret, '(')
-                end
-                table.insert(ret, tostring(node.operand))
-                if paren then
-                    table.insert(ret, ')')
-                end
-                return table.concat(ret)
-            elseif display_modes.selected_print_mode == display_modes.print_modes.prefix then
-                return '$' .. node_types[node.type] .. ' ' .. tostring(node.operand)
-            elseif display_modes.selected_print_mode == display_modes.print_modes.postfix then
-                return tostring(node.operand) .. ' $' .. node_types[node.type]
-            end
-        end,
-    })
+    }, MT)
 end
