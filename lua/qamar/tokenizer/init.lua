@@ -1,72 +1,30 @@
 local deque = require 'qamar.util.deque'
 
-local function new_transaction()
-    local ret
-    ret = {
-        index = 0,
-        copy = function(self)
-            local r = {}
-            for k, v in pairs(self) do
-                r[k] = v
-            end
-            return r
-        end,
-    }
-    return ret
-end
+local token = require 'qamar.tokenizer.token'
 
-return function(buffer)
-    local tokenizers = {
-        require 'qamar.tokenizer.token.comment',
-        require 'qamar.tokenizer.token.symbol',
-        require 'qamar.tokenizer.token.keyword',
-        require 'qamar.tokenizer.token.number',
-        require 'qamar.tokenizer.token.name',
-        require 'qamar.tokenizer.token.string',
-    }
-    local function input()
-        if tokenizers then
-            for _, x in ipairs(tokenizers) do
-                local ret = x(buffer)
-                if ret then
-                    return ret
-                end
-            end
-            buffer.skipws()
-            if buffer.peek() ~= '' then
-                error('invalid token on line ' .. buffer.pos().row .. ', col ' .. buffer.pos().col)
-            else
-                tokenizers = nil
-                return false
-            end
-        else
-            return false
-        end
-    end
-
+return function(stream)
     local la = deque()
     local ts, tc = {}, 0
-    local t = new_transaction()
+    local index = 0
 
     local tokenizer = {}
 
     function tokenizer.begin()
-        table.insert(ts, t)
+        table.insert(ts, index)
         tc = tc + 1
-        t = t:copy()
     end
 
     function tokenizer.undo()
-        t = table.remove(ts)
+        index = table.remove(ts)
         tc = tc - 1
     end
 
     local function normalize_la()
         if tc == 0 then
-            for _ = 1, t.index do
+            for _ = 1, index do
                 la.pop_front()
             end
-            t.index = 0
+            index = 0
         end
     end
 
@@ -78,7 +36,7 @@ return function(buffer)
 
     local function ensure_filled(amt)
         while la.size() < amt do
-            local c = input()
+            local c = token(stream)
             if c then
                 la.push_back(c)
             elseif la.size() == 0 or la[la.size()] then
@@ -90,24 +48,24 @@ return function(buffer)
 
     function tokenizer.peek(skip)
         skip = skip == nil and 0 or skip
-        local idx = t.index + skip + 1
+        local idx = index + skip + 1
         ensure_filled(idx)
         return la[idx] or false
     end
 
     function tokenizer.take(amt)
         amt = amt == nil and 1 or amt
-        local idx = t.index + amt
+        local idx = index + amt
         ensure_filled(idx)
         local ret = {}
         for i = 1, amt do
-            local c = la[t.index + 1]
+            local c = la[index + 1]
             if not c then
                 break
             else
                 ret[i] = c
             end
-            t.index = t.index + 1
+            index = index + 1
         end
         normalize_la()
         return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
@@ -117,11 +75,11 @@ return function(buffer)
         __tostring = function()
             local ret = {}
             for i = 1, la.size() do
-                local line = { (i - 1 == t.index) and '==> ' or '    ' }
+                local line = { (i - 1 == index) and '==> ' or '    ' }
                 table.insert(line, (vim.inspect(la[i]):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')))
                 table.insert(ret, table.concat(line))
             end
-            if t.index == la.size() then
+            if index == la.size() then
                 table.insert(ret, '==>')
             end
             return table.concat(ret, '\n')
