@@ -1,53 +1,51 @@
-local types = require 'qamar.tokenizer.types'
+local token = require 'qamar.tokenizer.types'
 
-local keyword_list = {
-    'and',
-    'break',
-    'do',
-    'else',
-    'elseif',
-    'end',
-    'false',
-    'for',
-    'function',
-    'goto',
-    'if',
-    'in',
-    'local',
-    'nil',
-    'not',
-    'or',
-    'repeat',
-    'return',
-    'then',
-    'true',
-    'until',
-    'while',
-}
-
-return function(buffer)
-    buffer.begin()
-    buffer.skipws()
-    local pos = buffer.pos()
-    local ret = buffer.combinators.alt(unpack(keyword_list))()
+return function(stream)
+    stream.begin()
+    stream.skipws()
+    local pos = stream.pos()
+    local ret = stream.combinators.alt(
+        'and',
+        'break',
+        'do',
+        'else',
+        'elseif',
+        'end',
+        'false',
+        'for',
+        'function',
+        'goto',
+        'if',
+        'in',
+        'local',
+        'nil',
+        'not',
+        'or',
+        'repeat',
+        'return',
+        'then',
+        'true',
+        'until',
+        'while'
+    )()
     if ret then
-        buffer.begin()
-        buffer.suspend_skip_ws()
-        local next = buffer.alphanumeric()
-        buffer.resume_skip_ws()
-        buffer.undo()
+        stream.begin()
+        stream.suspend_skip_ws()
+        local next = stream.alphanumeric()
+        stream.resume_skip_ws()
+        stream.undo()
         if not next then
-            buffer.commit()
-            buffer.resume_skip_ws()
+            stream.commit()
+            stream.resume_skip_ws()
             return {
                 value = ret,
-                type = types['kw_' .. ret],
+                type = token['kw_' .. ret],
                 pos = {
                     left = pos,
-                    right = buffer.pos(),
+                    right = stream.pos(),
                 },
             }
         end
     end
-    buffer.undo()
+    stream.undo()
 end

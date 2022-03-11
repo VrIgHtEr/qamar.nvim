@@ -60,8 +60,7 @@ local types = {
     vararg = true,
 }
 do
-    local names = {}
-    local index = 0
+    local names, index = {}, 0
     for k in pairs(types) do
         index = index + 1
         names[index], types[k] = k, index

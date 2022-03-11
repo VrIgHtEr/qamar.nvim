@@ -1,4 +1,4 @@
-local types = require 'qamar.tokenizer.types'
+local token = require 'qamar.tokenizer.types'
 
 local function tohexdigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
@@ -67,27 +67,27 @@ local function utf8_encode(hex)
     end
 end
 
-return function(buffer, disallow_short_form)
-    buffer.begin()
-    buffer.skipws()
-    local pos = buffer.pos()
-    buffer.suspend_skip_ws()
+return function(stream, disallow_short_form)
+    stream.begin()
+    stream.skipws()
+    local pos = stream.pos()
+    stream.suspend_skip_ws()
     local function fail()
-        buffer.resume_skip_ws()
-        buffer.undo()
+        stream.resume_skip_ws()
+        stream.undo()
     end
     local ret = {}
-    local t = buffer.combinators.alt("'", '"')()
+    local t = stream.combinators.alt("'", '"')()
     if t then
         if disallow_short_form then
             return fail()
         end
         while true do
-            local c = buffer.take()
+            local c = stream.take()
             if c == t then
                 break
             elseif c == '\\' then
-                c = buffer.take()
+                c = stream.take()
                 if c == 'a' then
                     table.insert(ret, '\a')
                 elseif c == 'b' then
@@ -111,28 +111,28 @@ return function(buffer, disallow_short_form)
                 elseif c == '\n' then
                     table.insert(ret, '\n')
                 elseif c == 'z' then
-                    buffer.skipws()
+                    stream.skipws()
                 elseif c == 'x' then
-                    local c1 = tohexdigit(buffer.take())
-                    local c2 = tohexdigit(buffer.take())
+                    local c1 = tohexdigit(stream.take())
+                    local c2 = tohexdigit(stream.take())
                     if not c1 or not c2 then
                         return fail()
                     end
                     table.insert(ret, string.char(c1 * 16 + c2))
                 elseif c == 'u' then
-                    if buffer.take() ~= '{' then
+                    if stream.take() ~= '{' then
                         return fail()
                     end
                     local digits = {}
                     while #digits < 8 do
-                        local nextdigit = tohexdigit(buffer.peek())
+                        local nextdigit = tohexdigit(stream.peek())
                         if not nextdigit then
                             break
                         end
-                        buffer.take()
+                        stream.take()
                         table.insert(digits, nextdigit)
                     end
-                    if buffer.take() ~= '}' then
+                    if stream.take() ~= '}' then
                         return fail
                     end
                     local s = utf8_encode(digits)
@@ -143,11 +143,11 @@ return function(buffer, disallow_short_form)
                 elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
                     local digits = { todecimaldigit(c) }
                     while #digits < 3 do
-                        local nextdigit = todecimaldigit(buffer.peek())
+                        local nextdigit = todecimaldigit(stream.peek())
                         if not nextdigit then
                             break
                         end
-                        buffer.take()
+                        stream.take()
                         table.insert(digits, nextdigit)
                     end
                     local num = 0
@@ -168,7 +168,7 @@ return function(buffer, disallow_short_form)
             end
         end
     else
-        t = buffer.combinators.seq('[', buffer.combinators.zom '=', '[')()
+        t = stream.combinators.seq('[', stream.combinators.zom '=', '[')()
         if t then
             local closing = { ']' }
             for _ = 1, #t[2] do
@@ -176,26 +176,26 @@ return function(buffer, disallow_short_form)
             end
             table.insert(closing, ']')
             closing = table.concat(closing)
-            if buffer.peek() == '\n' then
-                buffer.take()
+            if stream.peek() == '\n' then
+                stream.take()
             end
             while true do
-                local closed = buffer.try_consume_string(closing)
+                local closed = stream.try_consume_string(closing)
                 if closed then
                     break
                 end
-                t = buffer.take()
+                t = stream.take()
                 if t == '' then
                     return fail()
                 elseif t == '\r' then
-                    t = buffer.peek()
+                    t = stream.peek()
                     if t == '\n' then
-                        buffer.take()
+                        stream.take()
                     end
                     table.insert(ret, '\n')
                 elseif t == '\n' then
                     if t == '\r' then
-                        buffer.take()
+                        stream.take()
                     end
                     table.insert(ret, '\n')
                 else
@@ -206,15 +206,15 @@ return function(buffer, disallow_short_form)
             return fail()
         end
     end
-    buffer.commit()
-    buffer.resume_skip_ws()
+    stream.commit()
+    stream.resume_skip_ws()
     ret = table.concat(ret)
     return {
         value = ret,
-        type = types.string,
+        type = token.string,
         pos = {
             left = pos,
-            right = buffer.pos(),
+            right = stream.pos(),
         },
     }
 end

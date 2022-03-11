@@ -29,12 +29,12 @@ function qamar.run()
     print '---------------------------------------------------------------------'
 
     local string = require 'toolshed.util.string'
-    local buffer = require 'qamar.tokenizer.char_stream'
+    local stream = require 'qamar.tokenizer.char_stream'
     local tokenizer = require 'qamar.tokenizer'
     local token_names = require 'qamar.tokenizer.types'
 
     local s = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/tokenizer/char_stream.lua')
-    local t = tokenizer(buffer(string.filteredcodepoints(s)))
+    local t = tokenizer(stream(string.filteredcodepoints(s)))
     t.begin()
     while t.peek() do
         local x = t.take()

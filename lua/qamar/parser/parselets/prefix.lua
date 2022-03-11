@@ -1,21 +1,18 @@
-local display_modes = require 'qamar.display_mode'
-
-local node_types = require 'qamar.parser.types'
-local token_types = require 'qamar.tokenizer.types'
+local config, token, node = require 'qamar.display_mode', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local token_node_mapping = {
-    [token_types.name] = node_types.name,
-    [token_types.number] = node_types.number,
-    [token_types.kw_not] = node_types.lnot,
-    [token_types.len] = node_types.len,
-    [token_types.sub] = node_types.neg,
-    [token_types.bitnot] = node_types.bnot,
+    [token.name] = node.name,
+    [token.number] = node.number,
+    [token.kw_not] = node.lnot,
+    [token.len] = node.len,
+    [token.sub] = node.neg,
+    [token.bitnot] = node.bnot,
 }
 
 local MT = {
     __tostring = function(self)
-        if display_modes.selected_print_mode == display_modes.print_modes.infix then
-            local ret = { node_types[self.type], ' ' }
+        if config.selected_print_mode == config.print_modes.infix then
+            local ret = { node[self.type], ' ' }
             local paren
             if self.operand.precedence > self.precedence then
                 paren = false
@@ -30,24 +27,24 @@ local MT = {
                 table.insert(ret, ')')
             end
             return table.concat(ret)
-        elseif display_modes.selected_print_mode == display_modes.print_modes.prefix then
-            return '$' .. node_types[self.type] .. ' ' .. tostring(self.operand)
-        elseif display_modes.selected_print_mode == display_modes.print_modes.postfix then
-            return tostring(self.operand) .. ' $' .. node_types[self.type]
+        elseif config.selected_print_mode == config.print_modes.prefix then
+            return '$' .. node[self.type] .. ' ' .. tostring(self.operand)
+        elseif config.selected_print_mode == config.print_modes.postfix then
+            return tostring(self.operand) .. ' $' .. node[self.type]
         end
     end,
 }
 
-return function(self, parser, token)
+return function(self, parser, tok)
     local operand = parser.expression(self.precedence - (self.right_associative and 1 or 0))
     if not operand then
         return nil
     end
     return setmetatable({
-        type = token_node_mapping[token.type],
+        type = token_node_mapping[tok.type],
         operand = operand,
         precedence = self.precedence,
         right_associative = self.right_associative,
-        pos = { left = token.pos.left, right = operand.pos.right },
+        pos = { left = tok.pos.left, right = operand.pos.right },
     }, MT)
 end

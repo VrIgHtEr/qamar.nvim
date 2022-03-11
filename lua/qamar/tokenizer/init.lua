@@ -1,13 +1,7 @@
-local deque = require 'qamar.util.deque'
-
-local token = require 'qamar.tokenizer.token'
+local deque, token = require 'qamar.util.deque', require 'qamar.tokenizer.token'
 
 return function(stream)
-    local la = deque()
-    local ts, tc = {}, 0
-    local index = 0
-
-    local tokenizer = {}
+    local tokenizer, la, ts, tc, index = {}, deque(), {}, 0, 0
 
     function tokenizer.begin()
         table.insert(ts, index)

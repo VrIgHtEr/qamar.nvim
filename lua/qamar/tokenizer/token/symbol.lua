@@ -36,29 +36,29 @@ local symbols = {
 
 local t = {}
 do
-    local types = require 'qamar.tokenizer.types'
+    local token = require 'qamar.tokenizer.types'
     for k, v in pairs(symbols) do
-        symbols[k] = types[v]
+        symbols[k] = token[v]
         table.insert(t, k)
     end
 end
 
-return function(buffer)
-    buffer.begin()
-    buffer.skipws()
-    local pos = buffer.pos()
-    local ret = buffer.combinators.alt(unpack(t))()
+return function(stream)
+    stream.begin()
+    stream.skipws()
+    local pos = stream.pos()
+    local ret = stream.combinators.alt(unpack(t))()
     if ret then
-        buffer.commit()
-        buffer.resume_skip_ws()
+        stream.commit()
+        stream.resume_skip_ws()
         return {
             value = ret,
             type = symbols[ret],
             pos = {
                 left = pos,
-                right = buffer.pos(),
+                right = stream.pos(),
             },
         }
     end
-    buffer.undo()
+    stream.undo()
 end

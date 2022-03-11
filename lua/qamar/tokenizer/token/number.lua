@@ -1,23 +1,23 @@
-local types = require 'qamar.tokenizer.types'
+local token = require 'qamar.tokenizer.types'
 
-return function(buffer)
-    buffer.begin()
-    buffer.skipws()
-    buffer.suspend_skip_ws()
+return function(stream)
+    stream.begin()
+    stream.skipws()
+    stream.suspend_skip_ws()
     local function fail()
-        buffer.resume_skip_ws()
-        buffer.undo()
+        stream.resume_skip_ws()
+        stream.undo()
     end
-    local pos = buffer.pos()
-    local val = buffer.combinators.alt('0x', '0X')()
+    local pos = stream.pos()
+    local val = stream.combinators.alt('0x', '0X')()
     local ret = {}
     local digitparser, exponentparser
     if val then
         table.insert(ret, val:lower())
         digitparser, exponentparser =
-            buffer.combinators.alt(buffer.numeric, 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F'), buffer.combinators.alt('p', 'P')
+            stream.combinators.alt(stream.numeric, 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F'), stream.combinators.alt('p', 'P')
     else
-        digitparser, exponentparser = buffer.numeric, buffer.combinators.alt('e', 'E')
+        digitparser, exponentparser = stream.numeric, stream.combinators.alt('e', 'E')
     end
 
     val = digitparser()
@@ -29,7 +29,7 @@ return function(buffer)
         val = digitparser()
     end
 
-    val = buffer.try_consume_string '.'
+    val = stream.try_consume_string '.'
     if val then
         table.insert(ret, val)
         val = digitparser()
@@ -45,8 +45,8 @@ return function(buffer)
     val = exponentparser()
     if val then
         table.insert(ret, val)
-        local sign = buffer.combinators.alt('-', '+')()
-        val = buffer.numeric()
+        local sign = stream.combinators.alt('-', '+')()
+        val = stream.numeric()
         if sign and not val then
             return fail()
         end
@@ -56,14 +56,14 @@ return function(buffer)
         end
     end
 
-    buffer.resume_skip_ws()
-    buffer.commit()
+    stream.resume_skip_ws()
+    stream.commit()
     return {
         value = table.concat(ret),
-        type = types.number,
+        type = token.number,
         pos = {
             left = pos,
-            right = buffer.pos(),
+            right = stream.pos(),
         },
     }
 end

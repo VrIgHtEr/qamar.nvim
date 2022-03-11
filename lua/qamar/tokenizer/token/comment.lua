@@ -1,41 +1,40 @@
-local types = require 'qamar.tokenizer.types'
-local stringparser = require 'qamar.tokenizer.token.string'
+local token, string_token = require 'qamar.tokenizer.types', require 'qamar.tokenizer.token.string'
 
-return function(buffer)
-    buffer.begin()
-    buffer.skipws()
-    buffer.suspend_skip_ws()
-    local pos = buffer.pos()
-    local comment = buffer.try_consume_string '--'
+return function(stream)
+    stream.begin()
+    stream.skipws()
+    stream.suspend_skip_ws()
+    local pos = stream.pos()
+    local comment = stream.try_consume_string '--'
     if not comment then
-        buffer.resume_skip_ws()
-        buffer.undo()
+        stream.resume_skip_ws()
+        stream.undo()
         return nil
     end
-    local ret = stringparser(buffer, true)
+    local ret = string_token(stream, true)
     if ret then
-        ret.type = types.comment
+        ret.type = token.comment
         ret.pos.left = pos
-        buffer.resume_skip_ws()
-        buffer.commit()
+        stream.resume_skip_ws()
+        stream.commit()
         return ret
     end
     ret = {}
     while true do
-        local c = buffer.peek()
+        local c = stream.peek()
         if c == '' or c == '\n' then
             break
         end
-        table.insert(ret, buffer.take())
+        table.insert(ret, stream.take())
     end
-    buffer.commit()
-    buffer.resume_skip_ws()
+    stream.commit()
+    stream.resume_skip_ws()
     return {
         value = table.concat(ret),
-        type = types.comment,
+        type = token.comment,
         pos = {
             left = pos,
-            right = buffer.pos(),
+            right = stream.pos(),
         },
     }
 end

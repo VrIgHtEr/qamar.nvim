@@ -1,23 +1,22 @@
-local token_types = require 'qamar.tokenizer.types'
-local node_types = require 'qamar.parser.types'
+local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local token_node_mapping = {
-    [token_types.name] = node_types.name,
-    [token_types.number] = node_types.number,
+    [token.name] = node.name,
+    [token.number] = node.number,
 }
 
 local MT = {
-    __tostring = function(node)
-        return node.value
+    __tostring = function(self)
+        return self.value
     end,
 }
 
-return function(self, _, token)
+return function(self, _, tok)
     return setmetatable({
-        value = token.value,
-        type = token_node_mapping[token.type],
+        value = tok.value,
+        type = token_node_mapping[tok.type],
         precedence = self.precedence,
         right_associative = self.right_associative,
-        pos = token.pos,
+        pos = tok.pos,
     }, MT)
 end

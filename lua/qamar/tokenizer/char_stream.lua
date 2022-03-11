@@ -1,27 +1,5 @@
 local string, deque = require 'toolshed.util.string', require 'qamar.util.deque'
 
-local function new_transaction()
-    local ret
-    ret = {
-        index = 0,
-        file_char = 0,
-        row = 1,
-        col = 1,
-        byte = 0,
-        file_byte = 0,
-        copy = function(self)
-            local r = {}
-            for k, v in pairs(self) do
-                r[k] = v
-            end
-            return r
-        end,
-    }
-    return ret
-end
-
----comment Create a buffered iterator reader
----@param input function An iterator which provides utf-8 codepoints
 return function(input)
     if type(input) ~= 'function' then
         return nil, 'expected a function as input'
@@ -43,20 +21,30 @@ return function(input)
         end
     end
 
-    local la = deque()
-    local ts, tc = {}, 0
-    local t = new_transaction()
+    local char_stream, la, ts, tc, skip_ws_ctr, t =
+        {}, deque(), {}, 0, 0, {
+            index = 0,
+            file_char = 0,
+            row = 1,
+            col = 1,
+            byte = 0,
+            file_byte = 0,
+            copy = function(self)
+                local r = {}
+                for k, v in pairs(self) do
+                    r[k] = v
+                end
+                return r
+            end,
+        }
 
-    local skip_ws_ctr = 0
-    local buffer = {}
-
-    function buffer.begin()
+    function char_stream.begin()
         table.insert(ts, t)
         tc = tc + 1
         t = t:copy()
     end
 
-    function buffer.undo()
+    function char_stream.undo()
         t = table.remove(ts)
         tc = tc - 1
     end
@@ -70,7 +58,7 @@ return function(input)
         end
     end
 
-    function buffer.commit()
+    function char_stream.commit()
         table.remove(ts)
         tc = tc - 1
         normalize_la()
@@ -88,14 +76,14 @@ return function(input)
         end
     end
 
-    function buffer.peek(skip)
+    function char_stream.peek(skip)
         skip = skip == nil and 0 or skip
         local idx = t.index + skip + 1
         ensure_filled(idx)
         return la[idx] or ''
     end
 
-    function buffer.take(amt)
+    function char_stream.take(amt)
         amt = amt == nil and 1 or amt
         local idx = t.index + amt
         ensure_filled(idx)
@@ -120,55 +108,55 @@ return function(input)
         return #ret > 0 and table.concat(ret) or nil
     end
 
-    function buffer.pos()
+    function char_stream.pos()
         return { file_char = t.file_char, row = t.row, col = t.col, file_byte = t.file_byte, byte = t.byte }
     end
 
-    function buffer.try_consume_string(s)
+    function char_stream.try_consume_string(s)
         local i = 0
         for x in string.codepoints(s) do
-            local c = buffer.peek(i)
+            local c = char_stream.peek(i)
             if c ~= x then
                 return
             end
             i = i + 1
         end
-        return buffer.take(i)
+        return char_stream.take(i)
     end
 
-    function buffer.skipws()
+    function char_stream.skipws()
         if skip_ws_ctr == 0 then
             while true do
-                local c = buffer.peek()
+                local c = char_stream.peek()
                 if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
                     break
                 end
-                buffer.take()
+                char_stream.take()
             end
         end
     end
 
-    function buffer.suspend_skip_ws()
+    function char_stream.suspend_skip_ws()
         skip_ws_ctr = skip_ws_ctr + 1
     end
 
-    function buffer.resume_skip_ws()
+    function char_stream.resume_skip_ws()
         if skip_ws_ctr > 0 then
             skip_ws_ctr = skip_ws_ctr - 1
         end
     end
 
-    buffer.combinators = {
+    char_stream.combinators = {
         alt = function(...)
             local args = { ... }
             return function()
                 local ret, right = nil, nil
                 for _, x in ipairs(args) do
-                    buffer.begin()
-                    buffer.skipws()
+                    char_stream.begin()
+                    char_stream.skipws()
                     local T = type(x)
                     if T == 'string' then
-                        T = buffer.try_consume_string(x)
+                        T = char_stream.try_consume_string(x)
                     elseif T == 'function' then
                         T = x()
                     else
@@ -179,11 +167,11 @@ return function(input)
                             ret, right = T, t.file_char
                         end
                     end
-                    buffer.undo()
+                    char_stream.undo()
                 end
                 if ret then
                     while t.file_char < right do
-                        buffer.take()
+                        char_stream.take()
                     end
                     return ret
                 end
@@ -193,12 +181,12 @@ return function(input)
         opt = function(x)
             return function()
                 local T = type(x)
-                buffer.skipws()
-                if buffer.peek() == '' then
+                char_stream.skipws()
+                if char_stream.peek() == '' then
                     return {}
                 end
                 if T == 'string' then
-                    T = buffer.try_consume_string(x)
+                    T = char_stream.try_consume_string(x)
                 elseif T == 'function' then
                     T = x()
                 else
@@ -214,11 +202,11 @@ return function(input)
             return function()
                 local ret = {}
                 local T = type(x)
-                while buffer.peek() ~= '' do
-                    buffer.skipws()
+                while char_stream.peek() ~= '' do
+                    char_stream.skipws()
                     local v
                     if T == 'string' then
-                        v = buffer.try_consume_string(x)
+                        v = char_stream.try_consume_string(x)
                     elseif T == 'function' then
                         v = x()
                     else
@@ -229,7 +217,7 @@ return function(input)
                     end
                     table.insert(ret, v)
                 end
-                if buffer.peek() == '' then
+                if char_stream.peek() == '' then
                     return ret
                 end
             end
@@ -239,31 +227,31 @@ return function(input)
             local args = { ... }
             return function()
                 local ret = {}
-                buffer.begin()
+                char_stream.begin()
                 for _, x in ipairs(args) do
-                    buffer.skipws()
+                    char_stream.skipws()
                     local T = type(x)
                     if T == 'function' then
                         T = x()
                     elseif T == 'string' then
-                        T = buffer.try_consume_string(x)
+                        T = char_stream.try_consume_string(x)
                     else
                         T = nil
                     end
                     if T == nil then
-                        buffer.undo()
+                        char_stream.undo()
                         return nil
                     end
                     table.insert(ret, T)
                 end
-                buffer.commit()
+                char_stream.commit()
                 return ret
             end
         end,
     }
 
-    function buffer.alpha()
-        return buffer.combinators.alt(
+    function char_stream.alpha()
+        return char_stream.combinators.alt(
             '_',
             'a',
             'b',
@@ -320,15 +308,15 @@ return function(input)
         )()
     end
 
-    function buffer.numeric()
-        return buffer.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')()
+    function char_stream.numeric()
+        return char_stream.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')()
     end
 
-    function buffer.alphanumeric()
-        return buffer.combinators.alt(buffer.alpha, buffer.numeric)()
+    function char_stream.alphanumeric()
+        return char_stream.combinators.alt(char_stream.alpha, char_stream.numeric)()
     end
 
-    return setmetatable(buffer, {
+    return setmetatable(char_stream, {
         __tostring = function()
             local ret = {}
             for i = 1, la.size() do
