@@ -36,7 +36,7 @@ local symbols = {
 
 local t = {}
 do
-    local types = require 'qamar.token.types'
+    local types = require 'qamar.tokenizer.types'
     for k, v in pairs(symbols) do
         symbols[k] = types[v]
         table.insert(t, k)

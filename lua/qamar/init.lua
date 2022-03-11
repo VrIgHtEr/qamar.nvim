@@ -33,10 +33,16 @@ function qamar.run()
         end
     end
 
+    local ppp = require 'qamar.parser'(
+        require 'qamar.tokenizer'(require 'qamar.tokenizer.buffer'(require('toolshed.util.string').codepoints 'a+-b*-3^((4 or 7)+6)^7+4+(7+5)'))
+    )
+    local parsed = ppp.expression()
+    print(parsed)
+
     local string = require 'toolshed.util.string'
-    local buffer = require 'qamar.token.buffer'
-    local tokenizer = require 'qamar.token'
-    local token_names = require 'qamar.token.token_names'
+    local buffer = require 'qamar.tokenizer.buffer'
+    local tokenizer = require 'qamar.tokenizer'
+    local token_names = require 'qamar.tokenizer.token_names'
 
     local s = [====[
 ::lbl::   -- this is a comment
@@ -46,7 +52,7 @@ this is a comment
 as well]] x = 7 + 3
 local y = '😊😊😊😊😊😊😊'
     ]====]
-    s = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/token/buffer.lua')
+    s = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/tokenizer/buffer.lua')
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
     t.begin()
     while t.peek() do

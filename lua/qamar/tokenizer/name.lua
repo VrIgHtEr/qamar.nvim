@@ -1,6 +1,6 @@
-local types = require 'qamar.token.types'
+local types = require 'qamar.tokenizer.types'
 
-local keywords = require 'qamar.token.keyword_list'
+local keywords = require 'qamar.tokenizer.keyword_list'
 
 return function(buffer)
     buffer.begin()

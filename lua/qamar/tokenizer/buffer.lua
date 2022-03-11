@@ -1,4 +1,4 @@
-local string, deque = require 'toolshed.util.string', require 'qamar.deque'
+local string, deque = require 'toolshed.util.string', require 'qamar.util.deque'
 
 local function new_transaction()
     local ret

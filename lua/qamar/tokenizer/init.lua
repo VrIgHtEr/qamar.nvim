@@ -1,4 +1,4 @@
-local deque = require 'qamar.deque'
+local deque = require 'qamar.util.deque'
 
 local function new_transaction()
     local ret
@@ -17,12 +17,12 @@ end
 
 return function(buffer)
     local tokenizers = {
-        require 'qamar.token.comment',
-        require 'qamar.token.symbol',
-        require 'qamar.token.keyword',
-        require 'qamar.token.number',
-        require 'qamar.token.name',
-        require 'qamar.token.string',
+        require 'qamar.tokenizer.comment',
+        require 'qamar.tokenizer.symbol',
+        require 'qamar.tokenizer.keyword',
+        require 'qamar.tokenizer.number',
+        require 'qamar.tokenizer.name',
+        require 'qamar.tokenizer.string',
     }
     local function input()
         if tokenizers then

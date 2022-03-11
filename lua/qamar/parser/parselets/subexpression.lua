@@ -1,8 +1,8 @@
-local token_types = require 'qamar.token.types'
+local token_types = require 'qamar.tokenizer.types'
 return function(_, parser, token)
     local left = token.pos.left
     parser.tokenizer.begin()
-    local exp = parser.parse_exp()
+    local exp = parser.expression()
     if not exp then
         parser.tokenizer.undo()
         return nil

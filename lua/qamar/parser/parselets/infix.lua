@@ -1,5 +1,5 @@
-local node_types = require 'qamar.parse.types'
-local token_types = require 'qamar.token.types'
+local node_types = require 'qamar.parser.types'
+local token_types = require 'qamar.tokenizer.types'
 
 local display_modes = require 'qamar.display_mode'
 
@@ -26,8 +26,9 @@ local token_node_mapping = {
     [token_types.mod] = node_types.mod,
     [token_types.exp] = node_types.exp,
 }
+
 return function(self, parser, left, token)
-    local right = parser.parse_exp(self.precedence - (self.right_associative and 1 or 0))
+    local right = parser.expression(self.precedence - (self.right_associative and 1 or 0))
     if not right then
         return nil
     end

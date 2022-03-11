@@ -1,9 +1,9 @@
-local token_types = require 'qamar.token.types'
-local nodetypes = require 'qamar.parse.types'
+local token_types = require 'qamar.tokenizer.types'
+local node_types = require 'qamar.parser.types'
 
 local token_node_mapping = {
-    [token_types.name] = nodetypes.name,
-    [token_types.number] = nodetypes.number,
+    [token_types.name] = node_types.name,
+    [token_types.number] = node_types.number,
 }
 
 return function(self, _, token)

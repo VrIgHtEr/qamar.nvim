@@ -1,7 +1,7 @@
-local types = require 'qamar.token.types'
+local types = require 'qamar.tokenizer.types'
 
 local keywords = {}
-for x in pairs(require 'qamar.token.keyword_list') do
+for x in pairs(require 'qamar.tokenizer.keyword_list') do
     table.insert(keywords, x)
 end
 
