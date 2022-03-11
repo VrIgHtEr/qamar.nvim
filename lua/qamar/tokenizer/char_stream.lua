@@ -39,14 +39,12 @@ return function(input)
         }
 
     function char_stream.begin()
-        table.insert(ts, t)
         tc = tc + 1
-        t = t:copy()
+        ts[tc] = t:copy()
     end
 
     function char_stream.undo()
-        t = table.remove(ts)
-        tc = tc - 1
+        t, ts[tc], tc = ts[tc], nil, tc - 1
     end
 
     local function normalize_la()
@@ -59,8 +57,7 @@ return function(input)
     end
 
     function char_stream.commit()
-        table.remove(ts)
-        tc = tc - 1
+        ts[tc], tc = nil, tc - 1
         normalize_la()
     end
 
