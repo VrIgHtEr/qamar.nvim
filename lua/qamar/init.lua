@@ -31,7 +31,7 @@ function qamar.run()
     local string = require 'toolshed.util.string'
     local buffer = require 'qamar.tokenizer.buffer'
     local tokenizer = require 'qamar.tokenizer'
-    local token_names = require 'qamar.tokenizer.token_names'
+    local token_names = require 'qamar.tokenizer.types'
 
     local s = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/tokenizer/buffer.lua')
     local t = tokenizer(buffer(string.filteredcodepoints(s)))
