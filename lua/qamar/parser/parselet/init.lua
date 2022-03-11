@@ -1,0 +1,36 @@
+local token, precedence = require 'qamar.tokenizer.types', require 'qamar.parser.precedence'
+
+return {
+    infix = {
+        [token.kw_or] = { precedence = precedence.lor, parse = require 'qamar.parser.parselet.infix' },
+        [token.kw_and] = { precedence = precedence.land, parse = require 'qamar.parser.parselet.infix' },
+        [token.lt] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.gt] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.leq] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.geq] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.neq] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.eq] = { precedence = precedence.comparison, parse = require 'qamar.parser.parselet.infix' },
+        [token.bitor] = { precedence = precedence.bor, parse = require 'qamar.parser.parselet.infix' },
+        [token.bitnot] = { precedence = precedence.bxor, parse = require 'qamar.parser.parselet.infix' },
+        [token.bitand] = { precedence = precedence.band, parse = require 'qamar.parser.parselet.infix' },
+        [token.lshift] = { precedence = precedence.shift, parse = require 'qamar.parser.parselet.infix' },
+        [token.rshift] = { precedence = precedence.shift, parse = require 'qamar.parser.parselet.infix' },
+        [token.concat] = { precedence = precedence.concat, parse = require 'qamar.parser.parselet.infix', right_associative = true },
+        [token.add] = { precedence = precedence.add, parse = require 'qamar.parser.parselet.infix' },
+        [token.sub] = { precedence = precedence.add, parse = require 'qamar.parser.parselet.infix' },
+        [token.mul] = { precedence = precedence.mul, parse = require 'qamar.parser.parselet.infix' },
+        [token.div] = { precedence = precedence.mul, parse = require 'qamar.parser.parselet.infix' },
+        [token.fdiv] = { precedence = precedence.mul, parse = require 'qamar.parser.parselet.infix' },
+        [token.mod] = { precedence = precedence.mul, parse = require 'qamar.parser.parselet.infix' },
+        [token.exp] = { precedence = precedence.exp, parse = require 'qamar.parser.parselet.infix', right_associative = true },
+    },
+    prefix = {
+        [token.kw_not] = { precedence = precedence.unary, parse = require 'qamar.parser.parselet.prefix' },
+        [token.len] = { precedence = precedence.unary, parse = require 'qamar.parser.parselet.prefix' },
+        [token.sub] = { precedence = precedence.unary, parse = require 'qamar.parser.parselet.prefix' },
+        [token.bitnot] = { precedence = precedence.unary, parse = require 'qamar.parser.parselet.prefix' },
+        [token.lparen] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.subexpression' },
+        [token.name] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.number] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+    },
+}

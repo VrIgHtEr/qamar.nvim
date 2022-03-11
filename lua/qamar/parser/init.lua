@@ -1,9 +1,9 @@
-local parselets = require 'qamar.parser.parselets'
+local parselet = require 'qamar.parser.parselet'
 
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()
     if next then
-        local infix = parselets.infix[next.type]
+        local infix = parselet.infix[next.type]
         if infix then
             return infix.precedence
         end
@@ -23,7 +23,7 @@ return function(tokenizer)
             return
         end
 
-        local prefix = parselets.prefix[token.type]
+        local prefix = parselet.prefix[token.type]
         if not prefix then
             tokenizer.undo()
             return
@@ -42,7 +42,7 @@ return function(tokenizer)
                 return left
             end
 
-            local infix = parselets.infix[token.type]
+            local infix = parselet.infix[token.type]
             if not infix then
                 tokenizer.commit()
                 return left
