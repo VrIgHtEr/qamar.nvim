@@ -4,9 +4,9 @@ local token_node_mapping = {
     [token.name] = node.name,
     [token.number] = node.number,
     [token.kw_not] = node.lnot,
-    [token.len] = node.len,
-    [token.sub] = node.neg,
-    [token.bitnot] = node.bnot,
+    [token.hash] = node.len,
+    [token.dash] = node.neg,
+    [token.tilde] = node.bnot,
 }
 
 local MT = {

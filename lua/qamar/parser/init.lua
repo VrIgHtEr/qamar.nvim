@@ -66,16 +66,16 @@ return function(tokenizer)
     end
 
     p.fieldsep = alt(t.comma, t.semicolon)
-    p.field = alt(seq(t.lbracket, p.expression, t.rbracket, t.assign, p.expression), seq(t.name, t.assign, p.expression), p.expression)
+    p.field = alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression)
     p.fieldlist = seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep))
     p.tableconstructor = seq(t.lbrace, p.fieldlist, t.rbrace)
     p.namelist = seq(t.name, zom(seq(t.comma, t.name)))
-    p.parlist = alt(seq(p.namelist, opt(seq(t.comma, t.vararg))), t.vararg)
+    p.parlist = alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot)
     p.explist = seq(p.expression, zom(seq(t.comma, t.expression)))
-    p.attrib = opt(seq(t.lt, t.name, t.gt))
+    p.attrib = opt(seq(t.less, t.name, t.greater))
     p.attnamelist = seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib)))
     p.retstat = seq(t.kw_return, opt(p.explist), opt(t.semicolon))
-    p.label = seq(t.label, t.name, t.label)
+    p.label = seq(t.doublecolon, t.name, t.doublecolon)
     p.funcname = seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name)))
 
     return p
