@@ -1,6 +1,12 @@
-local token = require 'qamar.tokenizer.types'
+local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
-return function(_, parser, tok)
+local MT = {
+    __tostring = function(self)
+        return '(' .. tostring(self.value) .. ')'
+    end,
+}
+
+return function(self, parser, tok)
     local left = tok.pos.left
     parser.tokenizer.begin()
     local exp = parser.expression()
@@ -15,6 +21,11 @@ return function(_, parser, tok)
     end
     parser.tokenizer.take()
     parser.tokenizer.commit()
-    exp.pos.left, exp.pos.right = left, tok.pos.right
-    return exp
+    return setmetatable({
+        value = exp,
+        type = node.subexpression,
+        precedence = self.precedence,
+        right_associative = self.right_associative,
+        pos = { left = left, right = tok.pos.right },
+    }, MT)
 end

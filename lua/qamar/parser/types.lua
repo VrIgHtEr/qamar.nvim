@@ -38,6 +38,7 @@ local types = {
     retstat = '$retstat',
     label = '$label',
     funcname = '$funcname',
+    subexpression = '$subexpression',
 }
 
 do
