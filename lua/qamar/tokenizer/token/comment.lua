@@ -1,5 +1,5 @@
 local types = require 'qamar.tokenizer.types'
-local stringparser = require 'qamar.tokenizer.string'
+local stringparser = require 'qamar.tokenizer.token.string'
 
 return function(buffer)
     buffer.begin()

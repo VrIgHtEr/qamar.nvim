@@ -1,15 +1,35 @@
 local types = require 'qamar.tokenizer.types'
 
-local keywords = {}
-for x in pairs(require 'qamar.tokenizer.keyword_list') do
-    table.insert(keywords, x)
-end
+local keyword_list = {
+    'and',
+    'break',
+    'do',
+    'else',
+    'elseif',
+    'end',
+    'false',
+    'for',
+    'function',
+    'goto',
+    'if',
+    'in',
+    'local',
+    'nil',
+    'not',
+    'or',
+    'repeat',
+    'return',
+    'then',
+    'true',
+    'until',
+    'while',
+}
 
 return function(buffer)
     buffer.begin()
     buffer.skipws()
     local pos = buffer.pos()
-    local ret = buffer.combinators.alt(unpack(keywords))()
+    local ret = buffer.combinators.alt(unpack(keyword_list))()
     if ret then
         buffer.begin()
         buffer.suspend_skip_ws()

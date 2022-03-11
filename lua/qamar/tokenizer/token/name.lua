@@ -1,7 +1,5 @@
 local types = require 'qamar.tokenizer.types'
 
-local keywords = require 'qamar.tokenizer.keyword_list'
-
 return function(buffer)
     buffer.begin()
     buffer.skipws()
@@ -22,11 +20,6 @@ return function(buffer)
         end
     end
     ret = table.concat(ret)
-    if keywords[ret] then
-        buffer.undo()
-        buffer.resume_skip_ws()
-        return nil
-    end
     buffer.commit()
     buffer.resume_skip_ws()
     return {

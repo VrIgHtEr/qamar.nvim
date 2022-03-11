@@ -17,12 +17,12 @@ end
 
 return function(buffer)
     local tokenizers = {
-        require 'qamar.tokenizer.comment',
-        require 'qamar.tokenizer.symbol',
-        require 'qamar.tokenizer.keyword',
-        require 'qamar.tokenizer.number',
-        require 'qamar.tokenizer.name',
-        require 'qamar.tokenizer.string',
+        require 'qamar.tokenizer.token.comment',
+        require 'qamar.tokenizer.token.symbol',
+        require 'qamar.tokenizer.token.keyword',
+        require 'qamar.tokenizer.token.number',
+        require 'qamar.tokenizer.token.name',
+        require 'qamar.tokenizer.token.string',
     }
     local function input()
         if tokenizers then
