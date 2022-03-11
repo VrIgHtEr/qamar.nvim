@@ -1,4 +1,4 @@
-local config, token, node = require 'qamar.display_mode', require 'qamar.tokenizer.types', require 'qamar.parser.types'
+local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local token_node_mapping = {
     [token.kw_or] = node.lor,
@@ -26,7 +26,7 @@ local token_node_mapping = {
 
 local MT = {
     __tostring = function(self)
-        if config.selected_print_mode == config.print_modes.infix then
+        if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = {}
             local paren = self.left.precedence < self.precedence or self.left.precedence == self.precedence and self.right_associative
             if paren then
@@ -48,9 +48,9 @@ local MT = {
                 table.insert(ret, ')')
             end
             return table.concat(ret)
-        elseif config.selected_print_mode == config.print_modes.prefix then
+        elseif config.expression_display_mode == config.expression_display_modes.prefix then
             return node[self.type] .. ' ' .. tostring(self.left) .. ' ' .. tostring(self.right)
-        elseif config.selected_print_mode == config.print_modes.postfix then
+        elseif config.expression_display_mode == config.expression_display_modes.postfix then
             return tostring(self.left) .. ' ' .. tostring(self.right) .. ' ' .. node[self.type]
         end
     end,
