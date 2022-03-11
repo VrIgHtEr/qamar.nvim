@@ -6,6 +6,12 @@ local token_node_mapping = {
     [token_types.number] = node_types.number,
 }
 
+local MT = {
+    __tostring = function(node)
+        return node.value
+    end,
+}
+
 return function(self, _, token)
     return setmetatable({
         value = token.value,
@@ -13,9 +19,5 @@ return function(self, _, token)
         precedence = self.precedence,
         right_associative = self.right_associative,
         pos = token.pos,
-    }, {
-        __tostring = function(node)
-            return node.value
-        end,
-    })
+    }, MT)
 end
