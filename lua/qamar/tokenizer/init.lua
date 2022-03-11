@@ -83,8 +83,9 @@ return function(stream)
                 for _, x in ipairs(args) do
                     tokenizer.begin()
                     local T = type(x)
-                    if T == 'string' then
-                        T = tokenizer.try_consume_string(x)
+                    if T == 'number' then
+                        local tok = tokenizer.take()
+                        T = (tok and tok.type == x) and tok or nil
                     elseif T == 'function' then
                         T = x()
                     else
@@ -112,8 +113,9 @@ return function(stream)
                 if tokenizer.peek() == '' then
                     return {}
                 end
-                if T == 'string' then
-                    T = tokenizer.try_consume_string(x)
+                if T == 'number' then
+                    local tok = tokenizer.take()
+                    T = (tok and tok.type == x) and tok or nil
                 elseif T == 'function' then
                     T = x()
                 else
@@ -131,8 +133,9 @@ return function(stream)
                 local T = type(x)
                 while tokenizer.peek() ~= '' do
                     local v
-                    if T == 'string' then
-                        v = tokenizer.try_consume_string(x)
+                    if T == 'number' then
+                        local tok = tokenizer.take()
+                        v = (tok and tok.type == x) and tok or nil
                     elseif T == 'function' then
                         v = x()
                     else
@@ -158,8 +161,9 @@ return function(stream)
                     local T = type(x)
                     if T == 'function' then
                         T = x()
-                    elseif T == 'string' then
-                        T = tokenizer.try_consume_string(x)
+                    elseif T == 'number' then
+                        local tok = tokenizer.take()
+                        T = (tok and tok.type == x) and tok or nil
                     else
                         T = nil
                     end
