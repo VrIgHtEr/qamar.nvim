@@ -161,7 +161,7 @@ return function(stream, disallow_short_form)
                 else
                     return fail()
                 end
-            elseif c == '\n' or c == '' then
+            elseif not c or c == '\n' then
                 return fail()
             else
                 table.insert(ret, c)
@@ -185,7 +185,7 @@ return function(stream, disallow_short_form)
                     break
                 end
                 t = stream.take()
-                if t == '' then
+                if not t then
                     return fail()
                 elseif t == '\r' then
                     t = stream.peek()

@@ -8,7 +8,7 @@ local tokenizers = {
 }
 
 return function(stream)
-    if stream.peek() ~= '' then
+    if stream.peek() then
         for _, x in ipairs(tokenizers) do
             local ret = x(stream)
             if ret then
@@ -16,7 +16,7 @@ return function(stream)
             end
         end
         stream.skipws()
-        if stream.peek() ~= '' then
+        if stream.peek() then
             error('invalid token on line ' .. stream.pos().row .. ', col ' .. stream.pos().col)
         end
     end

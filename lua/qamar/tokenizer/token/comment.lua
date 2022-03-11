@@ -22,7 +22,7 @@ return function(stream)
     ret = {}
     while true do
         local c = stream.peek()
-        if c == '' or c == '\n' then
+        if not c or c == '\n' then
             break
         end
         table.insert(ret, stream.take())

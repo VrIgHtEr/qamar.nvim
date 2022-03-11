@@ -7,17 +7,13 @@ return function(input)
     do
         local _input = input
         input = function()
-            if not _input then
-                return ''
-            end
-            local ret = _input()
-            if ret == nil then
+            if _input then
+                local ret = _input()
+                if ret then
+                    return ret
+                end
                 _input = nil
-                return ''
-            elseif type(ret) ~= 'string' or ret == '' then
-                error 'iterator must return non-empty string or nil'
             end
-            return ret
         end
     end
 
@@ -64,10 +60,10 @@ return function(input)
     local function ensure_filled(amt)
         while la.size() < amt do
             local c = input()
-            if c ~= '' then
+            if c then
                 la.push_back(c)
-            elseif la.size() == 0 or la[la.size()] ~= '' then
-                la.push_back ''
+            elseif la.size() == 0 or la[la.size()] then
+                la.push_back(false)
                 break
             end
         end
@@ -77,7 +73,7 @@ return function(input)
         skip = skip == nil and 0 or skip
         local idx = t.index + skip + 1
         ensure_filled(idx)
-        return la[idx] or ''
+        return la[idx] or nil
     end
 
     function char_stream.take(amt)
@@ -87,7 +83,7 @@ return function(input)
         local ret = {}
         for i = 1, amt do
             local c = la[t.index + 1]
-            if c == '' then
+            if not c then
                 break
             else
                 local off = c:len()
@@ -179,7 +175,7 @@ return function(input)
             return function()
                 local T = type(x)
                 char_stream.skipws()
-                if char_stream.peek() == '' then
+                if not char_stream.peek() then
                     return {}
                 end
                 if T == 'string' then
@@ -199,7 +195,7 @@ return function(input)
             return function()
                 local ret = {}
                 local T = type(x)
-                while char_stream.peek() ~= '' do
+                while char_stream.peek() do
                     char_stream.skipws()
                     local v
                     if T == 'string' then
@@ -214,7 +210,7 @@ return function(input)
                     end
                     table.insert(ret, v)
                 end
-                if char_stream.peek() == '' then
+                if not char_stream.peek() then
                     return ret
                 end
             end
