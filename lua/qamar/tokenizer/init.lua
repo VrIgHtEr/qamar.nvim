@@ -84,8 +84,8 @@ return function(stream)
                     tokenizer.begin()
                     local T = type(x)
                     if T == 'number' then
-                        local tok = tokenizer.take()
-                        T = (tok and tok.type == x) and tok or nil
+                        local tok = tokenizer.peek()
+                        T = (tok and tok.type == x) and tokenizer.take() or nil
                     elseif T == 'function' then
                         T = x()
                     else
@@ -110,12 +110,12 @@ return function(stream)
         opt = function(x)
             return function()
                 local T = type(x)
-                if tokenizer.peek() == '' then
+                if not tokenizer.peek() then
                     return {}
                 end
                 if T == 'number' then
-                    local tok = tokenizer.take()
-                    T = (tok and tok.type == x) and tok or nil
+                    local tok = tokenizer.peek()
+                    T = (tok and tok.type == x) and tokenizer.take() or nil
                 elseif T == 'function' then
                     T = x()
                 else
@@ -131,11 +131,11 @@ return function(stream)
             return function()
                 local ret = {}
                 local T = type(x)
-                while tokenizer.peek() ~= '' do
+                while tokenizer.peek() do
                     local v
                     if T == 'number' then
-                        local tok = tokenizer.take()
-                        v = (tok and tok.type == x) and tok or nil
+                        local tok = tokenizer.peek()
+                        v = (tok and tok.type == x) and tokenizer.take() or nil
                     elseif T == 'function' then
                         v = x()
                     else
@@ -146,7 +146,7 @@ return function(stream)
                     end
                     table.insert(ret, v)
                 end
-                if tokenizer.peek() == '' then
+                if not tokenizer.peek() then
                     return ret
                 end
             end
@@ -162,8 +162,8 @@ return function(stream)
                     if T == 'function' then
                         T = x()
                     elseif T == 'number' then
-                        local tok = tokenizer.take()
-                        T = (tok and tok.type == x) and tok or nil
+                        local tok = tokenizer.peek()
+                        T = (tok and tok.type == x) and tokenizer.take() or nil
                     else
                         T = nil
                     end
