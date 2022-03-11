@@ -109,10 +109,10 @@ return function(stream)
 
         opt = function(x)
             return function()
-                local T = type(x)
                 if not tokenizer.peek() then
                     return {}
                 end
+                local T = type(x)
                 if T == 'number' then
                     local tok = tokenizer.peek()
                     T = (tok and tok.type == x) and tokenizer.take() or nil
