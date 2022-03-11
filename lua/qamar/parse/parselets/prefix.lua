@@ -1,6 +1,16 @@
-local prefix_token_type_mappings = require 'qamar.parse.prefix_token_type_mappings'
-local node_types = require 'qamar.parse.types'
 local display_modes = require 'qamar.display_mode'
+
+local node_types = require 'qamar.parse.types'
+local token_types = require 'qamar.token.types'
+
+local token_node_mapping = {
+    [token_types.name] = node_types.name,
+    [token_types.number] = node_types.number,
+    [token_types.kw_not] = node_types.lnot,
+    [token_types.len] = node_types.len,
+    [token_types.sub] = node_types.neg,
+    [token_types.bitnot] = node_types.bnot,
+}
 
 return function(self, parser, token)
     local operand = parser.parse_exp(self.precedence - (self.right_associative and 1 or 0))
@@ -8,7 +18,7 @@ return function(self, parser, token)
         return nil
     end
     return setmetatable({
-        type = prefix_token_type_mappings[token.type],
+        type = token_node_mapping[token.type],
         operand = operand,
         precedence = self.precedence,
         right_associative = self.right_associative,

@@ -1,14 +1,38 @@
 local node_types = require 'qamar.parse.types'
-local infix_token_type_mappings = require 'qamar.parse.infix_token_type_mappings'
+local token_types = require 'qamar.token.types'
+
 local display_modes = require 'qamar.display_mode'
 
+local token_node_mapping = {
+    [token_types.kw_or] = node_types.lor,
+    [token_types.kw_and] = node_types.land,
+    [token_types.lt] = node_types.lt,
+    [token_types.gt] = node_types.gt,
+    [token_types.leq] = node_types.leq,
+    [token_types.geq] = node_types.geq,
+    [token_types.neq] = node_types.neq,
+    [token_types.eq] = node_types.eq,
+    [token_types.bitor] = node_types.bor,
+    [token_types.bitnot] = node_types.bxor,
+    [token_types.bitand] = node_types.band,
+    [token_types.lshift] = node_types.lshift,
+    [token_types.rshift] = node_types.rshift,
+    [token_types.concat] = node_types.concat,
+    [token_types.add] = node_types.add,
+    [token_types.sub] = node_types.sub,
+    [token_types.mul] = node_types.mul,
+    [token_types.div] = node_types.div,
+    [token_types.fdiv] = node_types.fdiv,
+    [token_types.mod] = node_types.mod,
+    [token_types.exp] = node_types.exp,
+}
 return function(self, parser, left, token)
     local right = parser.parse_exp(self.precedence - (self.right_associative and 1 or 0))
     if not right then
         return nil
     end
     return setmetatable({
-        type = infix_token_type_mappings[token.type],
+        type = token_node_mapping[token.type],
         left = left,
         right = right,
         precedence = self.precedence,
