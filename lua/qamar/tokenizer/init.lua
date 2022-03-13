@@ -124,6 +124,7 @@ return function(stream)
                 if T == nil then
                     return {}
                 end
+                return T
             end
         end,
 

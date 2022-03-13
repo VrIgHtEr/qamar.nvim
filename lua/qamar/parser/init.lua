@@ -13,9 +13,13 @@ end
 
 local function wrap(type, parser)
     return function()
+        print('PARSING: ' .. n[type])
         local ret = parser()
         if ret then
             ret.type = type
+            print('SUCCESS: ' .. n[type])
+        else
+            print('fail: ' .. n[type])
         end
         return ret
     end

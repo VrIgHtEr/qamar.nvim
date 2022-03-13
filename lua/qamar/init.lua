@@ -8,7 +8,7 @@ function qamar.run()
     print(parsed)
     print '---------------------------------------------------------------------'
     ppp = require 'qamar.parser'(
-        require 'qamar.tokenizer'(require 'qamar.tokenizer.char_stream'(require('toolshed.util.string').codepoints 'cedric.dingli.mamo:bla cedric'))
+        require 'qamar.tokenizer'(require 'qamar.tokenizer.char_stream'(require('toolshed.util.string').codepoints 'cedric.dingli.mamo:cedric'))
     )
     repeat
         parsed = ppp.funcname()
