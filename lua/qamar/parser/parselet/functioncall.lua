@@ -19,8 +19,8 @@ return function(self, parser, left, tok)
     then
         local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            local args = parser.explist()
-            if args and parser.tokenizer.peek() then
+            local args = parser.explist() or {}
+            if parser.tokenizer.peek() then
                 local rparen = parser.tokenizer.take()
                 if rparen.type == token.rparen then
                     arglist = args
