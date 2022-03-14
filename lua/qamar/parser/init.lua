@@ -80,8 +80,13 @@ return function(tokenizer)
     p.field = wrap(n.field, alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression))
     p.fieldlist = wrap(n.fieldlist, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
     p.tableconstructor = function()
+        tokenizer.begin()
         local ret = p.expression()
-        return ret and ret.type == n.tableconstructor and ret or nil
+        if ret and ret.type == n.tableconstructor then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
     end
     p.namelist = wrap(n.namelist, seq(t.name, zom(seq(t.comma, t.name))))
     p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot))
@@ -104,8 +109,13 @@ return function(tokenizer)
     )
     p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
     p.functiondef = function()
+        tokenizer.begin()
         local ret = p.expression()
-        return ret and ret.type == n.functiondef and ret or nil
+        if ret and ret.type == n.functiondef then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
     end
 
     p.stat = alt(
