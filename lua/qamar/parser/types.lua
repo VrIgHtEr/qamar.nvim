@@ -49,7 +49,6 @@ local types = {
     val_true = 'true',
     vararg = '...',
     string = '$string',
-    stat = '$stat',
     stat_localvar = '$stat_localvar',
     stat_label = '$label',
     stat_break = 'break',
