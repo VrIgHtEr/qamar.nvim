@@ -1,60 +1,13 @@
-local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
-
-local token_node_mapping = {
-    [token.kw_or] = node.lor,
-    [token.kw_and] = node.land,
-    [token.less] = node.lt,
-    [token.greater] = node.gt,
-    [token.lessequal] = node.leq,
-    [token.greaterequal] = node.geq,
-    [token.notequal] = node.neq,
-    [token.equal] = node.eq,
-    [token.pipe] = node.bor,
-    [token.tilde] = node.bxor,
-    [token.ampersand] = node.band,
-    [token.lshift] = node.lshift,
-    [token.rshift] = node.rshift,
-    [token.doubledot] = node.concat,
-    [token.plus] = node.add,
-    [token.dash] = node.sub,
-    [token.asterisk] = node.mul,
-    [token.slash] = node.div,
-    [token.doubleslash] = node.fdiv,
-    [token.percent] = node.mod,
-    [token.caret] = node.exp,
-}
+local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local MT = {
-    __tostring = function(self)
-        if config.expression_display_mode == config.expression_display_modes.infix then
-            local ret = {}
-            local paren = self.left.precedence < self.precedence or self.left.precedence == self.precedence and self.right_associative
-            if paren then
-                table.insert(ret, '(')
-            end
-            table.insert(ret, tostring(self.left))
-            if paren then
-                table.insert(ret, ')')
-            end
-            table.insert(ret, ' ')
-            table.insert(ret, node[self.type])
-            table.insert(ret, ' ')
-            paren = self.right.precedence < self.precedence or self.right.precedence == self.precedence and not self.right_associative
-            if paren then
-                table.insert(ret, '(')
-            end
-            table.insert(ret, tostring(self.right))
-            if paren then
-                table.insert(ret, ')')
-            end
-            return table.concat(ret)
-        elseif config.expression_display_mode == config.expression_display_modes.prefix then
-            return node[self.type] .. ' ' .. tostring(self.left) .. ' ' .. tostring(self.right)
-        elseif config.expression_display_mode == config.expression_display_modes.postfix then
-            return tostring(self.left) .. ' ' .. tostring(self.right) .. ' ' .. node[self.type]
-        end
+    __tostring = function()
+        return 'FUNCTIONCALL'
     end,
 }
+
+local tableconstructor = require 'qamar.parser.parselets.tableconstructor'
+local atom = require 'qamar.parser.parselets.atom'
 
 return function(self, parser, left, tok)
     if
@@ -64,14 +17,41 @@ return function(self, parser, left, tok)
         or left.type == node.functioncall
         or left.type == node.subexpression
     then
+        local objectaccess, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            -- TODO: parse arglist
+            local args = parser.arglist()
+            if args and parser.tokenizer.peek() then
+                local rparen = parser.tokenizer.take()
+                if rparen.type == token.rparen then
+                    arglist = args
+                    right = rparen.pos.right
+                end
+            end
         elseif tok.type == token.lbrace then
-            --TODO: parse tableconstructor
+            local arg = tableconstructor(self, parser, tok)
+            if arg then
+                arglist = { arg }
+                right = arg.pos.right
+            end
         elseif tok.type == token.string then
-            -- TODO: parse string
+            local arg = atom(self, parser, tok)
+            if arg then
+                arglist = { arg }
+                right = arg.pos.right
+            end
         elseif tok.type == token.colon then
             -- TODO: parse self call
+        end
+        if arglist then
+            return setmetatable({
+                type = node.functioncall,
+                left = left,
+                args = arglist,
+                objectaccess = objectaccess,
+                precedence = self.precedence,
+                right_associative = self.right_associative,
+                pos = { left = left.pos.left, right = right },
+            }, MT)
         end
     end
 end
