@@ -8,13 +8,16 @@ local MT = {
 
 return function(self, parser, tok)
     local fieldlist = parser.fieldlist()
-    if fieldlist and parser.tokenizer.peek() and parser.tokenizer.take().type == token.rbrace then
-        return setmetatable({
-            value = fieldlist,
-            type = node.tableconstructor,
-            precedence = self.precedence,
-            right_associative = self.right_associative,
-            pos = tok.pos,
-        }, MT)
+    if fieldlist and parser.tokenizer.peek() then
+        local rbrace = parser.tokenizer.take()
+        if rbrace.type == token.rbrace then
+            return setmetatable({
+                value = fieldlist,
+                type = node.tableconstructor,
+                precedence = self.precedence,
+                right_associative = self.right_associative,
+                pos = { left = tok.pos.left, right = rbrace.pos.right },
+            }, MT)
+        end
     end
 end

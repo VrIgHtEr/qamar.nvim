@@ -14,7 +14,7 @@ return function(self, parser, tok)
             type = node.functiondef,
             precedence = self.precedence,
             right_associative = self.right_associative,
-            pos = tok.pos,
+            pos = { left = tok.pos.left, right = body.pos.right },
         }, MT)
     end
 end
