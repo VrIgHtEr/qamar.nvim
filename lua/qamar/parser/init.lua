@@ -16,6 +16,7 @@ local function wrap(type, parser)
         local ret = parser()
         if ret then
             ret.type = type
+            ret.typename = n[type]
         end
         return ret
     end
@@ -98,10 +99,6 @@ return function(tokenizer)
             opt(p.retstat)
         )
     )
-    p.chunk = wrap(n.chunk, function()
-        local ret = p.block()
-        return ret and not tokenizer.peek() and ret or nil
-    end)
     p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
     p.functiondef = wrap(n.functiondef, seq(t.kw_function, p.funcbody))
 
@@ -129,6 +126,13 @@ return function(tokenizer)
             wrap(n.stat_repeat, seq(t.kw_repeat, p.block, t.kw_until, p.expression))
         )
     )
+
+    p.chunk = wrap(n.chunk, function()
+        if tokenizer.peek() then
+            local ret = p.block()
+            return ret and not tokenizer.peek() and ret or nil
+        end
+    end)
 
     return p
 end

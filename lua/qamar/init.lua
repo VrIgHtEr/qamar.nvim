@@ -13,7 +13,7 @@ function qamar.run()
     local parsed = ppp.expression()
     print(parsed)
     print '---------------------------------------------------------------------'
-    ppp = create_parser 'cedric.dingli.mamo:cedric'
+    ppp = create_parser 'local x1 = 7 + 2' -- if x1 == 3 then return x1 + 7, 4 end return x1 / 2'
     repeat
         parsed = ppp.chunk()
         print(vim.inspect(parsed))
