@@ -100,7 +100,10 @@ return function(tokenizer)
         )
     )
     p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
-    p.functiondef = wrap(n.functiondef, seq(t.kw_function, p.funcbody))
+    p.functiondef = function()
+        local ret = p.expression()
+        return ret and ret.type == n.functiondef and ret or nil
+    end
 
     p.stat = alt(
         wrap(n.stat_empty, seq(t.semicolon)),

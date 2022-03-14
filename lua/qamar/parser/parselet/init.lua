@@ -37,5 +37,6 @@ return {
         [token.kw_true] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
         [token.tripledot] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
         [token.string] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.kw_function] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.functiondef' },
     },
 }
