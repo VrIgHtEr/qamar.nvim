@@ -8,18 +8,13 @@ local tokenizers = {
 }
 local token = require 'qamar.tokenizer.types'
 
-local tokens_to_skip = {
-    [token.whitespace] = true,
-    [token.comment] = true,
-}
-
 return function(stream)
     ::restart::
     if stream.peek() then
         for _, x in ipairs(tokenizers) do
             local ret = x(stream)
             if ret then
-                if tokens_to_skip[ret.type] then
+                if ret.type == token.comment then
                     goto restart
                 end
                 return ret
