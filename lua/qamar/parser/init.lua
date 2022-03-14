@@ -79,7 +79,10 @@ return function(tokenizer)
     p.fieldsep = wrap(n.fieldsep, alt(t.comma, t.semicolon))
     p.field = wrap(n.field, alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression))
     p.fieldlist = wrap(n.fieldlist, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
-    p.tableconstructor = wrap(n.tableconstructor, seq(t.lbrace, p.fieldlist, t.rbrace))
+    p.tableconstructor = function()
+        local ret = p.expression()
+        return ret and ret.type == n.tableconstructor and ret or nil
+    end
     p.namelist = wrap(n.namelist, seq(t.name, zom(seq(t.comma, t.name))))
     p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot))
     p.explist = wrap(n.explist, seq(p.expression, zom(seq(t.comma, p.expression))))
