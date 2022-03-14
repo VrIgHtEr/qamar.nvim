@@ -62,9 +62,11 @@ local types = {
     stat_while = '$while',
     stat_do = '$do',
     stat_empty = '$do',
+    stat_assign = '=',
     table_rawaccess = '[]',
     table_nameaccess = '.',
     varlist = '$varlist',
+    functioncall = '$functioncall',
 }
 
 do

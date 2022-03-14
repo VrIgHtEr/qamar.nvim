@@ -118,6 +118,18 @@ return function(tokenizer)
         tokenizer.undo()
     end
 
+    p.var = function()
+        tokenizer.begin()
+        local ret = p.expression()
+        if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
+    end
+
+    p.varlist = wrap(n.varlist, seq(p.var, zom(seq(t.comma, p.var))))
+
     p.stat = alt(
         wrap(n.stat_empty, seq(t.semicolon)),
         wrap(n.stat_localvar, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
@@ -134,7 +146,17 @@ return function(tokenizer)
         ),
         wrap(n.stat_do, seq(t.kw_do, p.block, t.kw_end)),
         wrap(n.stat_while, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
-        wrap(n.stat_repeat, seq(t.kw_repeat, p.block, t.kw_until, p.expression))
+        wrap(n.stat_repeat, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
+        wrap(n.stat_assign, seq(p.varlist, t.assignment, p.explist)),
+        function()
+            tokenizer.begin()
+            local ret = p.expression()
+            if ret and ret.type == n.functioncall then
+                tokenizer.commit()
+                return ret
+            end
+            tokenizer.undo()
+        end
     )
 
     p.chunk = wrap(n.chunk, function()
@@ -143,18 +165,6 @@ return function(tokenizer)
             return ret and not tokenizer.peek() and ret or nil
         end
     end)
-
-    p.var = function()
-        tokenizer.begin()
-        local ret = p.expression()
-        if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
-            tokenizer.commit()
-            return ret
-        end
-        tokenizer.undo()
-    end
-
-    p.varlist = wrap(n.varlist, seq(p.var, zom(seq(t.comma, p.var))))
 
     return p
 end
