@@ -15,7 +15,7 @@ function qamar.run()
     print '---------------------------------------------------------------------'
     ppp = create_parser 'cedric.dingli.mamo:cedric'
     repeat
-        parsed = ppp.funcname()
+        parsed = ppp.chunk()
         print(vim.inspect(parsed))
         print '---------------------------------------------------------------------'
     until parsed == nil

@@ -98,7 +98,10 @@ return function(tokenizer)
             opt(p.retstat)
         )
     )
-    p.chunk = wrap(n.chunk, p.block)
+    p.chunk = wrap(n.chunk, function()
+        local ret = p.block()
+        return ret and not tokenizer.peek() and ret or nil
+    end)
     p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
     p.functiondef = wrap(n.functiondef, seq(t.kw_function, p.funcbody))
 
@@ -108,7 +111,7 @@ return function(tokenizer)
             wrap(n.stat_empty, seq(t.semicolon)),
             wrap(n.stat_localvar, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
             wrap(n.stat_label, p.label),
-            wrap(n.stat_break, t.kw_break),
+            wrap(n.stat_break, seq(t.kw_break)),
             wrap(n.stat_goto, seq(t.kw_goto, t.name)),
             wrap(n.localfunc, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
             wrap(n.func, seq(t.kw_function, p.funcname, p.funcbody)),
