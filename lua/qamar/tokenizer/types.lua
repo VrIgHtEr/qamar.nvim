@@ -58,6 +58,7 @@ local types = {
     dot = true,
     doubledot = true,
     tripledot = true,
+    whitespace = true,
 }
 do
     local names, index = {}, 0
