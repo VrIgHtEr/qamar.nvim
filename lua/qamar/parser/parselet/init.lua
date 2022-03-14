@@ -32,5 +32,10 @@ return {
         [token.lparen] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.subexpression' },
         [token.name] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
         [token.number] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.kw_nil] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.kw_false] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.kw_true] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.tripledot] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
+        [token.string] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.atom' },
     },
 }

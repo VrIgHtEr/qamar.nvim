@@ -39,6 +39,12 @@ local types = {
     label = '$label',
     funcname = '$funcname',
     subexpression = '$subexpression',
+    args = '$args',
+    val_nil = 'nil',
+    val_false = 'false',
+    val_true = 'true',
+    vararg = '...',
+    string = '$string',
 }
 
 do

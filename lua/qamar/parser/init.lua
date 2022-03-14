@@ -87,6 +87,7 @@ return function(tokenizer)
     p.retstat = wrap(n.retstat, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
     p.label = wrap(n.label, seq(t.doublecolon, t.name, t.doublecolon))
     p.funcname = wrap(n.funcname, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
+    p.args = wrap(n.args, alt(seq(t.lparen, p.explist, t.rparen), p.tableconstructor, t.string))
 
     return p
 end
