@@ -144,5 +144,17 @@ return function(tokenizer)
         end
     end)
 
+    p.var = function()
+        tokenizer.begin()
+        local ret = p.expression()
+        if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
+    end
+
+    p.varlist = wrap(n.varlist, seq(p.var, zom(seq(t.comma, p.var))))
+
     return p
 end
