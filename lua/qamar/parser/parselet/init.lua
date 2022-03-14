@@ -27,6 +27,8 @@ return {
         [token.lbrace] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.functioncall' },
         [token.string] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.functioncall' },
         [token.colon] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.functioncall' },
+        [token.lbracket] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.rawaccess' },
+        [token.dot] = { precedence = precedence.atom, parse = require 'qamar.parser.parselet.nameaccess' },
     },
     prefix = {
         [token.kw_not] = { precedence = precedence.unary, parse = require 'qamar.parser.parselet.prefix' },
