@@ -89,5 +89,43 @@ return function(tokenizer)
     p.funcname = wrap(n.funcname, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
     p.args = wrap(n.args, alt(seq(t.lparen, p.explist, t.rparen), p.tableconstructor, t.string))
 
+    p.block = wrap(
+        n.block,
+        seq(
+            zom(function()
+                return p.stat()
+            end),
+            opt(p.retstat)
+        )
+    )
+    p.chunk = wrap(n.chunk, p.block)
+    p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
+    p.functiondef = wrap(n.functiondef, seq(t.kw_function, p.funcbody))
+
+    p.stat = wrap(
+        n.stat,
+        alt(
+            wrap(n.stat_empty, seq(t.semicolon)),
+            wrap(n.stat_localvar, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
+            wrap(n.stat_label, p.label),
+            wrap(n.stat_break, t.kw_break),
+            wrap(n.stat_goto, seq(t.kw_goto, t.name)),
+            wrap(n.localfunc, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
+            wrap(n.func, seq(t.kw_function, p.funcname, p.funcbody)),
+            wrap(
+                n.for_num,
+                seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)
+            ),
+            wrap(n.stat_for_iter, seq(t.kw_for, p.namelist, t.kw_in, p.explist, t.kw_do, p.block, t.kw_end)),
+            wrap(
+                n.stat_if,
+                seq(t.kw_if, p.expression, t.kw_then, p.block, zom(seq(t.kw_elseif, p.expression, t.kw_then, p.block)), opt(seq(t.kw_else, p.block)), t.kw_end)
+            ),
+            wrap(n.stat_do, seq(t.kw_do, p.block, t.kw_end)),
+            wrap(n.stat_while, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
+            wrap(n.stat_repeat, seq(t.kw_repeat, p.block, t.kw_until, p.expression))
+        )
+    )
+
     return p
 end
