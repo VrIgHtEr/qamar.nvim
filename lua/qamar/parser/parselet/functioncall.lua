@@ -6,8 +6,8 @@ local MT = {
     end,
 }
 
-local tableconstructor = require 'qamar.parser.parselets.tableconstructor'
-local atom = require 'qamar.parser.parselets.atom'
+local tableconstructor = require 'qamar.parser.parselet.tableconstructor'
+local atom = require 'qamar.parser.parselet.atom'
 
 return function(self, parser, left, tok)
     if
@@ -17,7 +17,7 @@ return function(self, parser, left, tok)
         or left.type == node.functioncall
         or left.type == node.subexpression
     then
-        local objectaccess, arglist, right = false, nil, nil
+        local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
             local args = parser.arglist()
             if args and parser.tokenizer.peek() then
@@ -40,14 +40,24 @@ return function(self, parser, left, tok)
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
-            -- TODO: parse self call
+            if parser.tokenizer.peek() then
+                local name = parser.tokenizer.take()
+                if name.type == token.name then
+                    sname = name.value
+                    local args = parser.args()
+                    if args then
+                        arglist = args
+                        right = args.pos.right
+                    end
+                end
+            end
         end
         if arglist then
             return setmetatable({
                 type = node.functioncall,
                 left = left,
                 args = arglist,
-                objectaccess = objectaccess,
+                self = sname,
                 precedence = self.precedence,
                 right_associative = self.right_associative,
                 pos = { left = left.pos.left, right = right },
