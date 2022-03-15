@@ -136,7 +136,7 @@ return function(tokenizer)
             local ret = { tostring(self[1]) }
             for _, x in ipairs(self[2]) do
                 table.insert(ret, ', ')
-                table.insert(ret, tostring(x))
+                table.insert(ret, tostring(x[2]))
             end
             return table.concat(ret)
         end,
@@ -357,7 +357,7 @@ return function(tokenizer)
         }, seq(t.kw_function, p.funcname, p.funcbody)),
         wrap({
             type = n.for_num,
-            stirng = function(self)
+            string = function(self)
                 local ret = 'for ' .. tostring(self[2]) .. ' = ' .. tostring(self[4]) .. ', ' .. tostring(self[6])
                 if self[7][1] then
                     ret = ret .. ', ' .. tostring(self[7][2])
