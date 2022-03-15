@@ -4,7 +4,7 @@ return function(stream)
     local tokenizer, la, ts, tc, t =
         {}, deque(), {}, 0, {
             index = 0,
-            file_char = 0,
+            pos = stream.pos(),
             copy = function(self)
                 local r = {}
                 for k, v in pairs(self) do
@@ -65,21 +65,25 @@ return function(stream)
             local c = la[t.index + 1]
             if not c then
                 break
-            else
-                ret[i] = c
-                t.file_char = c.pos.right.file_char
             end
+            ret[i] = c
+            t.pos = c.pos.right
             t.index = t.index + 1
         end
         normalize_la()
         return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
     end
 
+function tokenizer.pos()
+    return t.pos
+end
+
     tokenizer.combinators = {
         alt = function(...)
             local args = { ... }
             return function()
                 local ret, right = nil, nil
+                local left = tokenizer.peek() and tokenizer.peek().pos.left
                 for _, x in ipairs(args) do
                     tokenizer.begin()
                     local T = type(x)
@@ -92,14 +96,15 @@ return function(stream)
                         T = nil
                     end
                     if T ~= nil then
-                        if not right or t.file_char > right then
-                            ret, right = T, t.file_char
+                        if not right or t.pos.file_char > right then
+                            T.pos = { left = left, right = t.pos }
+                            ret, right = T, t.pos.file_char
                         end
                     end
                     tokenizer.undo()
                 end
                 if ret then
-                    while t.file_char < right do
+                    while t.pos.file_char < right do
                         tokenizer.take()
                     end
                     return ret
@@ -110,8 +115,9 @@ return function(stream)
         opt = function(x)
             return function()
                 if not tokenizer.peek() then
-                    return {}
+                    return {pos = {left = t.pos, right = t.pos}}
                 end
+                local left = tokenizer.peek().pos.left
                 local T = type(x)
                 if T == 'number' then
                     local tok = tokenizer.peek()
@@ -122,15 +128,16 @@ return function(stream)
                     return nil
                 end
                 if T == nil then
-                    return {}
+                    return {pos = {left = t.pos, right = t.pos}}
                 end
+                T.pos = { left = left, right = t.pos }
                 return T
             end
         end,
 
         zom = function(x)
             return function()
-                local ret = {}
+                local ret = {pos={left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos}}
                 local T = type(x)
                 while tokenizer.peek() do
                     local v
@@ -143,9 +150,11 @@ return function(stream)
                         v = nil
                     end
                     if v == nil then
+                        if not ret.pos.right then ret.pos.right = t.pos end
                         return ret
                     end
                     table.insert(ret, v)
+                    ret.pos.right = v.pos.right
                 end
                 if not tokenizer.peek() then
                     return ret
@@ -156,7 +165,7 @@ return function(stream)
         seq = function(...)
             local args = { ... }
             return function()
-                local ret = {}
+                local ret = {pos = {left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos}}
                 tokenizer.begin()
                 for _, x in ipairs(args) do
                     local T = type(x)
@@ -175,6 +184,7 @@ return function(stream)
                     table.insert(ret, T)
                 end
                 tokenizer.commit()
+                ret.pos.right = #ret == 0 and ret.pos.left or ret[#ret].pos.right
                 return ret
             end
         end,

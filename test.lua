@@ -66,7 +66,7 @@ local function utf8_encode(hex)
     end
 end
 
---return function(stream, disallow_short_form)
+return function(stream, disallow_short_form)
 stream.begin()
 stream.skipws()
 local pos = stream.pos()
@@ -209,11 +209,11 @@ stream.commit()
 stream.resume_skip_ws()
 ret = table.concat(ret)
 return {
-    --value = ret,
-    --type = token.string,
-    --    pos = {
-    --        left = pos,
-    --        right = stream.pos(),
-    --    },
+    value = ret,
+    type = token.string,
+    pos = {
+        left = pos,
+        right = stream.pos()
+    }
 }
---end
+end

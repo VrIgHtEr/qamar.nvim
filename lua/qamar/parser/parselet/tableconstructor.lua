@@ -7,10 +7,7 @@ local MT = {
 }
 
 return function(self, parser, tok)
-    local fieldlist = parser.fieldlist()
-    if not fieldlist then
-        fieldlist = {}
-    end
+    local fieldlist = parser.fieldlist() or {}
     if parser.tokenizer.peek() then
         local rbrace = parser.tokenizer.take()
         if rbrace.type == token.rbrace then
