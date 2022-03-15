@@ -7,7 +7,11 @@ local MT = {
 }
 
 return function(self, parser, tok)
-    local fieldlist = parser.fieldlist() or {}
+    local fieldlist = parser.fieldlist() or setmetatable({}, {
+        __tostring = function()
+            return ''
+        end,
+    })
     if parser.tokenizer.peek() then
         local rbrace = parser.tokenizer.take()
         if rbrace.type == token.rbrace then

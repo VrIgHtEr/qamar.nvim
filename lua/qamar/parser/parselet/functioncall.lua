@@ -2,7 +2,7 @@ local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types
 
 local MT = {
     __tostring = function(self)
-        return tostring(self.left) .. (self.self and (':'..self.self)  or '')..tostring(self.args)
+        return tostring(self.left) .. (self.self and (':' .. self.self) or '') .. '(' .. tostring(self.args) .. ')'
     end,
 }
 
@@ -19,7 +19,12 @@ return function(self, parser, left, tok)
     then
         local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            local args = parser.explist() or {}
+            local args = parser.explist()
+                or setmetatable({}, {
+                    __tostring = function()
+                        return ''
+                    end,
+                })
             if parser.tokenizer.peek() then
                 local rparen = parser.tokenizer.take()
                 if rparen.type == token.rparen then
@@ -30,13 +35,21 @@ return function(self, parser, left, tok)
         elseif tok.type == token.lbrace then
             local arg = tableconstructor(self, parser, tok)
             if arg then
-                arglist = { arg }
+                arglist = setmetatable({ arg }, {
+                    __tostring = function(self)
+                        return tostring(self[1])
+                    end,
+                })
                 right = arg.pos.right
             end
         elseif tok.type == token.string then
             local arg = atom(self, parser, tok)
             if arg then
-                arglist = { arg }
+                arglist = setmetatable({ arg }, {
+                    __tostring = function(self)
+                        return tostring(self[1])
+                    end,
+                })
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
