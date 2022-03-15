@@ -1,6 +1,12 @@
 local token = require 'qamar.tokenizer.types'
 
-local MT = {__tostring = function (self) return self.value end}
+local keywords = require 'qamar.tokenizer.token.keywords'
+
+local MT = {
+    __tostring = function(self)
+        return self.value
+    end,
+}
 return function(stream)
     stream.begin()
     stream.skipws()
@@ -21,6 +27,11 @@ return function(stream)
         end
     end
     ret = table.concat(ret)
+    if keywords[ret] then
+        stream.undo()
+        stream.resume_skip_ws()
+        return nil
+    end
     stream.commit()
     stream.resume_skip_ws()
     return setmetatable({
@@ -30,5 +41,5 @@ return function(stream)
             left = pos,
             right = stream.pos(),
         },
-    },MT)
+    }, MT)
 end

@@ -109,7 +109,7 @@ return function(stream, disallow_short_form)
                 elseif c == 'z' then
                     stream.skipws()
                 elseif c == 'x' then
-                    localc1 = tohexdigit(stream.take())
+                    local c1 = tohexdigit(stream.take())
                     local c2 = tohexdigit(stream.take())
                     if not c1 or not c2 then
                         return fail()

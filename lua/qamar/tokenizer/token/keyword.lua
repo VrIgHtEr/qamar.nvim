@@ -1,5 +1,7 @@
 local token = require 'qamar.tokenizer.types'
 
+local keywords = require 'qamar.tokenizer.token.keywords'
+
 local MT = {
     __tostring = function(self)
         return self.value
@@ -9,30 +11,7 @@ return function(stream)
     stream.begin()
     stream.skipws()
     local pos = stream.pos()
-    local ret = stream.combinators.alt(
-        'and',
-        'break',
-        'do',
-        'else',
-        'elseif',
-        'end',
-        'false',
-        'for',
-        'function',
-        'goto',
-        'if',
-        'in',
-        'local',
-        'nil',
-        'not',
-        'or',
-        'repeat',
-        'return',
-        'then',
-        'true',
-        'until',
-        'while'
-    )()
+    local ret = stream.combinators.alt(unpack(keywords))()
     if ret then
         stream.begin()
         stream.suspend_skip_ws()
