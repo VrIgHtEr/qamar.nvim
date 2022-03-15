@@ -42,6 +42,7 @@ do
     end
 end
 
+local MT = {__tostring = function(self)return self.value end}
 return function(stream)
     stream.begin()
     stream.skipws()
@@ -50,14 +51,14 @@ return function(stream)
     if ret then
         stream.commit()
         stream.resume_skip_ws()
-        return {
+        return setmetatable({
             value = ret,
             type = symbols[ret],
             pos = {
                 left = pos,
                 right = stream.pos(),
             },
-        }
+        },MT)
     end
     stream.undo()
 end

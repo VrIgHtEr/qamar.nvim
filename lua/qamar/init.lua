@@ -24,6 +24,7 @@ function qamar.run()
     local txt = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/test.lua')
     local ppp = create_parser(txt)
     local parsed = ppp.chunk()
+    print(tostring(parsed))
     print(vim.inspect(parsed))
 end
 

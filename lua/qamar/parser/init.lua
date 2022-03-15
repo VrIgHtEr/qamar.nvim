@@ -11,12 +11,17 @@ local function get_precedence(tokenizer)
     return 0
 end
 
-local function wrap(type, parser)
+local function wrap(node, parser)
+    if type(node) ~= 'table' then node = {type = node} end
     return function()
         local ret = parser()
         if ret then
-            ret.type = type
-            ret.typename = n[type]
+            ret.type = node.type
+            ret.typename = n[node.type]
+            if node.string then
+                setmetatable(ret,{__tostring = node.string})
+                print('$('..n[node.type] .. ')'..tostring(ret))
+            end
         end
         return ret
     end
@@ -51,13 +56,14 @@ return function(tokenizer)
             token = tokenizer.peek()
             if not token then
                 tokenizer.commit()
-                return left
+                print(left)return left
             end
 
             local infix = parselet.infix[token.type]
             if not infix then
                 tokenizer.commit()
-                return left
+                print(left)
+                print(left)return left
             end
             tokenizer.begin()
             tokenizer.take()
@@ -65,7 +71,7 @@ return function(tokenizer)
             if not right then
                 tokenizer.undo()
                 tokenizer.undo()
-                return left
+                print(left)return left
             else
                 tokenizer.commit()
                 left = right
@@ -73,12 +79,25 @@ return function(tokenizer)
         end
 
         tokenizer.commit()
-        return left
+        print(left)return left
     end
 
-    p.fieldsep = wrap(n.fieldsep, alt(t.comma, t.semicolon))
-    p.field = wrap(n.field, alt(seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression), seq(t.name, t.assignment, p.expression), p.expression))
-    p.fieldlist = wrap(n.fieldlist, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
+    p.fieldsep = wrap({type = n.fieldsep, string = function() return ',' end}, alt(t.comma, t.semicolon))
+
+    p.field = alt(
+    wrap({type = n.field_raw, string = function(self) return '['..tostring(self[2]) .. '] = '..tostring(self[5]) end}, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)),
+    wrap(n.field_name, seq(t.name, t.assignment, p.expression)),
+    p.expression)
+
+    p.fieldlist = wrap({type = n.fieldlist,stirng= function(self)
+        local ret = {tostring(self[1])}
+        for _,x in ipairs(self[2]) do
+            table.insert(ret,', ')
+            table.insert(ret,tostring(x))
+        end
+        return table.concat(ret)
+    end}, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
+
     p.tableconstructor = function()
         tokenizer.begin()
         local ret = p.expression()
@@ -88,18 +107,59 @@ return function(tokenizer)
         end
         tokenizer.undo()
     end
-    p.namelist = wrap(n.namelist, seq(t.name, zom(seq(t.comma, t.name))))
-    p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, t.tripledot))), t.tripledot))
-    p.explist = wrap(n.explist, seq(p.expression, zom(seq(t.comma, p.expression))))
+
+    p.namelist = wrap({type=n.namelist,string=function(self)
+        local ret = {tostring(self[1])}
+        for _,x in ipairs(self[2]) do
+            table.insert(ret,', ')
+            table.insert(ret,tostring(x))
+        end
+        return table.concat(ret)
+    end}, seq(t.name, zom(seq(t.comma, t.name))))
+
+    p.vararg = wrap({type=n.vararg, string=function()return'...'end}, alt(t.tripledot))
+
+    p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, p.vararg))), p.vararg))
+
+    p.parlist = alt(
+    wrap({type=n.parlist,string=function(self)
+        local ret = tostring(self[1])
+        if self[2][1] then
+            ret = ret .. ', ...'
+        end
+        return ret
+    end}, seq(p.namelist, opt(seq(t.comma, p.vararg))))
+    , p.vararg)
+
+    p.explist = wrap({type=n.explist,string=function(self)
+        local ret = {tostring(self[1])}
+        for _,x in ipairs(self[2]) do
+            table.insert(ret, ', ')
+            table.insert(ret, tostring(x[2]))
+        end
+        return table.concat(ret)
+    end}, seq(p.expression, zom(seq(t.comma, p.expression))))
+
     p.attrib = wrap(n.attrib, opt(seq(t.less, t.name, t.greater)))
     p.attnamelist = wrap(n.attnamelist, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
-    p.retstat = wrap(n.retstat, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
+
+    p.retstat = wrap({type=n.retstat,string=function(self) return 'return '.. tostring(self[2]) end}, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
+
     p.label = wrap(n.label, seq(t.doublecolon, t.name, t.doublecolon))
     p.funcname = wrap(n.funcname, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
     p.args = wrap(n.args, alt(seq(t.lparen, p.explist, t.rparen), p.tableconstructor, t.string))
 
     p.block = wrap(
-        n.block,
+        {type = n.block, string = function(self)
+            local ret = {}
+            for i,x in ipairs(self[1]) do
+                if i > 1 then table.insert(ret,' ') end
+                table.insert(ret, tostring(x))
+            end
+            if #ret > 0 then table.insert(ret,' ') end
+            table.insert(ret,tostring(self[2]))
+            return table.concat(ret)
+        end},
         seq(
             zom(function()
                 return p.stat()

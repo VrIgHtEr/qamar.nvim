@@ -67,6 +67,32 @@ local function utf8_encode(hex)
     end
 end
 
+local MT = {__tostring = function(self)
+        local ret, sep = {}, nil
+
+        do
+            if self.value:find('\r') or self.value:find('\n') or (self.value:find("'") and self.value:find('"'))then
+                local eqs = ''
+                while true do
+                    sep = ']'.. eqs ..']'
+                    if not string.find(self.value,sep) then
+                        table.insert(ret, '['..eqs..'[')
+                        break
+                    end
+                    eqs = eqs .. '='
+                end
+            else
+                sep = self.value:find("'") and '"' or "'"
+                table.insert(ret, sep)
+            end
+        end
+        for c in string.codepoints(self.value) do
+            table.insert(ret, c)
+        end
+        table.insert(ret, sep)
+        return table.concat(ret)
+end}
+
 return function(stream, disallow_short_form)
     stream.begin()
     stream.skipws()
@@ -209,12 +235,12 @@ return function(stream, disallow_short_form)
     stream.commit()
     stream.resume_skip_ws()
     ret = table.concat(ret)
-    return {
+    return setmetatable({
         value = ret,
         type = token.string,
         pos = {
             left = pos,
             right = stream.pos(),
         },
-    }
+    },MT)
 end

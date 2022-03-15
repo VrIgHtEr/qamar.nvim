@@ -1,8 +1,8 @@
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local MT = {
-    __tostring = function()
-        return 'FUNCTIONCALL'
+    __tostring = function(self)
+        return tostring(self.left) .. (self.self and (':'..self.self)  or '')..tostring(self.arglist)
     end,
 }
 

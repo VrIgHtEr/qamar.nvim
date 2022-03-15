@@ -115,7 +115,7 @@ end
         opt = function(x)
             return function()
                 if not tokenizer.peek() then
-                    return {pos = {left = t.pos, right = t.pos}}
+                    return setmetatable({pos = {left = t.pos, right = t.pos}},{__tostring = function()return '' end})
                 end
                 local left = tokenizer.peek().pos.left
                 local T = type(x)
@@ -128,7 +128,7 @@ end
                     return nil
                 end
                 if T == nil then
-                    return {pos = {left = t.pos, right = t.pos}}
+                    return setmetatable({pos = {left = t.pos, right = t.pos}},{__tostring = function()return '' end})
                 end
                 T.pos = { left = left, right = t.pos }
                 return T

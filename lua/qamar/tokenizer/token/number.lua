@@ -1,5 +1,6 @@
 local token = require 'qamar.tokenizer.types'
 
+local MT = {__tostring = function(self)return self.value end}
 return function(stream)
     stream.begin()
     stream.skipws()
@@ -58,12 +59,12 @@ return function(stream)
 
     stream.resume_skip_ws()
     stream.commit()
-    return {
+    return setmetatable({
         value = table.concat(ret),
         type = token.number,
         pos = {
             left = pos,
             right = stream.pos(),
         },
-    }
+    },MT)
 end
