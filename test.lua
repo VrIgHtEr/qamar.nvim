@@ -13,26 +13,7 @@ local function todecimaldigit(c)
         return string.byte(c) - 48
     end
 end
-
-local hex_to_binary_table = {
-    '0000',
-    '0001',
-    '0010',
-    '0011',
-    '0100',
-    '0101',
-    '0110',
-    '0111',
-    '1000',
-    '1001',
-    '1010',
-    '1011',
-    '1100',
-    '1101',
-    '1110',
-    '1111',
-}
-
+local hex_to_binary_table = { '0000', '0001', '0010', '0011', '0100', '0101', '0110', '0111', '1000', '1001', '1010', '1011', '1100', '1101', '1110', '1111' }
 local function utf8_encode(hex)
     if #hex > 0 then
         local binstr = {}
@@ -128,7 +109,7 @@ return function(stream, disallow_short_form)
                 elseif c == 'z' then
                     stream.skipws()
                 elseif c == 'x' then
-                    local c1 = tohexdigit(stream.take())
+                    localc1 = tohexdigit(stream.take())
                     local c2 = tohexdigit(stream.take())
                     if not c1 or not c2 then
                         return fail()
@@ -156,9 +137,7 @@ return function(stream, disallow_short_form)
                     end
                     table.insert(ret, s)
                 elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
-                    local digits = {
-                        todecimaldigit(c),
-                    }
+                    local digits = { todecimaldigit(c) }
                     while #digits < 3 do
                         local nextdigit = todecimaldigit(stream.peek())
                         if not nextdigit then
@@ -187,9 +166,7 @@ return function(stream, disallow_short_form)
     else
         t = stream.combinators.seq('[', stream.combinators.zom '=', '[')()
         if t then
-            local closing = {
-                ']',
-            }
+            local closing = { ']' }
             for _ = 1, #t[2] do
                 table.insert(closing, '=')
             end
@@ -228,12 +205,5 @@ return function(stream, disallow_short_form)
     stream.commit()
     stream.resume_skip_ws()
     ret = table.concat(ret)
-    return {
-        value = ret,
-        type = token.string,
-        pos = {
-            left = pos,
-            right = stream.pos(),
-        },
-    }
+    return { value = ret, type = token.string, pos = { left = pos, right = stream.pos() } }
 end

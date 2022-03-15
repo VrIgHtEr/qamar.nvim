@@ -1,6 +1,10 @@
 local token = require 'qamar.tokenizer.types'
 
-local MT = {__tostring = function(self)return self.value end}
+local MT = {
+    __tostring = function(self)
+        return self.value
+    end,
+}
 return function(stream)
     stream.begin()
     stream.skipws()
@@ -45,7 +49,7 @@ return function(stream)
                     left = pos,
                     right = stream.pos(),
                 },
-            },MT)
+            }, MT)
         end
     end
     stream.undo()
