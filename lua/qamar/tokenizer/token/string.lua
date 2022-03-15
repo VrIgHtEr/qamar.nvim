@@ -1,5 +1,5 @@
 local token = require 'qamar.tokenizer.types'
-local string = require'toolshed.util.string'
+local string = require 'toolshed.util.string'
 
 local function tohexdigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
@@ -68,22 +68,23 @@ local function utf8_encode(hex)
     end
 end
 
-local MT = {__tostring = function(self)
+local MT = {
+    __tostring = function(self)
         local ret, sep = {}, nil
 
         do
-            if self.value:find('\r') or self.value:find('\n') or (self.value:find("'") and self.value:find('"'))then
+            if self.value:find '\r' or self.value:find '\n' or (self.value:find "'" and self.value:find '"') then
                 local eqs = ''
                 while true do
-                    sep = ']'.. eqs ..']'
-                    if not string.find(self.value,sep) then
-                        table.insert(ret, '['..eqs..'[')
+                    sep = ']' .. eqs .. ']'
+                    if not string.find(self.value, sep) then
+                        table.insert(ret, '[' .. eqs .. '[')
                         break
                     end
                     eqs = eqs .. '='
                 end
             else
-                sep = self.value:find("'") and '"' or "'"
+                sep = self.value:find "'" and '"' or "'"
                 table.insert(ret, sep)
             end
         end
@@ -92,7 +93,8 @@ local MT = {__tostring = function(self)
         end
         table.insert(ret, sep)
         return table.concat(ret)
-end}
+    end,
+}
 
 return function(stream, disallow_short_form)
     stream.begin()
@@ -160,7 +162,7 @@ return function(stream, disallow_short_form)
                         table.insert(digits, nextdigit)
                     end
                     if stream.take() ~= '}' then
-                        return fail
+                        return fail()
                     end
                     local s = utf8_encode(digits)
                     if not s then
@@ -243,5 +245,5 @@ return function(stream, disallow_short_form)
             left = pos,
             right = stream.pos(),
         },
-    },MT)
+    }, MT)
 end
