@@ -114,7 +114,7 @@ return function(tokenizer)
             local ret = { tostring(self[1]) }
             for _, x in ipairs(self[2]) do
                 table.insert(ret, ', ')
-                table.insert(ret, tostring(x))
+                table.insert(ret, tostring(x[2]))
             end
             return table.concat(ret)
         end,
