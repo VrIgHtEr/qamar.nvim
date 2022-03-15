@@ -36,9 +36,13 @@ local MT = {
             if paren then
                 table.insert(ret, ')')
             end
-            table.insert(ret, ' ')
+            if self.type == node.land or self.type == node.lor then
+                table.insert(ret, ' ')
+            end
             table.insert(ret, node[self.type])
-            table.insert(ret, ' ')
+            if self.type == node.land or self.type == node.lor then
+                table.insert(ret, ' ')
+            end
             paren = self.right.precedence < self.precedence or self.right.precedence == self.precedence and not self.right_associative
             if paren then
                 table.insert(ret, '(')

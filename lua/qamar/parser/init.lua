@@ -108,7 +108,7 @@ return function(tokenizer)
         wrap({
             type = n.field_name,
             string = function(self)
-                return tostring(self[1]) .. ' = ' .. tostring(self[3])
+                return tostring(self[1]) .. '=' .. tostring(self[3])
             end,
         }, seq(t.name, t.assignment, p.expression)),
         p.expression
@@ -119,7 +119,7 @@ return function(tokenizer)
         string = function(self)
             local ret = { tostring(self[1]) }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ', ')
+                table.insert(ret, ',')
                 table.insert(ret, tostring(x[2]))
             end
             return table.concat(ret)
@@ -141,7 +141,7 @@ return function(tokenizer)
         string = function(self)
             local ret = { tostring(self[1]) }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ', ')
+                table.insert(ret, ',')
                 table.insert(ret, tostring(x[2]))
             end
             return table.concat(ret)
@@ -161,7 +161,7 @@ return function(tokenizer)
             string = function(self)
                 local ret = tostring(self[1])
                 if self[2][1] then
-                    ret = ret .. ', ...'
+                    ret = ret .. ',...'
                 end
                 return ret
             end,
@@ -174,7 +174,7 @@ return function(tokenizer)
         string = function(self)
             local ret = { tostring(self[1]) }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ', ')
+                table.insert(ret, ',')
                 table.insert(ret, tostring(x[2]))
             end
             return table.concat(ret)
@@ -196,7 +196,7 @@ return function(tokenizer)
         string = function(self)
             local ret = tostring(self[1]) .. tostring(self[2])
             for _, x in ipairs(self[3]) do
-                ret = ret .. ', ' .. tostring(x[2]) .. tostring(x[3])
+                ret = ret .. ',' .. tostring(x[2]) .. tostring(x[3])
             end
             return ret
         end,
@@ -238,7 +238,7 @@ return function(tokenizer)
         wrap({
             type = n.args,
             string = function(self)
-                return '(' .. tostring(self[2]) .. ')'
+                return tostring(self[2])
             end,
         }, seq(t.lparen, p.explist, t.rparen)),
         p.tableconstructor,
@@ -313,7 +313,7 @@ return function(tokenizer)
         string = function(self)
             local ret = tostring(self[1])
             for _, x in ipairs(self[2]) do
-                ret = ret .. ', ' .. tostring(x[2])
+                ret = ret .. ',' .. tostring(x[2])
             end
             return ret
         end,
@@ -331,7 +331,7 @@ return function(tokenizer)
             string = function(self)
                 local ret = 'local ' .. tostring(self[2])
                 if self[3][1] then
-                    ret = ret .. ' = ' .. tostring(self[3][2])
+                    ret = ret .. '=' .. tostring(self[3][2])
                 end
                 return ret
             end,
@@ -364,9 +364,9 @@ return function(tokenizer)
         wrap({
             type = n.for_num,
             string = function(self)
-                local ret = 'for ' .. tostring(self[2]) .. ' = ' .. tostring(self[4]) .. ', ' .. tostring(self[6])
+                local ret = 'for ' .. tostring(self[2]) .. '=' .. tostring(self[4]) .. ',' .. tostring(self[6])
                 if self[7][1] then
-                    ret = ret .. ', ' .. tostring(self[7][2])
+                    ret = ret .. ',' .. tostring(self[7][2])
                 end
                 return ret .. ' do ' .. tostring(self[9]) .. ' end'
             end,
@@ -420,7 +420,7 @@ return function(tokenizer)
         wrap({
             type = n.stat_assign,
             string = function(self)
-                return tostring(self[1]) .. ' = ' .. tostring(self[3])
+                return tostring(self[1]) .. '=' .. tostring(self[3])
             end,
         }, seq(p.varlist, t.assignment, p.explist)),
         function()
