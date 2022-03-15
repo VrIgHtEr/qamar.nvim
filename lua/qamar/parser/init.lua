@@ -18,9 +18,11 @@ local function wrap(node, parser)
         if ret then
             ret.type = node.type
             ret.typename = n[node.type]
+            if node.rewrite then
+                node.rewrite(ret)
+            end
             if node.string then
                 setmetatable(ret,{__tostring = node.string})
-                print('$('..n[node.type] .. ')'..tostring(ret))
             end
         end
         return ret
@@ -56,14 +58,13 @@ return function(tokenizer)
             token = tokenizer.peek()
             if not token then
                 tokenizer.commit()
-                print(left)return left
+                return left
             end
 
             local infix = parselet.infix[token.type]
             if not infix then
                 tokenizer.commit()
-                print(left)
-                print(left)return left
+                return left
             end
             tokenizer.begin()
             tokenizer.take()
@@ -71,7 +72,7 @@ return function(tokenizer)
             if not right then
                 tokenizer.undo()
                 tokenizer.undo()
-                print(left)return left
+                return left
             else
                 tokenizer.commit()
                 left = right
@@ -79,15 +80,12 @@ return function(tokenizer)
         end
 
         tokenizer.commit()
-        print(left)return left
+        return left
     end
 
     p.fieldsep = wrap({type = n.fieldsep, string = function() return ',' end}, alt(t.comma, t.semicolon))
 
-    p.field = alt(
-    wrap({type = n.field_raw, string = function(self) return '['..tostring(self[2]) .. '] = '..tostring(self[5]) end}, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)),
-    wrap(n.field_name, seq(t.name, t.assignment, p.expression)),
-    p.expression)
+    p.field = alt( wrap({type = n.field_raw, string = function(self) return '['..tostring(self[2]) .. '] = '..tostring(self[5]) end}, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)), wrap({type = n.field_name, string = function(self)return tostring(self[1])..' = ' .. tostring(self[3]) end}, seq(t.name, t.assignment, p.expression)), p.expression)
 
     p.fieldlist = wrap({type = n.fieldlist,stirng= function(self)
         local ret = {tostring(self[1])}
@@ -119,8 +117,6 @@ return function(tokenizer)
 
     p.vararg = wrap({type=n.vararg, string=function()return'...'end}, alt(t.tripledot))
 
-    p.parlist = wrap(n.parlist, alt(seq(p.namelist, opt(seq(t.comma, p.vararg))), p.vararg))
-
     p.parlist = alt(
     wrap({type=n.parlist,string=function(self)
         local ret = tostring(self[1])
@@ -140,14 +136,33 @@ return function(tokenizer)
         return table.concat(ret)
     end}, seq(p.expression, zom(seq(t.comma, p.expression))))
 
-    p.attrib = wrap(n.attrib, opt(seq(t.less, t.name, t.greater)))
-    p.attnamelist = wrap(n.attnamelist, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
+    p.attrib = wrap({type = n.attrib, string = function(self)
+        if self[1] then return '<'..tostring(self[1][2])..'>' else return '' end
+    end}, opt(seq(t.less, t.name, t.greater)))
+    p.attnamelist = wrap({type=n.attnamelist,string=function(self)
+        local ret = tostring(self[1])..tostring(self[2])
+        for _,x in ipairs(self[3]) do
+            ret = ret .. ', ' .. tostring(x[2]) .. tostring(x[3])
+        end
+        return ret
+    end}, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
 
     p.retstat = wrap({type=n.retstat,string=function(self) return 'return '.. tostring(self[2]) end}, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
 
-    p.label = wrap(n.label, seq(t.doublecolon, t.name, t.doublecolon))
-    p.funcname = wrap(n.funcname, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
-    p.args = wrap(n.args, alt(seq(t.lparen, p.explist, t.rparen), p.tableconstructor, t.string))
+    p.label = wrap({type=n.label,string=function(self)return tostring(self[2]) end}, seq(t.doublecolon, t.name, t.doublecolon))
+
+    p.funcname = wrap({type=n.funcname,string=function(self)
+        local ret= tostring(self[1])
+        for _,x in ipairs(self[2]) do
+            ret = ret .. '.' .. tostring(x[2])
+        end
+        if self[3][1] then
+            ret = ret ..':'..tostring(self[3][1][2])
+        end
+        return ret
+    end}, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
+
+    p.args = alt( wrap({type=n.args,string=function(self) return '(' ..tostring(self[2]) .. ')' end}, seq(t.lparen, p.explist, t.rparen)), p.tableconstructor, wrap({type = n.args, string = function(self) return self.value end}, alt(t.string)))
 
     p.block = wrap(
         {type = n.block, string = function(self)
@@ -167,7 +182,16 @@ return function(tokenizer)
             opt(p.retstat)
         )
     )
-    p.funcbody = wrap(n.funcbody, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
+
+    p.funcbody = wrap({type = n.funcbody,string=function(self)
+        local ret = '('
+        if self[2][1] then
+            ret = ret .. tostring(self[2][1])
+        end
+        ret = ret ..')' .. tostring(self[4]) .. ' end'
+        return ret
+    end}, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
+
     p.functiondef = function()
         tokenizer.begin()
         local ret = p.expression()
@@ -188,26 +212,48 @@ return function(tokenizer)
         tokenizer.undo()
     end
 
-    p.varlist = wrap(n.varlist, seq(p.var, zom(seq(t.comma, p.var))))
+    p.varlist = wrap({type=n.varlist,string=function(self)
+        local ret = tostring(self[1])
+        for _,x in ipairs(self[2]) do
+            ret = ret .. ', ' .. tostring(x[2])
+        end
+        return ret
+    end}, seq(p.var, zom(seq(t.comma, p.var))))
 
     p.stat = alt(
-        wrap(n.stat_empty, seq(t.semicolon)),
-        wrap(n.stat_localvar, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
+        wrap({type = n.stat_empty, string = function() return ';' end}, seq(t.semicolon)),
+        wrap({type=n.stat_localvar, string = function(self)
+            local ret = "local "..tostring(self[2])
+            if self[3][1] then
+                ret = ret ..' = ' ..tostring(self[3][1][2])
+            end
+            return ret
+        end}, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
         wrap(n.stat_label, p.label),
-        wrap(n.stat_break, seq(t.kw_break)),
-        wrap(n.stat_goto, seq(t.kw_goto, t.name)),
-        wrap(n.localfunc, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
-        wrap(n.func, seq(t.kw_function, p.funcname, p.funcbody)),
-        wrap(n.for_num, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
-        wrap(n.stat_for_iter, seq(t.kw_for, p.namelist, t.kw_in, p.explist, t.kw_do, p.block, t.kw_end)),
+        wrap({type=n.stat_break,string=function()return "break" end}, seq(t.kw_break)),
+        wrap({type=n.stat_goto,string=function(self)return 'goto '..tostring(self[2]) end}, seq(t.kw_goto, t.name)),
+        wrap({type=n.localfunc,string=function(self) return 'local function ' .. tostring(self[3])..tostring(self[4])end}, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
+        wrap({type=n.func,string=function(self) return 'function '..tostring(self[2]) .. tostring(self[3]) end}, seq(t.kw_function, p.funcname, p.funcbody)),
+        wrap({type = n.for_num, stirng = function(self) local ret = 'for '..tostring(self[2]) ..' = ' .. tostring(self[4])..', '..tostring(self[6]) if self[7][1] then ret = ret ..', '..tostring(self[7][1][2])end return ret .. ' do ' .. tostring(self[9]) .. ' end' end}, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
+        wrap({type=n.stat_for_iter,string=function(self) return 'for '..tostring(self[2])..' in '..tostring(self[4]) .. ' do ' ..tostring(self[6]) .. ' end' end}, seq(t.kw_for, p.namelist, t.kw_in, p.explist, t.kw_do, p.block, t.kw_end)),
         wrap(
-            n.stat_if,
+        {type =n.stat_if,string=function(self)
+            local ret = 'if ' .. tostring(self[2]) .. ' then ' .. tostring(self[4])
+            for _,x in ipairs(self[5]) do
+                ret = ret ..' elseif ' .. tostring(x[2]) .. ' then ' ..tostring(x[4])
+            end
+            if self[6][1] then
+                ret = ret ..' else ' .. tostring(self[6][1][2])
+            end
+            ret = ret .. ' end'
+            return ret
+        end},
             seq(t.kw_if, p.expression, t.kw_then, p.block, zom(seq(t.kw_elseif, p.expression, t.kw_then, p.block)), opt(seq(t.kw_else, p.block)), t.kw_end)
         ),
-        wrap(n.stat_do, seq(t.kw_do, p.block, t.kw_end)),
-        wrap(n.stat_while, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
-        wrap(n.stat_repeat, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
-        wrap(n.stat_assign, seq(p.varlist, t.assignment, p.explist)),
+        wrap({type=n.stat_do, string = function(self) return 'do ' .. tostring(self[2]) .. ' end' end}, seq(t.kw_do, p.block, t.kw_end)),
+        wrap({type=n.stat_while,string=function(self)return 'while ' .. tostring(self[2]) .. ' do '..tostring(self[4]) .. ' end' end}, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
+        wrap({type=n.stat_repeat,string = function(self) return 'repeat ' .. tostring(self[2]) .. ' until ' .. tostring(self[4]) end}, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
+        wrap({type=n.stat_assign,string=function(self) return tostring(self[1]) .. ' = ' .. tostring(self[3]) end}, seq(p.varlist, t.assignment, p.explist)),
         function()
             tokenizer.begin()
             local ret = p.expression()

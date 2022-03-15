@@ -2,7 +2,7 @@ local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types
 
 local MT = {
     __tostring = function(self)
-        return tostring(self.left) .. (self.self and (':'..self.self)  or '')..tostring(self.arglist)
+        return tostring(self.left) .. (self.self and (':'..self.self)  or '')..tostring(self.args)
     end,
 }
 
