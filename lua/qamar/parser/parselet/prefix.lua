@@ -11,6 +11,9 @@ local MT = {
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = { node[self.type] }
+            if self.type == node.lnot then
+                table.insert(ret, ' ')
+            end
             local paren
             if self.operand.precedence > self.precedence then
                 paren = false
