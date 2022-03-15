@@ -90,7 +90,13 @@ return function(tokenizer)
         string = function()
             return ','
         end,
-    }, alt(t.comma, t.semicolon))
+    }, function()
+        local ret = alt(t.comma, t.semicolon)()
+        if ret then
+            ret = { pos = ret.pos, value = ret.value }
+        end
+        return ret
+    end)
 
     p.field = alt(
         wrap({

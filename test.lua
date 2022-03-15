@@ -8,14 +8,31 @@ local function tohexdigit(c)
         return string.byte(c) - 55
     end
 end
-
 local function todecimaldigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
         return string.byte(c) - 48
     end
 end
 
-local hex_to_binary_table = { '0000', '0001', '0010', '0011', '0100', '0101', '0110', '0111', '1000', '1001', '1010', '1011', '1100', '1101', '1110', '1111' }
+local hex_to_binary_table = {
+    '0000',
+    '0001',
+    '0010',
+    '0011',
+    '0100',
+    '0101',
+    '0110',
+    '0111',
+    '1000',
+    '1001',
+    '1010',
+    '1011',
+    '1100',
+    '1101',
+    '1110',
+    '1111',
+}
+
 local function utf8_encode(hex)
     if #hex > 0 then
         local binstr = {}
@@ -23,7 +40,7 @@ local function utf8_encode(hex)
             binstr[i] = hex_to_binary_table[x + 1]
         end
         binstr = table.concat(binstr)
-        local len, idx = string.len(binstr), binstr:find '1'
+        local len, idx = string.len(binstr), binstr:find(1)
         if not idx then
             return string.char(0)
         elseif len ~= 32 or idx ~= 1 then
@@ -65,155 +82,158 @@ local function utf8_encode(hex)
         end
     end
 end
-
 return function(stream, disallow_short_form)
-stream.begin()
-stream.skipws()
-local pos = stream.pos()
-stream.suspend_skip_ws()
-local function fail()
-    stream.resume_skip_ws()
-    stream.undo()
-end
-local ret = {}
-local t = stream.combinators.alt("'", '"')()
-if t then
-    if disallow_short_form then
-        return fail()
+    stream.begin()
+    stream.skipws()
+    local pos = stream.pos()
+    stream.suspend_skip_ws()
+    local function fail()
+        stream.resume_skip_ws()
+        stream.undo()
     end
-    while true do
-        local c = stream.take()
-        if c == t then
-            break
-        elseif c == '\\' then
-            c = stream.take()
-            if c == 'a' then
-                table.insert(ret, '\a')
-            elseif c == 'b' then
-                table.insert(ret, '\b')
-            elseif c == 'f' then
-                table.insert(ret, '\f')
-            elseif c == 'n' then
-                table.insert(ret, '\n')
-            elseif c == 'r' then
-                table.insert(ret, '\r')
-            elseif c == 't' then
-                table.insert(ret, '\t')
-            elseif c == 'v' then
-                table.insert(ret, '\v')
-            elseif c == '\\' then
-                table.insert(ret, '\\')
-            elseif c == '"' then
-                table.insert(ret, '"')
-            elseif c == "'" then
-                table.insert(ret, "'")
-            elseif c == '\n' then
-                table.insert(ret, '\n')
-            elseif c == 'z' then
-                stream.skipws()
-            elseif c == 'x' then
-                local c1 = tohexdigit(stream.take())
-                local c2 = tohexdigit(stream.take())
-                if not c1 or not c2 then
-                    return fail()
-                end
-                table.insert(ret, string.char(c1 * 16 + c2))
-            elseif c == 'u' then
-                if stream.take() ~= '{' then
-                    return fail()
-                end
-                local digits = {}
-                while #digits < 8 do
-                    local nextdigit = tohexdigit(stream.peek())
-                    if not nextdigit then
-                        break
-                    end
-                    stream.take()
-                    table.insert(digits, nextdigit)
-                end
-                if stream.take() ~= '}' then
-                    return fail
-                end
-                local s = utf8_encode(digits)
-                if not s then
-                    return fail()
-                end
-                table.insert(ret, s)
-            elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
-                local digits = { todecimaldigit(c) }
-                while #digits < 3 do
-                    local nextdigit = todecimaldigit(stream.peek())
-                    if not nextdigit then
-                        break
-                    end
-                    stream.take()
-                    table.insert(digits, nextdigit)
-                end
-                local num = 0
-                for _, d in ipairs(digits) do
-                    num = num * 10 + d
-                end
-                if num > 255 then
-                    return fail()
-                end
-                table.insert(ret, string.char(num))
-            else
-                return fail()
-            end
-        elseif not c or c == '\n' then
-            return fail()
-        else
-            table.insert(ret, c)
-        end
-    end
-else
-    t = stream.combinators.seq('[', stream.combinators.zom '=', '[')()
+    local ret = {}
+    local t = stream.combinators.alt("'", '"')()
     if t then
-        local closing = { ']' }
-        for _ = 1, #t[2] do
-            table.insert(closing, '=')
-        end
-        table.insert(closing, ']')
-        closing = table.concat(closing)
-        if stream.peek() == '\n' then
-            stream.take()
+        if disallow_short_form then
+            return fail()
         end
         while true do
-            local closed = stream.try_consume_string(closing)
-            if closed then
+            local c = stream.take()
+            if c == t then
                 break
-            end
-            t = stream.take()
-            if not t then
+            elseif c == '\\' then
+                c = stream.take()
+                if c == 'a' then
+                    table.insert(ret, '\a')
+                elseif c == 'b' then
+                    table.insert(ret, '\b')
+                elseif c == 'f' then
+                    table.insert(ret, '\f')
+                elseif c == 'n' then
+                    table.insert(ret, '\n')
+                elseif c == 'r' then
+                    table.insert(ret, '\r')
+                elseif c == 't' then
+                    table.insert(ret, '\t')
+                elseif c == 'v' then
+                    table.insert(ret, '\v')
+                elseif c == '\\' then
+                    table.insert(ret, '\\')
+                elseif c == '"' then
+                    table.insert(ret, '"')
+                elseif c == "'" then
+                    table.insert(ret, "'")
+                elseif c == '\n' then
+                    table.insert(ret, '\n')
+                elseif c == 'z' then
+                    stream.skipws()
+                elseif c == 'x' then
+                    local c1 = tohexdigit(stream.take())
+                    local c2 = tohexdigit(stream.take())
+                    if not c1 or not c2 then
+                        return fail()
+                    end
+                    table.insert(ret, string.char(c1 * 16 + c2))
+                elseif c == 'u' then
+                    if stream.take() ~= '{' then
+                        return fail()
+                    end
+                    local digits = {}
+                    while #digits < 8 do
+                        local nextdigit = tohexdigit(stream.peek())
+                        if not nextdigit then
+                            break
+                        end
+                        stream.take()
+                        table.insert(digits, nextdigit)
+                    end
+                    if stream.take() ~= '}' then
+                        return fail
+                    end
+                    local s = utf8_encode(digits)
+                    if not s then
+                        return fail()
+                    end
+                    table.insert(ret, s)
+                elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
+                    local digits = {
+                        todecimaldigit(c),
+                    }
+                    while #digits < 3 do
+                        local nextdigit = todecimaldigit(stream.peek())
+                        if not nextdigit then
+                            break
+                        end
+                        stream.take()
+                        table.insert(digits, nextdigit)
+                    end
+                    local num = 0
+                    for _, d in ipairs(digits) do
+                        num = num * 10 + d
+                    end
+                    if num > 255 then
+                        return fail()
+                    end
+                    table.insert(ret, string.char(num))
+                else
+                    return fail()
+                end
+            elseif not c or c == '\n' then
                 return fail()
-            elseif t == '\r' then
-                t = stream.peek()
-                if t == '\n' then
-                    stream.take()
-                end
-                table.insert(ret, '\n')
-            elseif t == '\n' then
-                if t == '\r' then
-                    stream.take()
-                end
-                table.insert(ret, '\n')
             else
-                table.insert(ret, t)
+                table.insert(ret, c)
             end
         end
     else
-        return fail()
+        t = stream.combinators.seq('[', stream.combinators.zom '=', '[')()
+        if t then
+            local closing = {
+                ']',
+            }
+            for _ = 1, #t[2] do
+                table.insert(closing, '=')
+            end
+            table.insert(closing, ']')
+            closing = table.concat(closing)
+            if stream.peek() == '\n' then
+                stream.take()
+            end
+            while true do
+                local closed = stream.try_consume_string(closing)
+                if closed then
+                    break
+                end
+                t = stream.take()
+                if not t then
+                    return fail()
+                elseif t == '\r' then
+                    t = stream.peek()
+                    if t == '\n' then
+                        stream.take()
+                    end
+                    table.insert(ret, '\n')
+                elseif t == '\n' then
+                    if t == '\r' then
+                        stream.take()
+                    end
+                    table.insert(ret, '\n')
+                else
+                    table.insert(ret, t)
+                end
+            end
+        else
+            return fail()
+        end
     end
-end
-stream.commit()
-stream.resume_skip_ws()
-ret = table.concat(ret)
-return {
-    value = ret,
-    type = token.string,
-    pos = {
-        left = pos,
-        right = stream.pos()
+    stream.commit()
+    stream.resume_skip_ws()
+    ret = table.concat(ret)
+    return {
+        value = ret,
+        type = token.string,
+        pos = {
+            left = pos,
+            right = stream.pos(),
+        },
     }
-}
 end
