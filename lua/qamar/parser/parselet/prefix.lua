@@ -1,8 +1,6 @@
 local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 
 local token_node_mapping = {
-    [token.name] = node.name,
-    [token.number] = node.number,
     [token.kw_not] = node.lnot,
     [token.hash] = node.len,
     [token.dash] = node.neg,
@@ -12,7 +10,7 @@ local token_node_mapping = {
 local MT = {
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
-            local ret = { node[self.type], ' ' }
+            local ret = { node[self.type] }
             local paren
             if self.operand.precedence > self.precedence then
                 paren = false
