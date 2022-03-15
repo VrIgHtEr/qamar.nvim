@@ -364,30 +364,30 @@ return function(tokenizer)
         wrap({
             type = n.for_num,
             string = function(self)
-                local ret = tconcat { 'for ', tostring(self[2]) .. '=', tostring(self[4]), ',', tostring(self[6]) }
+                local ret = tconcat { 'for', tostring(self[2]) .. '=', tostring(self[4]), ',', tostring(self[6]) }
                 if self[7][1] then
                     ret = tconcat { ret, ',', tostring(self[7][2]) }
                 end
-                return tconcat { ret, ' do ', tostring(self[9]), ' end' }
+                return tconcat { ret, 'do', tostring(self[9]), 'end' }
             end,
         }, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_for_iter,
             string = function(self)
-                return 'for ' .. tostring(self[2]) .. ' in ' .. tostring(self[4]) .. ' do ' .. tostring(self[6]) .. ' end'
+                return tconcat { 'for', self[2], 'in', self[4], 'do', self[6], 'end' }
             end,
         }, seq(t.kw_for, p.namelist, t.kw_in, p.explist, t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_if,
             string = function(self)
-                local ret = 'if ' .. tostring(self[2]) .. ' then ' .. tostring(self[4])
+                local ret = tconcat { 'if', tostring(self[2]), 'then', tostring(self[4]) }
                 for _, x in ipairs(self[5]) do
-                    ret = ret .. ' elseif ' .. tostring(x[2]) .. ' then ' .. tostring(x[4])
+                    ret = tconcat { ret, 'elseif', tostring(x[2]), 'then', tostring(x[4]) }
                 end
                 if self[6][1] then
-                    ret = ret .. ' else ' .. tostring(self[6][2])
+                    ret = tconcat { ret, 'else', tostring(self[6][2]) }
                 end
-                ret = ret .. ' end'
+                ret = tconcat { ret, 'end' }
                 return ret
             end,
         }, seq(
@@ -402,25 +402,25 @@ return function(tokenizer)
         wrap({
             type = n.stat_do,
             string = function(self)
-                return 'do ' .. tostring(self[2]) .. ' end'
+                return tconcat { 'do', tostring(self[2]), 'end' }
             end,
         }, seq(t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_while,
             string = function(self)
-                return 'while ' .. tostring(self[2]) .. ' do ' .. tostring(self[4]) .. ' end'
+                return tconcat { 'while', tostring(self[2]), 'do', tostring(self[4]), 'end' }
             end,
         }, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_repeat,
             string = function(self)
-                return 'repeat ' .. tostring(self[2]) .. ' until ' .. tostring(self[4])
+                return tconcat { 'repeat', tostring(self[2]), 'until', tostring(self[4]) }
             end,
         }, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
         wrap({
             type = n.stat_assign,
             string = function(self)
-                return tostring(self[1]) .. '=' .. tostring(self[3])
+                return tconcat { tostring(self[1]), '=', tostring(self[3]) }
             end,
         }, seq(p.varlist, t.assignment, p.explist)),
         function()

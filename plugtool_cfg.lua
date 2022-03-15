@@ -1,7 +1,7 @@
 return {
     config = function()
         local string = require 'toolshed.util.string'
-        local function xxx(c)
+        local function isalphanum(c)
             if
                 c == 'a'
                 or c == 'b'
@@ -76,15 +76,14 @@ return {
             local prevalpha = false
             local ret = {}
             for _, x in ipairs(self) do
-                x = string.trim(x)
+                x = string.trim(tostring(x))
                 if x ~= '' then
-                    local c = x[1]
-                    if prevalpha and xxx(c) then
+                    if prevalpha and isalphanum(x:sub(1, 1)) then
                         table.insert(ret, ' ')
                     end
                     table.insert(ret, x)
+                    prevalpha = isalphanum(x:sub(x:len(), x:len()))
                 end
-                prevalpha = xxx(x[#x])
             end
             return table.concat(ret)
         end
