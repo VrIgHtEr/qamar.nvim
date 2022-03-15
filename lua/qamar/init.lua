@@ -25,7 +25,6 @@ function qamar.run()
     local ppp = create_parser(txt)
     local parsed = ppp.chunk()
     print(tostring(parsed))
-    print(vim.inspect(parsed))
 end
 
 return qamar

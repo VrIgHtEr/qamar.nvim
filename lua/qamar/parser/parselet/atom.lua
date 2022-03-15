@@ -32,9 +32,20 @@ local __tostring = {
     end,
     [node.string] = function(self)
         local ret, sep = {}, nil
-
         do
-            if self.value:find '\r' or self.value:find '\n' or (self.value:find "'" and self.value:find '"') then
+            if
+                false
+                and (
+                    self.value:find '\a'
+                    or self.value:find '\b'
+                    or self.value:find '\f'
+                    or self.value:find '\n'
+                    or self.value:find '\r'
+                    or self.value:find '\t'
+                    or self.value:find '\v'
+                    or (self.value:find "'" and self.value:find '"')
+                )
+            then
                 local eqs = ''
                 while true do
                     sep = ']' .. eqs .. ']'
@@ -50,7 +61,29 @@ local __tostring = {
             end
         end
         for c in string.codepoints(self.value) do
-            table.insert(ret, c)
+            local v = c
+            if v == '\\' then
+                v = '\\\\'
+            elseif v == '\a' then
+                v = '\\a'
+            elseif v == '\b' then
+                v = '\\b'
+            elseif v == '\f' then
+                v = '\\f'
+            elseif v == '\n' then
+                v = '\\n'
+            elseif v == '\r' then
+                v = '\\r'
+            elseif v == '\t' then
+                v = '\\t'
+            elseif v == '\v' then
+                v = '\\v'
+            elseif v == '"' and sep == '"' then
+                v = '\\"'
+            elseif v == "'" and sep == "'" then
+                v = "\\'"
+            end
+            table.insert(ret, v)
         end
         table.insert(ret, sep)
         return table.concat(ret)
