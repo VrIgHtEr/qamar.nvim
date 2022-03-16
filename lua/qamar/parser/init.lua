@@ -224,10 +224,9 @@ return function(tokenizer)
         type = n.attnamelist,
         rewrite = function(self)
             local ret = { { self[1], self[2] } }
-            if self[2][1] then
-                for _, x in ipairs(self[2]) do
-                    table.remove(x, 1)
-                    tinsert(ret, x)
+            if self[3][1] then
+                for _, x in ipairs(self[3]) do
+                    tinsert(ret, { x[2], x[3] })
                 end
             end
             return ret
