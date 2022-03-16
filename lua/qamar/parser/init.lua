@@ -1,5 +1,4 @@
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
-
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()
     if next then
@@ -10,7 +9,6 @@ local function get_precedence(tokenizer)
     end
     return 0
 end
-
 local function wrap(node, parser)
     if type(node) ~= 'table' then
         node = { type = node }
@@ -30,11 +28,9 @@ local function wrap(node, parser)
         return ret
     end
 end
-
 return function(tokenizer)
     local p = { tokenizer = tokenizer }
     local alt, seq, opt, zom = tokenizer.combinators.alt, tokenizer.combinators.seq, tokenizer.combinators.opt, tokenizer.combinators.zom
-
     function p.expression(precedence)
         precedence = precedence or 0
         tokenizer.begin()
@@ -43,26 +39,22 @@ return function(tokenizer)
             tokenizer.undo()
             return
         end
-
         local prefix = parselet.prefix[token.type]
         if not prefix then
             tokenizer.undo()
             return
         end
-
         local left = prefix:parse(p, token)
         if not left then
             tokenizer.undo()
             return
         end
-
         while precedence < get_precedence(tokenizer) do
             token = tokenizer.peek()
             if not token then
                 tokenizer.commit()
                 return left
             end
-
             local infix = parselet.infix[token.type]
             if not infix then
                 tokenizer.commit()
@@ -80,11 +72,9 @@ return function(tokenizer)
                 left = right
             end
         end
-
         tokenizer.commit()
         return left
     end
-
     p.fieldsep = wrap({
         type = n.fieldsep,
         string = function()
@@ -97,7 +87,6 @@ return function(tokenizer)
         end
         return ret
     end)
-
     p.field = alt(
         wrap({
             type = n.field_raw,
@@ -113,7 +102,6 @@ return function(tokenizer)
         }, seq(t.name, t.assignment, p.expression)),
         p.expression
     )
-
     p.fieldlist = wrap({
         type = n.fieldlist,
         string = function(self)
@@ -124,7 +112,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
-
     p.tableconstructor = function()
         tokenizer.begin()
         local ret = p.expression()
@@ -134,7 +121,6 @@ return function(tokenizer)
         end
         tokenizer.undo()
     end
-
     p.namelist = wrap({
         type = n.namelist,
         string = function(self)
@@ -145,14 +131,12 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.name, zom(seq(t.comma, t.name))))
-
     p.vararg = wrap({
         type = n.vararg,
         string = function()
             return '...'
         end,
     }, alt(t.tripledot))
-
     p.parlist = alt(
         wrap({
             type = n.parlist,
@@ -166,7 +150,6 @@ return function(tokenizer)
         }, seq(p.namelist, opt(seq(t.comma, p.vararg)))),
         p.vararg
     )
-
     p.explist = wrap({
         type = n.explist,
         string = function(self)
@@ -177,7 +160,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(p.expression, zom(seq(t.comma, p.expression))))
-
     p.attrib = wrap({
         type = n.attrib,
         string = function(self)
@@ -194,7 +176,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
-
     p.retstat = wrap({
         type = n.retstat,
         string = function(self)
@@ -205,14 +186,12 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
-
     p.label = wrap({
         type = n.label,
         string = function(self)
             return tconcat { '::', self[2], '::' }
         end,
     }, seq(t.doublecolon, t.name, t.doublecolon))
-
     p.funcname = wrap({
         type = n.funcname,
         string = function(self)
@@ -226,7 +205,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
-
     p.args = alt(
         wrap({
             type = n.args,
@@ -242,7 +220,6 @@ return function(tokenizer)
             end,
         }, alt(t.string))
     )
-
     p.block = wrap(
         {
             type = n.block,
@@ -262,7 +239,6 @@ return function(tokenizer)
             opt(p.retstat)
         )
     )
-
     p.funcbody = wrap({
         type = n.funcbody,
         string = function(self)
@@ -274,7 +250,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
-
     p.functiondef = function()
         tokenizer.begin()
         local ret = p.expression()
@@ -284,7 +259,6 @@ return function(tokenizer)
         end
         tokenizer.undo()
     end
-
     p.var = function()
         tokenizer.begin()
         local ret = p.expression()
@@ -294,7 +268,6 @@ return function(tokenizer)
         end
         tokenizer.undo()
     end
-
     p.varlist = wrap({
         type = n.varlist,
         string = function(self)
@@ -305,7 +278,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(p.var, zom(seq(t.comma, p.var))))
-
     p.stat = alt(
         wrap({
             type = n.stat_empty,
@@ -421,13 +393,11 @@ return function(tokenizer)
             tokenizer.undo()
         end
     )
-
     p.chunk = wrap(n.chunk, function()
         if tokenizer.peek() then
             local ret = p.block()
             return ret and not tokenizer.peek() and ret or nil
         end
     end)
-
     return p
 end
