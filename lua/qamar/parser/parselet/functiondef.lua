@@ -2,7 +2,7 @@ local node = require 'qamar.parser.types'
 
 local MT = {
     __tostring = function(self)
-        return 'function' .. tostring(self.value)
+        return tconcat { 'function', self.value }
     end,
 }
 

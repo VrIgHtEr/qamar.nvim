@@ -2,7 +2,7 @@ local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types
 
 local MT = {
     __tostring = function(self)
-        return tostring(self.table) ..'[' .. tostring(self.key) .. ']'
+        return tconcat { self.table, '[', self.key, ']' }
     end,
 }
 

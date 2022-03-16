@@ -11,9 +11,6 @@ local MT = {
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = { node[self.type] }
-            if self.type == node.lnot then
-                table.insert(ret, ' ')
-            end
             local paren
             if self.operand.precedence > self.precedence then
                 paren = false
@@ -23,15 +20,15 @@ local MT = {
             if paren then
                 table.insert(ret, '(')
             end
-            table.insert(ret, tostring(self.operand))
+            table.insert(ret, self.operand)
             if paren then
                 table.insert(ret, ')')
             end
-            return table.concat(ret)
+            return tconcat(ret)
         elseif config.expression_display_mode == config.expression_display_modes.prefix then
-            return '$' .. node[self.type] .. ' ' .. tostring(self.operand)
+            return tconcat { '$', node[self.type], self.operand }
         elseif config.expression_display_mode == config.expression_display_modes.postfix then
-            return tostring(self.operand) .. ' $' .. node[self.type]
+            return tconcat { self.operand, ' $', node[self.type] }
         end
     end,
 }

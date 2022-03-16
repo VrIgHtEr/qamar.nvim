@@ -2,7 +2,7 @@ local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types
 
 local MT = {
     __tostring = function(self)
-        return tostring(self.left) .. (self.self and (':' .. self.self) or '') .. '(' .. tostring(self.args) .. ')'
+        return tconcat { self.left, (self.self and (':' .. self.self) or ''), '(', self.args, ')' }
     end,
 }
 
@@ -36,8 +36,8 @@ return function(self, parser, left, tok)
             local arg = tableconstructor(self, parser, tok)
             if arg then
                 arglist = setmetatable({ arg }, {
-                    __tostring = function(self)
-                        return tostring(self[1])
+                    __tostring = function(x)
+                        return tostring(x[1])
                     end,
                 })
                 right = arg.pos.right
@@ -46,8 +46,8 @@ return function(self, parser, left, tok)
             local arg = atom(self, parser, tok)
             if arg then
                 arglist = setmetatable({ arg }, {
-                    __tostring = function(self)
-                        return tostring(self[1])
+                    __tostring = function(x)
+                        return tostring(x[1])
                     end,
                 })
                 right = arg.pos.right

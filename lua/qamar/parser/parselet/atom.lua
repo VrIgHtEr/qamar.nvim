@@ -11,25 +11,17 @@ local token_node_mapping = {
     [token.string] = node.string,
 }
 
+local function default__tostring(self)
+    return self.value
+end
+
 local __tostring = {
-    [node.name] = function(self)
-        return self.value
-    end,
-    [node.number] = function(self)
-        return self.value
-    end,
-    [node.val_nil] = function(self)
-        return self.value
-    end,
-    [node.val_false] = function(self)
-        return self.value
-    end,
-    [node.val_true] = function(self)
-        return self.value
-    end,
-    [node.vararg] = function(self)
-        return self.value
-    end,
+    [node.name] = default__tostring,
+    [node.number] = default__tostring,
+    [node.val_nil] = default__tostring,
+    [node.val_false] = default__tostring,
+    [node.val_true] = default__tostring,
+    [node.vararg] = default__tostring,
     [node.string] = function(self)
         local ret, sep = {}, nil
         do

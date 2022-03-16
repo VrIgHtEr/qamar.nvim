@@ -21,7 +21,7 @@ local function wrap(node, parser)
             ret.type = node.type
             ret.typename = n[node.type]
             if node.rewrite then
-                node.rewrite(ret)
+                ret = node.rewrite(ret)
             end
             if node.string then
                 setmetatable(ret, { __tostring = node.string })
@@ -102,13 +102,13 @@ return function(tokenizer)
         wrap({
             type = n.field_raw,
             string = function(self)
-                return tconcat { '[', tostring(self[2]), ']=', tostring(self[5]) }
+                return tconcat { '[', self[2], ']', '=', self[5] }
             end,
         }, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)),
         wrap({
             type = n.field_name,
             string = function(self)
-                return tostring(self[1]) .. '=' .. tostring(self[3])
+                return tconcat { self[1], '=', self[3] }
             end,
         }, seq(t.name, t.assignment, p.expression)),
         p.expression
@@ -117,10 +117,9 @@ return function(tokenizer)
     p.fieldlist = wrap({
         type = n.fieldlist,
         string = function(self)
-            local ret = { tostring(self[1]) }
+            local ret = { self[1] }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ',')
-                table.insert(ret, tostring(x[2]))
+                tinsert(ret, ',', x[2])
             end
             return tconcat(ret)
         end,
@@ -139,10 +138,9 @@ return function(tokenizer)
     p.namelist = wrap({
         type = n.namelist,
         string = function(self)
-            local ret = { tostring(self[1]) }
+            local ret = { self[1] }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ',')
-                table.insert(ret, tostring(x[2]))
+                tinsert(ret, ',', x[2])
             end
             return tconcat(ret)
         end,
@@ -159,11 +157,11 @@ return function(tokenizer)
         wrap({
             type = n.parlist,
             string = function(self)
-                local ret = tostring(self[1])
+                local ret = { self[1] }
                 if self[2][1] then
-                    ret = tconcat { ret, ',...' }
+                    tinsert(ret, '...')
                 end
-                return ret
+                return tconcat(ret)
             end,
         }, seq(p.namelist, opt(seq(t.comma, p.vararg)))),
         p.vararg
@@ -172,10 +170,9 @@ return function(tokenizer)
     p.explist = wrap({
         type = n.explist,
         string = function(self)
-            local ret = { tostring(self[1]) }
+            local ret = { self[1] }
             for _, x in ipairs(self[2]) do
-                table.insert(ret, ',')
-                table.insert(ret, tostring(x[2]))
+                tinsert(ret, ',', x[2])
             end
             return tconcat(ret)
         end,
@@ -184,53 +181,49 @@ return function(tokenizer)
     p.attrib = wrap({
         type = n.attrib,
         string = function(self)
-            if self[1] then
-                return tconcat { '<', tostring(self[2]), '>' }
-            else
-                return ''
-            end
+            return self[1] and (tconcat { '<', self[2], '>' }) or ''
         end,
     }, opt(seq(t.less, t.name, t.greater)))
     p.attnamelist = wrap({
         type = n.attnamelist,
         string = function(self)
-            local ret = tconcat { tostring(self[1]), tostring(self[2]) }
+            local ret = { self[1], self[2] }
             for _, x in ipairs(self[3]) do
-                ret = tconcat { ret, ',', tostring(x[2]), tostring(x[3]) }
+                tinsert(ret, ',', x[2], x[3])
             end
-            return ret
+            return tconcat(ret)
         end,
     }, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
 
     p.retstat = wrap({
         type = n.retstat,
         string = function(self)
-            local ret = 'return'
+            local ret = { 'return' }
             if self[2].type then
-                ret = tconcat { ret, ' ', tostring(self[2]) }
+                tinsert(ret, self[2])
             end
-            return ret
+            return tconcat(ret)
         end,
     }, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
 
     p.label = wrap({
         type = n.label,
         string = function(self)
-            return tconcat { '::', tostring(self[2]), '::' }
+            return tconcat { '::', self[2], '::' }
         end,
     }, seq(t.doublecolon, t.name, t.doublecolon))
 
     p.funcname = wrap({
         type = n.funcname,
         string = function(self)
-            local ret = tostring(self[1])
+            local ret = { self[1] }
             for _, x in ipairs(self[2]) do
-                ret = tconcat { ret, '.', tostring(x[2]) }
+                tinsert(ret, '.', x[2])
             end
             if self[3][1] then
-                ret = tconcat { ret, ':', tostring(self[3][2]) }
+                tinsert(ret, ':', self[3][2])
             end
-            return ret
+            return tconcat(ret)
         end,
     }, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
 
@@ -255,16 +248,10 @@ return function(tokenizer)
             type = n.block,
             string = function(self)
                 local ret = {}
-                for i, x in ipairs(self[1]) do
-                    if i > 1 then
-                        table.insert(ret, ' ')
-                    end
-                    table.insert(ret, tostring(x))
+                for _, x in ipairs(self[1]) do
+                    tinsert(ret, x)
                 end
-                if #ret > 0 then
-                    table.insert(ret, ' ')
-                end
-                table.insert(ret, tostring(self[2]))
+                tinsert(ret, self[2])
                 return tconcat(ret)
             end,
         },
@@ -279,12 +266,12 @@ return function(tokenizer)
     p.funcbody = wrap({
         type = n.funcbody,
         string = function(self)
-            local ret = '('
+            local ret = { '(' }
             if self[2][1] then
-                ret = tconcat { ret, tostring(self[2][1]) }
+                tinsert(ret, self[2][1])
             end
-            ret = tconcat { ret, ')', tostring(self[4]), 'end' }
-            return ret
+            tinsert(ret, ')', self[4], 'end')
+            return tconcat(ret)
         end,
     }, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
 
@@ -311,11 +298,11 @@ return function(tokenizer)
     p.varlist = wrap({
         type = n.varlist,
         string = function(self)
-            local ret = tostring(self[1])
+            local ret = { self[1] }
             for _, x in ipairs(self[2]) do
-                ret = tconcat { ret, ',', tostring(x[2]) }
+                tinsert(ret, ',', x[2])
             end
-            return ret
+            return tconcat(ret)
         end,
     }, seq(p.var, zom(seq(t.comma, p.var))))
 
@@ -329,11 +316,11 @@ return function(tokenizer)
         wrap({
             type = n.stat_localvar,
             string = function(self)
-                local ret = tconcat { 'local', tostring(self[2]) }
+                local ret = { 'local', self[2] }
                 if self[3][1] then
-                    ret = tconcat { ret, '=', tostring(self[3][2]) }
+                    tinsert(ret, '=', self[3][2])
                 end
-                return ret
+                return tconcat(ret)
             end,
         }, seq(t.kw_local, p.attnamelist, opt(seq(t.assignment, p.explist)))),
         wrap(n.stat_label, p.label),
@@ -346,29 +333,30 @@ return function(tokenizer)
         wrap({
             type = n.stat_goto,
             string = function(self)
-                return tconcat { 'goto', tostring(self[2]) }
+                return tconcat { 'goto', self[2] }
             end,
         }, seq(t.kw_goto, t.name)),
         wrap({
             type = n.localfunc,
             string = function(self)
-                return tconcat { 'local function', tostring(self[3]), tostring(self[4]) }
+                return tconcat { 'local function', self[3], self[4] }
             end,
         }, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
         wrap({
             type = n.func,
             string = function(self)
-                return tconcat { 'function', tostring(self[2]), tostring(self[3]) }
+                return tconcat { 'function', self[2], self[3] }
             end,
         }, seq(t.kw_function, p.funcname, p.funcbody)),
         wrap({
             type = n.for_num,
             string = function(self)
-                local ret = tconcat { 'for', tostring(self[2]) .. '=', tostring(self[4]), ',', tostring(self[6]) }
+                local ret = { 'for', self[2], '=', self[4], ',', self[6] }
                 if self[7][1] then
-                    ret = tconcat { ret, ',', tostring(self[7][2]) }
+                    tinsert(ret, ',', self[7][2])
                 end
-                return tconcat { ret, 'do', tostring(self[9]), 'end' }
+                tinsert(ret, 'do', self[9], 'end')
+                return tconcat(ret)
             end,
         }, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
         wrap({
@@ -380,15 +368,15 @@ return function(tokenizer)
         wrap({
             type = n.stat_if,
             string = function(self)
-                local ret = tconcat { 'if', tostring(self[2]), 'then', tostring(self[4]) }
+                local ret = { 'if', self[2], 'then', self[4] }
                 for _, x in ipairs(self[5]) do
-                    ret = tconcat { ret, 'elseif', tostring(x[2]), 'then', tostring(x[4]) }
+                    tinsert(ret, 'elseif', x[2], 'then', x[4])
                 end
                 if self[6][1] then
-                    ret = tconcat { ret, 'else', tostring(self[6][2]) }
+                    tinsert(ret, 'else', self[6][2])
                 end
-                ret = tconcat { ret, 'end' }
-                return ret
+                tinsert(ret, 'end')
+                return tconcat(ret)
             end,
         }, seq(
             t.kw_if,

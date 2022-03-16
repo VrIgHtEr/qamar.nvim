@@ -87,6 +87,17 @@ return {
             end
             return table.concat(ret)
         end
+
+        _G.tinsert = function(tbl, ...)
+            local idx = #tbl
+            local args = { ... }
+            for i = 1, #args do
+                idx = idx + 1
+                tbl[idx] = args[i]
+            end
+            return tbl
+        end
+
         nnoremap(
             '<leader>cr',
             ":lua local to_unload = {} for k in pairs(package.loaded) do if k == 'qamar' or (#k >= 6 and k:sub(1, 6) == 'qamar.') then table.insert(to_unload, k) end end for _, k in ipairs(to_unload) do package.loaded[k] = nil end require'qamar'.run()<cr>",

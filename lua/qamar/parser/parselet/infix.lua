@@ -32,30 +32,24 @@ local MT = {
             if paren then
                 table.insert(ret, '(')
             end
-            table.insert(ret, tostring(self.left))
+            table.insert(ret, self.left)
             if paren then
                 table.insert(ret, ')')
             end
-            if self.type == node.land or self.type == node.lor then
-                table.insert(ret, ' ')
-            end
             table.insert(ret, node[self.type])
-            if self.type == node.land or self.type == node.lor then
-                table.insert(ret, ' ')
-            end
             paren = self.right.precedence < self.precedence or self.right.precedence == self.precedence and not self.right_associative
             if paren then
                 table.insert(ret, '(')
             end
-            table.insert(ret, tostring(self.right))
+            table.insert(ret, self.right)
             if paren then
                 table.insert(ret, ')')
             end
-            return table.concat(ret)
+            return tconcat(ret)
         elseif config.expression_display_mode == config.expression_display_modes.prefix then
-            return node[self.type] .. ' ' .. tostring(self.left) .. ' ' .. tostring(self.right)
+            return tconcat { node[self.type], self.left, self.right }
         elseif config.expression_display_mode == config.expression_display_modes.postfix then
-            return tostring(self.left) .. ' ' .. tostring(self.right) .. ' ' .. node[self.type]
+            return tconcat { self.left, self.right, node[self.type] }
         end
     end,
 }
