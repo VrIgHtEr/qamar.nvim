@@ -390,25 +390,25 @@ return function(tokenizer)
         wrap({
             type = n.stat_do,
             string = function(self)
-                return tconcat { 'do', tostring(self[2]), 'end' }
+                return tconcat { 'do', self[2], 'end' }
             end,
         }, seq(t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_while,
             string = function(self)
-                return tconcat { 'while', tostring(self[2]), 'do', tostring(self[4]), 'end' }
+                return tconcat { 'while', self[2], 'do', self[4], 'end' }
             end,
         }, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_repeat,
             string = function(self)
-                return tconcat { 'repeat', tostring(self[2]), 'until', tostring(self[4]) }
+                return tconcat { 'repeat', self[2], 'until', self[4] }
             end,
         }, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
         wrap({
             type = n.stat_assign,
             string = function(self)
-                return tconcat { tostring(self[1]), '=', tostring(self[3]) }
+                return tconcat { self[1], '=', self[3] }
             end,
         }, seq(p.varlist, t.assignment, p.explist)),
         function()
