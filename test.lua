@@ -19,7 +19,13 @@ local function wrap(node, parser)
             ret.type = node.type
             ret.typename = n[node.type]
             if node.rewrite then
-                ret = node.rewrite(ret)
+                local x = node.rewrite(ret)
+                for i = 1, #ret do
+                    ret[i] = nil
+                end
+                for i = 1, #x do
+                    ret[i] = x[i]
+                end
             end
             if node.string then
                 setmetatable(ret, { __tostring = node.string })
@@ -104,10 +110,22 @@ return function(tokenizer)
     )
     p.fieldlist = wrap({
         type = n.fieldlist,
-        string = function(self)
+        rewrite = function(self)
             local ret = { self[1] }
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, ',', x[2])
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    tinsert(ret, x[2])
+                end
+            end
+            return ret
+        end,
+        string = function(self)
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x)
             end
             return tconcat(ret)
         end,
@@ -123,10 +141,22 @@ return function(tokenizer)
     end
     p.namelist = wrap({
         type = n.namelist,
-        string = function(self)
+        rewrite = function(self)
             local ret = { self[1] }
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, ',', x[2])
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    tinsert(ret, x[2])
+                end
+            end
+            return ret
+        end,
+        string = function(self)
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x)
             end
             return tconcat(ret)
         end,
@@ -140,10 +170,22 @@ return function(tokenizer)
     p.parlist = alt(
         wrap({
             type = n.parlist,
-            string = function(self)
+            rewrite = function(self)
                 local ret = { self[1] }
                 if self[2][1] then
-                    tinsert(ret, '...')
+                    for _, x in ipairs(self[2]) do
+                        tinsert(ret, x[2])
+                    end
+                end
+                return ret
+            end,
+            string = function(self)
+                local ret = {}
+                for i, x in ipairs(self) do
+                    if i > 1 then
+                        tinsert(ret, ',')
+                    end
+                    tinsert(ret, x)
                 end
                 return tconcat(ret)
             end,
@@ -152,10 +194,22 @@ return function(tokenizer)
     )
     p.explist = wrap({
         type = n.explist,
-        string = function(self)
+        rewrite = function(self)
             local ret = { self[1] }
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, ',', x[2])
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    tinsert(ret, x[2])
+                end
+            end
+            return ret
+        end,
+        string = function(self)
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x)
             end
             return tconcat(ret)
         end,
@@ -168,10 +222,23 @@ return function(tokenizer)
     }, opt(seq(t.less, t.name, t.greater)))
     p.attnamelist = wrap({
         type = n.attnamelist,
+        rewrite = function(self)
+            local ret = { { self[1], self[2] } }
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    table.remove(x, 1)
+                    tinsert(ret, x)
+                end
+            end
+            return ret
+        end,
         string = function(self)
-            local ret = { self[1], self[2] }
-            for _, x in ipairs(self[3]) do
-                tinsert(ret, ',', x[2], x[3])
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x[1], x[2])
             end
             return tconcat(ret)
         end,
