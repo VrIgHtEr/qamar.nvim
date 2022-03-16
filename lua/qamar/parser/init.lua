@@ -96,14 +96,20 @@ return function(tokenizer)
     p.field = alt(
         wrap({
             type = n.field_raw,
+            rewrite = function(self)
+                return { self[2], self[5] }
+            end,
             string = function(self)
-                return tconcat { '[', self[2], ']', '=', self[5] }
+                return tconcat { '[', self[1], ']', '=', self[2] }
             end,
         }, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)),
         wrap({
             type = n.field_name,
+            rewrite = function(self)
+                return { self[1], self[3] }
+            end,
             string = function(self)
-                return tconcat { self[1], '=', self[3] }
+                return tconcat { self[1], '=', self[2] }
             end,
         }, seq(t.name, t.assignment, p.expression)),
         p.expression
@@ -244,18 +250,24 @@ return function(tokenizer)
     }, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
     p.retstat = wrap({
         type = n.retstat,
+        rewrite = function(self)
+            return { self[2] }
+        end,
         string = function(self)
             local ret = { 'return' }
-            if self[2].type then
-                tinsert(ret, self[2])
+            if self[1].type then
+                tinsert(ret, self[1])
             end
             return tconcat(ret)
         end,
     }, seq(t.kw_return, opt(p.explist), opt(t.semicolon)))
     p.label = wrap({
         type = n.label,
+        rewrite = function(self)
+            return { self[2] }
+        end,
         string = function(self)
-            return tconcat { '::', self[2], '::' }
+            return tconcat { '::', self[1], '::' }
         end,
     }, seq(t.doublecolon, t.name, t.doublecolon))
     p.funcname = wrap({
@@ -307,12 +319,15 @@ return function(tokenizer)
     )
     p.funcbody = wrap({
         type = n.funcbody,
+        rewrite = function(self)
+            return { self[2], self[4] }
+        end,
         string = function(self)
             local ret = { '(' }
-            if self[2][1] then
-                tinsert(ret, self[2][1])
+            if self[1][1] then
+                tinsert(ret, self[1][1])
             end
-            tinsert(ret, ')', self[4], 'end')
+            tinsert(ret, ')', self[2], 'end')
             return tconcat(ret)
         end,
     }, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
@@ -336,10 +351,22 @@ return function(tokenizer)
     end
     p.varlist = wrap({
         type = n.varlist,
-        string = function(self)
+        rewrite = function(self)
             local ret = { self[1] }
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, ',', x[2])
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    tinsert(ret, x[2])
+                end
+            end
+            return ret
+        end,
+        string = function(self)
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x)
             end
             return tconcat(ret)
         end,
@@ -370,20 +397,29 @@ return function(tokenizer)
         }, seq(t.kw_break)),
         wrap({
             type = n.stat_goto,
+            rewrite = function(self)
+                return { self[2] }
+            end,
             string = function(self)
-                return tconcat { 'goto', self[2] }
+                return tconcat { 'goto', self[1] }
             end,
         }, seq(t.kw_goto, t.name)),
         wrap({
             type = n.localfunc,
+            rewrite = function(self)
+                return { self[3], self[4] }
+            end,
             string = function(self)
-                return tconcat { 'local function', self[3], self[4] }
+                return tconcat { 'local function', self[1], self[2] }
             end,
         }, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
         wrap({
             type = n.func,
+            rewrite = function(self)
+                return { self[2], self[3] }
+            end,
             string = function(self)
-                return tconcat { 'function', self[2], self[3] }
+                return tconcat { 'function', self[1], self[2] }
             end,
         }, seq(t.kw_function, p.funcname, p.funcbody)),
         wrap({
@@ -399,8 +435,11 @@ return function(tokenizer)
         }, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_for_iter,
+            rewrite = function(self)
+                return { self[2], self[4], self[6] }
+            end,
             string = function(self)
-                return tconcat { 'for', self[2], 'in', self[4], 'do', self[6], 'end' }
+                return tconcat { 'for', self[1], 'in', self[2], 'do', self[3], 'end' }
             end,
         }, seq(t.kw_for, p.namelist, t.kw_in, p.explist, t.kw_do, p.block, t.kw_end)),
         wrap({
@@ -427,26 +466,38 @@ return function(tokenizer)
         )),
         wrap({
             type = n.stat_do,
+            rewrite = function(self)
+                return { self[2] }
+            end,
             string = function(self)
-                return tconcat { 'do', self[2], 'end' }
+                return tconcat { 'do', self[1], 'end' }
             end,
         }, seq(t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_while,
+            rewrite = function(self)
+                return { self[2], self[4] }
+            end,
             string = function(self)
-                return tconcat { 'while', self[2], 'do', self[4], 'end' }
+                return tconcat { 'while', self[1], 'do', self[2], 'end' }
             end,
         }, seq(t.kw_while, p.expression, t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_repeat,
+            rewrite = function(self)
+                return { self[2], self[4] }
+            end,
             string = function(self)
-                return tconcat { 'repeat', self[2], 'until', self[4] }
+                return tconcat { 'repeat', self[1], 'until', self[2] }
             end,
         }, seq(t.kw_repeat, p.block, t.kw_until, p.expression)),
         wrap({
             type = n.stat_assign,
+            rewrite = function(self)
+                return { self[1], self[3] }
+            end,
             string = function(self)
-                return tconcat { self[1], '=', self[3] }
+                return tconcat { self[1], '=', self[2] }
             end,
         }, seq(p.varlist, t.assignment, p.explist)),
         function()
