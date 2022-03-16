@@ -19,7 +19,13 @@ local function wrap(node, parser)
             ret.type = node.type
             ret.typename = n[node.type]
             if node.rewrite then
-                ret = node.rewrite(ret)
+                local x = node.rewrite(ret)
+                for i = 1, #ret do
+                    ret[i] = nil
+                end
+                for i = 1, #x do
+                    ret[i] = x[i]
+                end
             end
             if node.string then
                 setmetatable(ret, { __tostring = node.string })
@@ -104,10 +110,22 @@ return function(tokenizer)
     )
     p.fieldlist = wrap({
         type = n.fieldlist,
-        string = function(self)
+        rewrite = function(self)
             local ret = { self[1] }
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, ',', x[2])
+            if self[2][1] then
+                for _, x in ipairs(self[2]) do
+                    tinsert(ret, x[2])
+                end
+            end
+            return ret
+        end,
+        string = function(self)
+            local ret = {}
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    tinsert(ret, ',')
+                end
+                tinsert(ret, x)
             end
             return tconcat(ret)
         end,

@@ -2,7 +2,19 @@ local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types
 
 local MT = {
     __tostring = function(self)
-        return tconcat { self.left, (self.self and (':' .. self.self) or ''), '(', self.args, ')' }
+        local ret = { self.left }
+        if self.self then
+            tinsert(ret, ':', self.self)
+        end
+        local paren = #self.args ~= 1 or (self.args[1].type ~= node.tableconstructor and self.args[1].type ~= node.string)
+        if paren then
+            tinsert(ret, '(')
+        end
+        tinsert(ret, self.args)
+        if paren then
+            tinsert(ret, ')')
+        end
+        return tconcat(ret)
     end,
 }
 
