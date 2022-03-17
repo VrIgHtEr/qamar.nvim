@@ -10,6 +10,7 @@ end
 
 function qamar.run()
     local txt = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/parser/init.lua')
+    txt = require('toolshed.util').read_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/lua/qamar/tokenizer/token/string.lua')
     local p = create_parser(txt)
     local tree = p.chunk()
     local roundtripstr = tostring(tree)

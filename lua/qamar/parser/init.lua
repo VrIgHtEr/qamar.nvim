@@ -283,21 +283,6 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
-    p.args = alt(
-        wrap({
-            type = n.args,
-            string = function(self)
-                return tostring(self[2])
-            end,
-        }, seq(t.lparen, p.explist, t.rparen)),
-        p.tableconstructor,
-        wrap({
-            type = n.args,
-            string = function(self)
-                return self.value
-            end,
-        }, alt(t.string))
-    )
     p.block = wrap(
         {
             type = n.block,

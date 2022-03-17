@@ -69,10 +69,45 @@ return function(self, parser, left, tok)
                 local name = parser.tokenizer.take()
                 if name.type == token.name then
                     sname = name.value
-                    local args = parser.args()
-                    if args then
-                        arglist = args
-                        right = args.pos.right
+
+                    local next = parser.tokenizer.peek()
+                    if next then
+                        parser.tokenizer.take()
+                        if next.type == token.lparen then
+                            local args = parser.explist()
+                                or setmetatable({}, {
+                                    __tostring = function()
+                                        return ''
+                                    end,
+                                })
+                            if parser.tokenizer.peek() then
+                                local rparen = parser.tokenizer.take()
+                                if rparen.type == token.rparen then
+                                    arglist = args
+                                    right = rparen.pos.right
+                                end
+                            end
+                        elseif next.type == token.lbrace then
+                            local arg = tableconstructor(self, parser, next)
+                            if arg then
+                                arglist = setmetatable({ arg }, {
+                                    __tostring = function(x)
+                                        return tostring(x[1])
+                                    end,
+                                })
+                                right = arg.pos.right
+                            end
+                        elseif next.type == token.string then
+                            local arg = atom(self, parser, next)
+                            if arg then
+                                arglist = setmetatable({ arg }, {
+                                    __tostring = function(x)
+                                        return tostring(x[1])
+                                    end,
+                                })
+                                right = arg.pos.right
+                            end
+                        end
                     end
                 end
             end

@@ -12,4 +12,5 @@ return {
     unary = 11,
     exp = 12,
     atom = 13,
+    literal = 14,
 }
