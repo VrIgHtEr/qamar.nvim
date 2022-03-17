@@ -16,16 +16,18 @@ end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
-    for filename in popen('find "' .. directory .. '" -maxdepth 1 -type f -name "*.lua"'):lines() do
+    local proc = popen('find "' .. directory .. '" -maxdepth 1 -type f -name "*.lua"')
+    for filename in proc:lines() do
         i = i + 1
         t[i] = filename
     end
+    proc:close()
     return t
 end
 
 local function parse_everything()
     local co = coroutine.create(function()
-        local counter = 1
+        local counter = 0
         for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
             for _, filename in ipairs(scandir(dir)) do
                 if true or filename == '/home/cedric/.local/share/nvim/site/pack/windwp/opt/nvim-autopairs/tests/fastwrap_spec.lua' then
@@ -47,13 +49,14 @@ local function parse_everything()
                 end
             end
         end
+        return counter
     end)
     local function step()
         local success, err = coroutine.resume(co)
         if success then
             local stat = coroutine.status(co)
             if stat == 'dead' then
-                print 'FINISHED'
+                print('PARSED ' .. err .. ' FILES')
             else
                 vim.schedule(step)
             end
