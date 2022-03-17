@@ -137,7 +137,7 @@ return function(tokenizer)
     }, seq(p.field, zom(seq(alt(t.comma, t.semicolon), p.field)), opt(alt(t.comma, t.semicolon))))
     p.tableconstructor = function()
         tokenizer.begin()
-        local ret = p.expression()
+        local ret = p.expression(prec.literal)
         if ret and ret.type == n.tableconstructor then
             tokenizer.commit()
             return ret
@@ -173,7 +173,7 @@ return function(tokenizer)
         end,
     }, function()
         tokenizer.begin()
-        local ret = p.expression()
+        local ret = p.expression(prec.literal)
         if ret and ret.type == n.vararg then
             tokenizer.commit()
             return ret
@@ -323,7 +323,7 @@ return function(tokenizer)
     }, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
     p.functiondef = function()
         tokenizer.begin()
-        local ret = p.expression()
+        local ret = p.expression(prec.literal)
         if ret and ret.type == n.functiondef then
             tokenizer.commit()
             return ret
@@ -331,7 +331,7 @@ return function(tokenizer)
         tokenizer.undo()
     end
     p.var = function()
-        tokenizer.begin()
+        tokenizer.begin(prec.atom)
         local ret = p.expression()
         if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
             tokenizer.commit()
