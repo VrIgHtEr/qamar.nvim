@@ -1,4 +1,6 @@
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
+local prec = require 'qamar.parser.precedence'
+
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()
     if next then
@@ -81,6 +83,15 @@ return function(tokenizer)
         tokenizer.commit()
         return left
     end
+    p.name = function()
+        tokenizer.begin()
+        local ret = p.expression(prec.atom)
+        if ret and ret.type == n.name then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
+    end
     p.fieldsep = wrap({
         type = n.fieldsep,
         string = function()
@@ -111,7 +122,7 @@ return function(tokenizer)
             string = function(self)
                 return tconcat { self[1], '=', self[2] }
             end,
-        }, seq(t.name, t.assignment, p.expression)),
+        }, seq(p.name, t.assignment, p.expression)),
         p.expression
     )
     p.fieldlist = wrap({
@@ -166,7 +177,7 @@ return function(tokenizer)
             end
             return tconcat(ret)
         end,
-    }, seq(t.name, zom(seq(t.comma, t.name))))
+    }, seq(p.name, zom(seq(t.comma, p.name))))
     p.vararg = wrap({
         type = n.vararg,
         string = function()
@@ -231,7 +242,7 @@ return function(tokenizer)
         string = function(self)
             return self[1] and (tconcat { '<', self[2], '>' }) or ''
         end,
-    }, opt(seq(t.less, t.name, t.greater)))
+    }, opt(seq(t.less, p.name, t.greater)))
     p.attnamelist = wrap({
         type = n.attnamelist,
         rewrite = function(self)
@@ -253,7 +264,7 @@ return function(tokenizer)
             end
             return tconcat(ret)
         end,
-    }, seq(t.name, p.attrib, zom(seq(t.comma, t.name, p.attrib))))
+    }, seq(p.name, p.attrib, zom(seq(t.comma, p.name, p.attrib))))
     p.retstat = wrap({
         type = n.retstat,
         rewrite = function(self)
@@ -275,7 +286,7 @@ return function(tokenizer)
         string = function(self)
             return tconcat { '::', self[1], '::' }
         end,
-    }, seq(t.doublecolon, t.name, t.doublecolon))
+    }, seq(t.doublecolon, p.name, t.doublecolon))
     p.funcname = wrap({
         type = n.funcname,
         string = function(self)
@@ -288,7 +299,7 @@ return function(tokenizer)
             end
             return tconcat(ret)
         end,
-    }, seq(t.name, zom(seq(t.dot, t.name)), opt(seq(t.colon, t.name))))
+    }, seq(p.name, zom(seq(t.dot, p.name)), opt(seq(t.colon, p.name))))
     p.block = wrap(
         {
             type = n.block,
@@ -394,7 +405,7 @@ return function(tokenizer)
             string = function(self)
                 return tconcat { 'goto', self[1] }
             end,
-        }, seq(t.kw_goto, t.name)),
+        }, seq(t.kw_goto, p.name)),
         wrap({
             type = n.localfunc,
             rewrite = function(self)
@@ -403,7 +414,7 @@ return function(tokenizer)
             string = function(self)
                 return tconcat { 'local function', self[1], self[2] }
             end,
-        }, seq(t.kw_local, t.kw_function, t.name, p.funcbody)),
+        }, seq(t.kw_local, t.kw_function, p.name, p.funcbody)),
         wrap({
             type = n.func,
             rewrite = function(self)
@@ -423,7 +434,7 @@ return function(tokenizer)
                 tinsert(ret, 'do', self[9], 'end')
                 return tconcat(ret)
             end,
-        }, seq(t.kw_for, t.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
+        }, seq(t.kw_for, p.name, t.assignment, p.expression, t.comma, p.expression, opt(seq(t.comma, p.expression)), t.kw_do, p.block, t.kw_end)),
         wrap({
             type = n.stat_for_iter,
             rewrite = function(self)
