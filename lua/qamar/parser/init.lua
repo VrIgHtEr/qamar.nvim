@@ -85,25 +85,13 @@ return function(tokenizer)
     end
     p.name = function()
         tokenizer.begin()
-        local ret = p.expression(prec.atom)
+        local ret = p.expression(prec.literal)
         if ret and ret.type == n.name then
             tokenizer.commit()
             return ret
         end
         tokenizer.undo()
     end
-    p.fieldsep = wrap({
-        type = n.fieldsep,
-        string = function()
-            return ','
-        end,
-    }, function()
-        local ret = alt(t.comma, t.semicolon)()
-        if ret then
-            ret = { pos = ret.pos, value = ret.value }
-        end
-        return ret
-    end)
     p.field = alt(
         wrap({
             type = n.field_raw,
@@ -146,7 +134,7 @@ return function(tokenizer)
             end
             return tconcat(ret)
         end,
-    }, seq(p.field, zom(seq(p.fieldsep, p.field)), opt(p.fieldsep)))
+    }, seq(p.field, zom(seq(alt(t.comma, t.semicolon), p.field)), opt(alt(t.comma, t.semicolon))))
     p.tableconstructor = function()
         tokenizer.begin()
         local ret = p.expression()
