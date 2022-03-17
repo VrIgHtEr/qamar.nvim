@@ -74,9 +74,9 @@ return function(stream)
         return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
     end
 
-function tokenizer.pos()
-    return t.pos
-end
+    function tokenizer.pos()
+        return t.pos
+    end
 
     tokenizer.combinators = {
         alt = function(...)
@@ -115,7 +115,11 @@ end
         opt = function(x)
             return function()
                 if not tokenizer.peek() then
-                    return setmetatable({pos = {left = t.pos, right = t.pos}},{__tostring = function()return '' end})
+                    return setmetatable({ pos = { left = t.pos, right = t.pos } }, {
+                        __tostring = function()
+                            return ''
+                        end,
+                    })
                 end
                 local left = tokenizer.peek().pos.left
                 local T = type(x)
@@ -128,7 +132,11 @@ end
                     return nil
                 end
                 if T == nil then
-                    return setmetatable({pos = {left = t.pos, right = t.pos}},{__tostring = function()return '' end})
+                    return setmetatable({ pos = { left = t.pos, right = t.pos } }, {
+                        __tostring = function()
+                            return ''
+                        end,
+                    })
                 end
                 T.pos = { left = left, right = t.pos }
                 return T
@@ -137,7 +145,7 @@ end
 
         zom = function(x)
             return function()
-                local ret = {pos={left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos}}
+                local ret = { pos = { left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos } }
                 local T = type(x)
                 while tokenizer.peek() do
                     local v
@@ -150,7 +158,9 @@ end
                         v = nil
                     end
                     if v == nil then
-                        if not ret.pos.right then ret.pos.right = t.pos end
+                        if not ret.pos.right then
+                            ret.pos.right = t.pos
+                        end
                         return ret
                     end
                     table.insert(ret, v)
@@ -165,7 +175,7 @@ end
         seq = function(...)
             local args = { ... }
             return function()
-                local ret = {pos = {left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos}}
+                local ret = { pos = { left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos } }
                 tokenizer.begin()
                 for _, x in ipairs(args) do
                     local T = type(x)

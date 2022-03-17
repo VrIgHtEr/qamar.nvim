@@ -1,10 +1,10 @@
 local tokenizers = {
     require 'qamar.tokenizer.token.comment',
-    require 'qamar.tokenizer.token.symbol',
     require 'qamar.tokenizer.token.name',
     require 'qamar.tokenizer.token.keyword',
     require 'qamar.tokenizer.token.number',
     require 'qamar.tokenizer.token.string',
+    require 'qamar.tokenizer.token.symbol',
 }
 local token = require 'qamar.tokenizer.types'
 
