@@ -172,16 +172,22 @@ return function(tokenizer)
         string = function()
             return '...'
         end,
-    }, alt(t.tripledot))
+    }, function()
+        tokenizer.begin()
+        local ret = p.expression()
+        if ret and ret.type == n.vararg then
+            tokenizer.commit()
+            return ret
+        end
+        tokenizer.undo()
+    end)
     p.parlist = alt(
         wrap({
             type = n.parlist,
             rewrite = function(self)
                 local ret = { self[1] }
                 if self[2][1] then
-                    for _, x in ipairs(self[2]) do
-                        tinsert(ret, x[2])
-                    end
+                    tinsert(ret, self[2][2])
                 end
                 return ret
             end,
@@ -196,7 +202,7 @@ return function(tokenizer)
                 return tconcat(ret)
             end,
         }, seq(p.namelist, opt(seq(t.comma, p.vararg)))),
-        p.vararg
+        wrap(n.parlist, seq(p.vararg))
     )
     p.explist = wrap({
         type = n.explist,

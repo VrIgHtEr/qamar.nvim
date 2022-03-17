@@ -25,12 +25,14 @@ local function scandir(directory)
     return t
 end
 
+local util = require 'toolshed.util'
+
 local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
         for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
             for _, filename in ipairs(scandir(dir)) do
-                if true or filename == '/home/cedric/.local/share/nvim/site/pack/windwp/opt/nvim-autopairs/tests/fastwrap_spec.lua' then
+                if filename ~= '/home/cedric/.local/share/nvim/env/share/nvim/runtime/lua/man.lua' then
                     counter = counter + 1
                     print('PARSING FILE ' .. counter .. ': ' .. filename)
                     local txt = require('toolshed.util').read_file(filename)
@@ -39,7 +41,12 @@ local function parse_everything()
                         local p = create_parser(txt)
                         local tree = p.chunk()
                         if tree then
-                            --local str = tostring(tree)
+                            local str = tostring(tree)
+                            local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
+                            outpath = vim.fn.fnamemodify(outpath, ':p')
+                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                            os.execute("mkdir -p '" .. outdir .. "'")
+                            util.write_file(outpath, str)
                             --print(str)
                         else
                             print 'ERROR!!!!!'
@@ -69,7 +76,6 @@ end
 
 function qamar.run()
     parse_everything()
-    --require('toolshed.util').write_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/test.lua', roundtripstr)
 end
 
 return qamar
