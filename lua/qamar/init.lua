@@ -23,29 +23,40 @@ local function scandir(directory)
     return t
 end
 
-function qamar.run()
-    for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
-        for _, filename in ipairs(scandir(dir)) do
-            if filename == '/home/cedric/.config/nvim/lua/plugtool-bootstrap.lua' then
-                print('FILE: ' .. filename)
-                local txt = require('toolshed.util').read_file(filename)
-                txt = 'vim.cmd [[packadd toolshed.nvim]]'
-                print(txt)
-                print '------------------'
-                if txt then
-                    local p = create_parser(txt)
-                    local tree = p.chunk()
-                    if tree then
-                        local roundtripstr = tostring(tree)
-                        print(roundtripstr)
-                    else
-                        print 'ERROR!!!!!'
+local function parse_everything()
+    local co = coroutine.create(function()
+        for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
+            for _, filename in ipairs(scandir(dir)) do
+                if filename == '/home/cedric/.local/share/nvim/site/pack/windwp/opt/nvim-autopairs/tests/fastwrap_spec.lua' then
+                    print('PARSING: ' .. filename)
+                    local txt = require('toolshed.util').read_file(filename)
+                    print(txt)
+                    coroutine.yield()
+                    if txt then
+                        local p = create_parser(txt)
+                        local tree = p.chunk()
+                        if tree then
+                            print(tostring(tree))
+                        else
+                            print 'ERROR!!!!!'
+                            return
+                        end
                     end
                 end
-                print '---------------------------------------------------------------------------------'
             end
         end
+    end)
+    local function step()
+        local success = coroutine.resume(co)
+        if success and coroutine.status(co) ~= 'dead' then
+            vim.schedule(step)
+        end
     end
+    step()
+end
+
+function qamar.run()
+    parse_everything()
     --require('toolshed.util').write_file(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/test.lua', roundtripstr)
 end
 

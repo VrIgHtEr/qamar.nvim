@@ -499,6 +499,12 @@ return function(tokenizer)
         if tokenizer.peek() then
             local ret = p.block()
             return ret and not tokenizer.peek() and ret or nil
+        else
+            return setmetatable({}, {
+                __tostring = function()
+                    return ''
+                end,
+            })
         end
     end)
     return p
