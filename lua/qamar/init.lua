@@ -25,18 +25,20 @@ end
 
 local function parse_everything()
     local co = coroutine.create(function()
+        local counter = 1
         for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
             for _, filename in ipairs(scandir(dir)) do
-                if filename == '/home/cedric/.local/share/nvim/site/pack/windwp/opt/nvim-autopairs/tests/fastwrap_spec.lua' then
-                    print('PARSING: ' .. filename)
+                if true or filename == '/home/cedric/.local/share/nvim/site/pack/windwp/opt/nvim-autopairs/tests/fastwrap_spec.lua' then
+                    counter = counter + 1
+                    print('PARSING FILE ' .. counter .. ': ' .. filename)
                     local txt = require('toolshed.util').read_file(filename)
-                    print(txt)
                     coroutine.yield()
                     if txt then
                         local p = create_parser(txt)
                         local tree = p.chunk()
                         if tree then
-                            print(tostring(tree))
+                            --local str = tostring(tree)
+                            --print(str)
                         else
                             print 'ERROR!!!!!'
                             return
@@ -47,9 +49,16 @@ local function parse_everything()
         end
     end)
     local function step()
-        local success = coroutine.resume(co)
-        if success and coroutine.status(co) ~= 'dead' then
-            vim.schedule(step)
+        local success, err = coroutine.resume(co)
+        if success then
+            local stat = coroutine.status(co)
+            if stat == 'dead' then
+                print 'FINISHED'
+            else
+                vim.schedule(step)
+            end
+        else
+            print('ERROR: ' .. tostring(err))
         end
     end
     step()
