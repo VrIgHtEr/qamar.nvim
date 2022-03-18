@@ -1,3 +1,4 @@
+local use_cache = false
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local prec = require 'qamar.parser.precedence'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
@@ -40,49 +41,68 @@ end
 return function(tokenizer)
     local p = { tokenizer = tokenizer }
     local alt, seq, opt, zom = tokenizer.combinators.alt, tokenizer.combinators.seq, tokenizer.combinators.opt, tokenizer.combinators.zom
+    local cache = require 'qamar.parser.expcache'
+
     function p.expression(precedence)
         precedence = precedence or 0
-        tokenizer.begin()
-        local token = tokenizer.take()
-        if not token then
-            tokenizer.undo()
-            return
-        end
-        local prefix = parselet.prefix[token.type]
-        if not prefix then
-            tokenizer.undo()
-            return
-        end
-        local left = prefix:parse(p, token)
-        if not left then
-            tokenizer.undo()
-            return
-        end
-        while precedence < get_precedence(tokenizer) do
-            token = tokenizer.peek()
-            if not token then
-                tokenizer.commit()
-                return left
+
+        local id = tokenizer.next_id()
+        local cached = use_cache and cache.get(id, precedence)
+        if cached then
+            if cached.value then
+                tokenizer.take_until(cached.nextid)
+                return cached.value
             end
-            local infix = parselet.infix[token.type]
-            if not infix then
-                tokenizer.commit()
-                return left
-            end
+        else
             tokenizer.begin()
-            tokenizer.take()
-            local right = infix:parse(p, left, token)
-            if not right then
+            local token = tokenizer.take()
+            if not token then
                 tokenizer.undo()
-                tokenizer.undo()
-                return left
-            else
-                tokenizer.commit()
-                left = right
+                cache.add(id, id, precedence)
+                return
             end
+            local prefix = parselet.prefix[token.type]
+            if not prefix then
+                tokenizer.undo()
+                cache.add(id, id, precedence)
+                return
+            end
+            local left = prefix:parse(p, token)
+            if not left then
+                tokenizer.undo()
+                cache.add(id, id, precedence)
+                return
+            end
+            while precedence < get_precedence(tokenizer) do
+                token = tokenizer.peek()
+                if not token then
+                    tokenizer.commit()
+                    cache.add(id, tokenizer.next_id(), precedence, left)
+                    return left
+                end
+                local infix = parselet.infix[token.type]
+                if not infix then
+                    tokenizer.commit()
+                    cache.add(id, tokenizer.next_id(), precedence, left)
+                    return left
+                end
+                tokenizer.begin()
+                tokenizer.take()
+                local right = infix:parse(p, left, token)
+                if not right then
+                    tokenizer.undo()
+                    tokenizer.undo()
+                    cache.add(id, tokenizer.next_id(), precedence, left)
+                    return left
+                else
+                    tokenizer.commit()
+                    left = right
+                end
+            end
+            tokenizer.commit()
+            cache.add(id, tokenizer.next_id(), precedence, left)
+            return left
         end
-        tokenizer.commit()
-        return left
     end
     p.name = function()
         tokenizer.begin()

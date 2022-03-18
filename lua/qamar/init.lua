@@ -33,14 +33,14 @@ local function parse_everything()
         for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
             for _, filename in ipairs(scandir(dir)) do
                 if filename ~= '/home/cedric/.local/share/nvim/env/share/nvim/runtime/lua/man.lua' then
-                    counter = counter + 1
-                    print('PARSING FILE ' .. counter .. ': ' .. filename)
+                    print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                     local txt = require('toolshed.util').read_file(filename)
                     coroutine.yield()
                     if txt then
                         local p = create_parser(txt)
                         local tree = p.chunk()
                         if tree then
+                            counter = counter + 1
                             local str = tostring(tree)
                             local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
                             outpath = vim.fn.fnamemodify(outpath, ':p')
@@ -50,7 +50,7 @@ local function parse_everything()
                             --print(str)
                         else
                             print 'ERROR!!!!!'
-                            return
+                            return counter
                         end
                     end
                 end
@@ -63,7 +63,7 @@ local function parse_everything()
         if success then
             local stat = coroutine.status(co)
             if stat == 'dead' then
-                print('PARSED ' .. err .. ' FILES')
+                print('PARSED ' .. tostring(err) .. ' FILES')
             else
                 vim.schedule(step)
             end

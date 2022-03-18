@@ -1,8 +1,8 @@
 local deque, token = require 'qamar.util.deque', require 'qamar.tokenizer.token'
 
 return function(stream)
-    local tokenizer, la, ts, tc, t =
-        {}, deque(), {}, 0, {
+    local tokenizer, tokenid, la, ts, tc, t =
+        {}, 0, deque(), {}, 0, {
             index = 0,
             pos = stream.pos(),
             copy = function(self)
@@ -41,6 +41,8 @@ return function(stream)
         while la.size() < amt do
             local c = token(stream)
             if c then
+                c.id = tokenid
+                tokenid = tokenid + 1
                 la.push_back(c)
             elseif la.size() == 0 or la[la.size()] then
                 la.push_back(false)
@@ -76,6 +78,21 @@ return function(stream)
 
     function tokenizer.pos()
         return t.pos
+    end
+
+    function tokenizer.next_id()
+        local x = tokenizer.peek()
+        return x and x.id or tokenid
+    end
+
+    function tokenizer.take_until(id)
+        while true do
+            local x = tokenizer.peek()
+            if not x or x.id >= id then
+                return
+            end
+            tokenizer.take()
+        end
     end
 
     tokenizer.combinators = {
