@@ -1,4 +1,5 @@
 local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
+local tconcat = require('qamar.util.table').tconcat
 
 local token_node_mapping = {
     [token.kw_not] = node.lnot,

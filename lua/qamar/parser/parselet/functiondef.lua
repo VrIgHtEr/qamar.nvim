@@ -1,5 +1,7 @@
 local node = require 'qamar.parser.types'
 
+local tconcat = require('qamar.util.table').tconcat
+
 local MT = {
     __tostring = function(self)
         return tconcat { 'function', self.value }

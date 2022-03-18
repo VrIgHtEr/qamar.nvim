@@ -1,4 +1,5 @@
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
+local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
 
 local MT = {
     __tostring = function(self)

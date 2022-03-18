@@ -1,5 +1,6 @@
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local prec = require 'qamar.parser.precedence'
+local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
 
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()

@@ -24,6 +24,8 @@ local token_node_mapping = {
     [token.caret] = node.exp,
 }
 
+local tconcat = require('qamar.util.table').tconcat
+
 local MT = {
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
