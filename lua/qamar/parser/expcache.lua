@@ -64,7 +64,6 @@ function M.add(tokenid, nextid, precedence, item)
         heap.push(tokenid, cache)
     end
     cache[precedence] = { nextid = nextid, value = item }
-    --print(vim.inspect(heap))
 end
 
 function M.get(tokenid, precedence)
