@@ -42,6 +42,7 @@ return function(tokenizer)
     local p = { tokenizer = tokenizer }
     local alt, seq, opt, zom = tokenizer.combinators.alt, tokenizer.combinators.seq, tokenizer.combinators.opt, tokenizer.combinators.zom
     local cache = require 'qamar.parser.expcache'
+    tokenizer.on_flush(cache.discard)
 
     function p.expression(precedence)
         precedence = precedence or 0

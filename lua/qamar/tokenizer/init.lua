@@ -1,8 +1,8 @@
 local deque, token = require 'qamar.util.deque', require 'qamar.tokenizer.token'
 
 return function(stream)
-    local tokenizer, tokenid, la, ts, tc, t =
-        {}, 0, deque(), {}, 0, {
+    local tokenizer, tokenid, la, ts, tc, on_flush, t =
+        {}, 0, deque(), {}, 0, nil, {
             index = 0,
             pos = stream.pos(),
             copy = function(self)
@@ -29,6 +29,9 @@ return function(stream)
                 la.pop_front()
             end
             t.index = 0
+            if on_flush then
+                on_flush(tokenid)
+            end
         end
     end
 
@@ -216,6 +219,11 @@ return function(stream)
             end
         end,
     }
+
+    function tokenizer.on_flush(func)
+        on_flush = func
+    end
+
     return setmetatable(tokenizer, {
         __tostring = function()
             local ret = {}
