@@ -30,7 +30,7 @@ local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
         local errors = {}
-        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site')) do
+        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim')) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
             local txt = require('toolshed.util').read_file(filename)
             coroutine.yield()
