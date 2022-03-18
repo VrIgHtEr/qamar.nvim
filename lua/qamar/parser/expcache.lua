@@ -73,4 +73,8 @@ function M.get(tokenid, precedence)
     end
 end
 
+M.discard = function() end
+M.add = function() end
+M.get = function() end
+
 return M

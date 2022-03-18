@@ -1,4 +1,5 @@
 local qamar = {}
+local util = require 'toolshed.util'
 local codepoints = require('toolshed.util.string').codepoints
 local parser = require 'qamar.parser'
 local tokenizer = require 'qamar.tokenizer'
@@ -16,7 +17,7 @@ end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
-    local proc = popen('find "' .. directory .. '" -maxdepth 1 -type f -name "*.lua"')
+    local proc = popen('find "' .. directory .. '" -type f -name "*.lua"')
     for filename in proc:lines() do
         i = i + 1
         t[i] = filename
@@ -25,50 +26,51 @@ local function scandir(directory)
     return t
 end
 
-local util = require 'toolshed.util'
-
 local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
-        for _, dir in ipairs(vim.api.nvim_get_runtime_file('*/', true)) do
-            for _, filename in ipairs(scandir(dir)) do
-                if filename ~= '/home/cedric/.local/share/nvim/env/share/nvim/runtime/lua/man.lua' then
-                    print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
-                    local txt = require('toolshed.util').read_file(filename)
-                    coroutine.yield()
-                    if txt then
-                        local p = create_parser(txt)
-                        local tree = p.chunk()
-                        if tree then
-                            counter = counter + 1
-                            local str = tostring(tree)
-                            local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
-                            outpath = vim.fn.fnamemodify(outpath, ':p')
-                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
-                            os.execute("mkdir -p '" .. outdir .. "'")
-                            util.write_file(outpath, str)
-                            --print(str)
-                        else
-                            print 'ERROR!!!!!'
-                            return counter
-                        end
+        local errors = {}
+        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site')) do
+            print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
+            local txt = require('toolshed.util').read_file(filename)
+            coroutine.yield()
+            if txt then
+                local p = create_parser(txt)
+                local success, tree = pcall(p.chunk)
+                if success and tree then
+                    local ok, str = pcall(tostring, tree)
+                    if not ok then
+                        table.insert(errors, 'TOSTRING: ' .. filename)
+                    else
+                        counter = counter + 1
+                        local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
+                        outpath = vim.fn.fnamemodify(outpath, ':p')
+                        local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                        os.execute("mkdir -p '" .. outdir .. "'")
+                        util.write_file(outpath, str)
                     end
+                else
+                    table.insert(errors, filename)
                 end
             end
         end
-        return counter
+        return counter, errors
     end)
     local function step()
-        local success, err = coroutine.resume(co)
+        local success, parsed, errors = coroutine.resume(co)
         if success then
             local stat = coroutine.status(co)
             if stat == 'dead' then
-                print('PARSED ' .. tostring(err) .. ' FILES')
+                for _, x in ipairs(errors) do
+                    print('ERROR: ' .. x)
+                end
+                util.write_file('/mnt/c/luaparse/errors.txt', table.concat(errors, '\n'))
+                print('PARSED ' .. tostring(parsed) .. ' FILES')
             else
                 vim.schedule(step)
             end
         else
-            print('ERROR: ' .. tostring(err))
+            print('ERROR: ' .. tostring(parsed))
         end
     end
     step()
