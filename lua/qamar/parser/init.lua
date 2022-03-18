@@ -1,4 +1,3 @@
-local use_cache = false
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local prec = require 'qamar.parser.precedence'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
@@ -48,12 +47,10 @@ return function(tokenizer)
         precedence = precedence or 0
 
         local id = tokenizer.next_id()
-        local cached = use_cache and cache.get(id, precedence)
+        local cached = cache.get(id, precedence)
         if cached then
-            if cached.value then
-                tokenizer.take_until(cached.nextid)
-                return cached.value
-            end
+            tokenizer.take_until(cached.nextid)
+            return cached.value
         else
             tokenizer.begin()
             local token = tokenizer.take()
