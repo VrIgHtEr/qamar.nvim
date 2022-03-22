@@ -2,6 +2,31 @@ local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer
 local prec = require 'qamar.parser.precedence'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
 
+local mt = {
+    field_raw = {
+        __tostring = function(self)
+            return tconcat { '[', self.key, ']', '=', self.value }
+        end,
+    },
+    field_name = {
+        __tostring = function(self)
+            return tconcat { self.key, '=', self.value }
+        end,
+    },
+    fieldlist = {
+        __tostring = function(self)
+            local ret, idx = {}, 1
+            for i, x in ipairs(self) do
+                if i > 1 then
+                    ret[idx], idx = ',', idx + 1
+                end
+                ret[idx], idx = x, idx + 1
+            end
+            return tconcat(ret)
+        end,
+    },
+}
+
 local function get_precedence(tokenizer)
     local next = tokenizer.peek()
     if next then
@@ -40,68 +65,52 @@ end
 return function(tokenizer)
     local p = { tokenizer = tokenizer }
     local alt, seq, opt, zom = tokenizer.combinators.alt, tokenizer.combinators.seq, tokenizer.combinators.opt, tokenizer.combinators.zom
-    local cache = require 'qamar.parser.expcache'
-    tokenizer.on_flush(cache.discard)
 
     function p.expression(precedence)
         precedence = precedence or 0
 
-        local id = tokenizer.next_id()
-        local cached = cache.get(id, precedence)
-        if cached then
-            tokenizer.take_until(cached.nextid)
-            return cached.value
-        else
-            tokenizer.begin()
-            local token = tokenizer.take()
-            if not token then
-                tokenizer.undo()
-                cache.add(id, id, precedence)
-                return
-            end
-            local prefix = parselet.prefix[token.type]
-            if not prefix then
-                tokenizer.undo()
-                cache.add(id, id, precedence)
-                return
-            end
-            local left = prefix:parse(p, token)
-            if not left then
-                tokenizer.undo()
-                cache.add(id, id, precedence)
-                return
-            end
-            while precedence < get_precedence(tokenizer) do
-                token = tokenizer.peek()
-                if not token then
-                    tokenizer.commit()
-                    cache.add(id, tokenizer.next_id(), precedence, left)
-                    return left
-                end
-                local infix = parselet.infix[token.type]
-                if not infix then
-                    tokenizer.commit()
-                    cache.add(id, tokenizer.next_id(), precedence, left)
-                    return left
-                end
-                tokenizer.begin()
-                tokenizer.take()
-                local right = infix:parse(p, left, token)
-                if not right then
-                    tokenizer.undo()
-                    tokenizer.undo()
-                    cache.add(id, tokenizer.next_id(), precedence, left)
-                    return left
-                else
-                    tokenizer.commit()
-                    left = right
-                end
-            end
-            tokenizer.commit()
-            cache.add(id, tokenizer.next_id(), precedence, left)
-            return left
+        local token = tokenizer.peek()
+        if not token then
+            return
         end
+        local prefix = parselet.prefix[token.type]
+        if not prefix then
+            return
+        end
+        tokenizer.begin()
+        tokenizer.take()
+        local left = prefix:parse(p, token)
+        if not left then
+            tokenizer.undo()
+            return
+        end
+        while precedence < get_precedence(tokenizer) do
+            token = tokenizer.peek()
+            if not token then
+                tokenizer.commit()
+                return left
+            end
+            local infix = parselet.infix[token.type]
+            if not infix then
+                tokenizer.commit()
+                return left
+            end
+            tokenizer.begin()
+            tokenizer.take()
+            local right = infix:parse(p, left, token)
+            if not right then
+                tokenizer.undo()
+                tokenizer.undo()
+                return left
+            else
+                tokenizer.commit()
+                left = right
+            end
+        end
+        tokenizer.commit()
+        return left
     end
+
     p.name = function()
         tokenizer.begin()
         local ret = p.expression(prec.literal)
@@ -111,49 +120,84 @@ return function(tokenizer)
         end
         tokenizer.undo()
     end
-    p.field = alt(
-        wrap({
-            type = n.field_raw,
-            rewrite = function(self)
-                return { self[2], self[5] }
-            end,
-            string = function(self)
-                return tconcat { '[', self[1], ']', '=', self[2] }
-            end,
-        }, seq(t.lbracket, p.expression, t.rbracket, t.assignment, p.expression)),
-        wrap({
-            type = n.field_name,
-            rewrite = function(self)
-                return { self[1], self[3] }
-            end,
-            string = function(self)
-                return tconcat { self[1], '=', self[2] }
-            end,
-        }, seq(p.name, t.assignment, p.expression)),
-        p.expression
-    )
-    p.fieldlist = wrap({
-        type = n.fieldlist,
-        rewrite = function(self)
-            local ret = { self[1] }
-            if self[2][1] then
-                for _, x in ipairs(self[2]) do
-                    tinsert(ret, x[2])
+
+    do
+        local function field_raw()
+            local tok = tokenizer.peek()
+            if tok and tok.type == t.lbracket then
+                tokenizer.begin()
+                local left = tokenizer.take().pos.left
+                local key = p.expression()
+                if key then
+                    tok = tokenizer.take()
+                    if tok and tok.type == t.rbracket then
+                        tok = tokenizer.take()
+                        if tok and tok.type == t.assignment then
+                            local value = p.expression()
+                            if value then
+                                return setmetatable(
+                                    { key = key, value = value, pos = { left = left, right = value.pos.right }, type = n.field_raw },
+                                    mt.field_raw
+                                )
+                            end
+                        end
+                    end
                 end
+                tokenizer.undo()
+            end
+        end
+
+        local function field_name()
+            local key = tokenizer.peek()
+            if key and key.type == t.name then
+                tokenizer.begin()
+                local left = tokenizer.take().pos.left
+                local tok = tokenizer.take()
+                if tok and tok.type == t.assignment then
+                    local value = p.expression()
+                    if value then
+                        return setmetatable(
+                            { key = key.value, value = value, type = n.field_name, pos = { left = left, right = value.pos.right } },
+                            mt.field_name
+                        )
+                    end
+                end
+                tokenizer.undo()
+            end
+        end
+
+        p.field = alt(field_raw, field_name, p.expression)
+    end
+
+    p.fieldlist = function()
+        local field = p.field()
+        if field then
+            local pos = { left = field.pos.left, right = field.pos.right }
+            local ret, idx = setmetatable({ field, type = n.fieldlist, pos = pos }, mt.fieldlist), 2
+            while true do
+                local tok = tokenizer.peek()
+                if tok and (tok.type == t.comma or tok.type == t.semicolon) then
+                    tokenizer.begin()
+                    tokenizer.take()
+                    field = p.field()
+                    if not field then
+                        tokenizer.undo()
+                        break
+                    end
+                    ret[idx], idx = field, idx + 1
+                    tokenizer.commit()
+                else
+                    break
+                end
+            end
+            local tok = tokenizer.peek()
+            if tok and (tok.type == t.comma or tok.type == t.semicolon) then
+                tokenizer.take()
             end
             return ret
-        end,
-        string = function(self)
-            local ret = {}
-            for i, x in ipairs(self) do
-                if i > 1 then
-                    tinsert(ret, ',')
-                end
-                tinsert(ret, x)
-            end
-            return tconcat(ret)
-        end,
-    }, seq(p.field, zom(seq(alt(t.comma, t.semicolon), p.field)), opt(alt(t.comma, t.semicolon))))
+        end
+    end
+
     p.tableconstructor = function()
         tokenizer.begin()
         local ret = p.expression(prec.literal)
