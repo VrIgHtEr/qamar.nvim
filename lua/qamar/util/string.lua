@@ -145,4 +145,67 @@ function string:distance(B)
     return x[lb]
 end
 
+---returns an iterator that returns valid utf-8 codepoints in a string but also returns and flags invalid data by returning true as a second parameter
+---@param self string
+---@return function
+function string:utf8()
+    local index, max, nextvalid, nextindex = 0, string.len(self)
+
+    ---@param left string
+    ---@return string|nil
+    ---@return number|nil
+    ---@return number|nil
+    local function find_codepoint(left)
+        if left <= max then
+            local c = string.byte(string.sub(self, left, left))
+            local cont_bytes
+            if c < 128 then
+                cont_bytes = 0
+            elseif c >= 0xc0 and c <= 0xdf then
+                cont_bytes = 1
+            elseif c >= 0xe0 and c <= 0xef then
+                cont_bytes = 2
+            elseif c >= 0xf0 and c <= 0xf7 then
+                cont_bytes = 3
+            else
+                return find_codepoint(left + 1)
+            end
+            local right = left + cont_bytes
+            if right <= max then
+                local ret = string.sub(left, right)
+                for i = 2, cont_bytes + 1 do
+                    c = string.byte(ret, i, i)
+                    if c < 0x80 or c > 0xbf then
+                        return find_codepoint(left + 1)
+                    end
+                end
+                return ret, left, right
+            end
+        end
+    end
+
+    ---@return string
+    ---@return boolean
+    return function()
+        if nextindex then
+            index, nextindex = nextindex, nil
+            return nextvalid, false
+        elseif index < max then
+            index = index + 1
+            local codepoint, left, right = find_codepoint(index)
+            if not codepoint then
+                local ret = string.sub(self, index, max)
+                index = max
+                return ret, true
+            end
+            if left > index then
+                nextvalid, nextindex = codepoint, right
+                return string.sub(self, index, left - 1), true
+            end
+            index = right
+            return codepoint, false
+        end
+    end
+end
+
 return string
