@@ -21,6 +21,7 @@ local function scandir(directory)
 end
 
 local function parse_everything()
+    local starttime = os.clock()
     local co = coroutine.create(function()
         local counter = 0
         local errors = {}
@@ -61,7 +62,8 @@ local function parse_everything()
                     print('ERROR: ' .. x)
                 end
                 util.write_file('/mnt/c/luaparse/errors.txt', table.concat(errors, '\n'))
-                print('PARSED ' .. tostring(parsed) .. ' FILES')
+                local time = os.clock() - starttime
+                print('PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds')
             else
                 vim.schedule(step)
             end
