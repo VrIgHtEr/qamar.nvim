@@ -20,6 +20,9 @@ local function scandir(directory)
     return t
 end
 
+--while [[ true ]] ; do echo -n "\e[G\e[K" && bash -c 'find /home/cedric/luaparse/cedric -type f | wc -l' && echo -n "\e[F" && sleep 1 ; done
+local odir = '/home/cedric/luaparse'
+
 local function parse_everything()
     local starttime = os.clock()
     local co = coroutine.create(function()
@@ -39,7 +42,7 @@ local function parse_everything()
                         table.insert(errors, tostring(str))
                     else
                         counter = counter + 1
-                        local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
+                        local outpath = filename:gsub('^/home/', odir .. '/')
                         outpath = vim.fn.fnamemodify(outpath, ':p')
                         local outdir = vim.fn.fnamemodify(outpath, ':p:h')
                         os.execute("mkdir -p '" .. outdir .. "'")
@@ -61,7 +64,7 @@ local function parse_everything()
                 for _, x in ipairs(errors) do
                     print('ERROR: ' .. x)
                 end
-                util.write_file('/mnt/c/luaparse/errors.txt', table.concat(errors, '\n'))
+                util.write_file(odir .. '/errors.txt', table.concat(errors, '\n'))
                 local time = os.clock() - starttime
                 print('PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds')
             else
