@@ -21,7 +21,7 @@ local hex_to_binary_table = { '0000', '0001', '0010', '0011', '0100', '0101', '0
 local function utf8_encode(hex)
     if #hex > 0 then
         local binstr = {}
-        for i, x in hex do
+        for i, x in ipairs(hex) do
             binstr[i] = hex_to_binary_table[x + 1]
         end
         binstr = table.concat(binstr)
