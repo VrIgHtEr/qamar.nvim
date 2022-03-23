@@ -1,10 +1,10 @@
-local codepoints = require('qamar.util.string').codepoints
+local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
 local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser(tokenizer(char_stream(codepoints(str))))
+    return parser(tokenizer(char_stream(utf8(str))))
 end
 
 local function get_runtime_paths()

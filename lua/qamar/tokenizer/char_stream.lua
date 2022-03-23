@@ -107,7 +107,7 @@ return function(input)
 
     function char_stream.try_consume_string(s)
         local i = 0
-        for x in string.codepoints(s) do
+        for x in string.utf8(s) do
             local c = char_stream.peek(i)
             if c ~= x then
                 return

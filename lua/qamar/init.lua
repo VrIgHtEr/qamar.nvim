@@ -1,18 +1,12 @@
 local qamar = {}
 local util = require 'qamar.util'
-local codepoints = require('qamar.util.string').codepoints
+local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
 local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser(tokenizer(char_stream(codepoints(str))))
-end
-
-local function get_script_path()
-    local info = debug.getinfo(1, 'S')
-    local script_path = info.source:match [[^@?(.*[\/])[^\/]-$]]
-    return script_path
+    return parser(tokenizer(char_stream(utf8(str))))
 end
 
 local function scandir(directory)
@@ -30,7 +24,7 @@ local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
         local errors = {}
-        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim')) do
+        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/')) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
             local txt = util.read_file(filename)
             coroutine.yield()

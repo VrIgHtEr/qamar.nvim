@@ -304,7 +304,7 @@ function string:escape()
             double = double + 1
         end
     end
-    if double > single then
+    if double >= single then
         single, double = "'", "\\'"
     else
         single, double = '"', '\\"'
