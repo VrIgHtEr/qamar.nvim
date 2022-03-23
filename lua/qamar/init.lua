@@ -41,6 +41,7 @@ local function parse_everything()
                     local ok, str = pcall(tostring, tree)
                     if not ok then
                         table.insert(errors, 'TOSTRING: ' .. filename)
+                        table.insert(errors, tostring(str))
                     else
                         counter = counter + 1
                         local outpath = filename:gsub('^/home/', '/mnt/c/luaparse/')
@@ -51,6 +52,7 @@ local function parse_everything()
                     end
                 else
                     table.insert(errors, filename)
+                    table.insert(errors, tostring(tree))
                 end
             end
         end

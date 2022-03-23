@@ -151,13 +151,13 @@ end
 function string:utf8()
     local index, max, nextvalid, nextindex = 0, string.len(self)
 
-    ---@param left string
+    ---@param left number
     ---@return string|nil
     ---@return number|nil
     ---@return number|nil
     local function find_codepoint(left)
         if left <= max then
-            local c = string.byte(string.sub(self, left, left))
+            local c = string.byte(self, left, left)
             local cont_bytes
             if c < 128 then
                 cont_bytes = 0
@@ -172,7 +172,7 @@ function string:utf8()
             end
             local right = left + cont_bytes
             if right <= max then
-                local ret = string.sub(left, right)
+                local ret = string.sub(self, left, right)
                 for i = 2, cont_bytes + 1 do
                     c = string.byte(ret, i, i)
                     if c < 0x80 or c > 0xbf then
@@ -184,28 +184,138 @@ function string:utf8()
         end
     end
 
-    ---@return string
-    ---@return boolean
+    ---iterator returned by string:utf8
+    ---    is_utf8 == true:  data is a valid utf-8 codepoint
+    ---
+    ---    is_utf8 == false: data is a raw string up to the next valid utf-8 codepoint
+    ---@return string|nil data dsfdafsd
+    ---@return boolean is_utf8
     return function()
         if nextindex then
             index, nextindex = nextindex, nil
-            return nextvalid, false
+            return nextvalid, true
         elseif index < max then
             index = index + 1
             local codepoint, left, right = find_codepoint(index)
             if not codepoint then
                 local ret = string.sub(self, index, max)
                 index = max
-                return ret, true
+                return ret, false
             end
             if left > index then
                 nextvalid, nextindex = codepoint, right
-                return string.sub(self, index, left - 1), true
+                return string.sub(self, index, left - 1), false
             end
             index = right
-            return codepoint, false
+            return codepoint, true
         end
     end
+end
+
+function string:is_utf8()
+    for _, x in string.utf8(self) do
+        if not x then
+            return false
+        end
+    end
+    return true
+end
+
+function string:count(patt)
+    local count = 0
+    for _ in string.gmatch(self, patt) do
+        count = count + 1
+    end
+    return count
+end
+
+local verbatim_newline_count = 3
+local function escape_char(char)
+    if char == '\\' then
+        return '\\\\'
+    elseif char == '\v' then
+        return '\\v'
+    elseif char == '\t' then
+        return '\\t'
+    elseif char == '\r' then
+        return '\\r'
+    elseif char == '\n' then
+        return '\\n'
+    elseif char == '\f' then
+        return '\\f'
+    elseif char == '\b' then
+        return '\\b'
+    elseif char == '\a' then
+        return '\\a'
+    else
+        local b = string.byte(char)
+        if b < 32 or b >= 127 then
+            local ret = { '\\' }
+            local str = tostring(b)
+            for _ = string.len(str), 2 do
+                table.insert(ret, '0')
+            end
+            table.insert(ret, str)
+            return table.concat(ret)
+        else
+            return char
+        end
+    end
+    return char
+end
+
+function string:escape()
+    if string.is_utf8(self) and not string.find(self, '\r') then
+        local count = string.count(self, '\n')
+        for _ in string.gmatch(self, '\n') do
+            count = count + 1
+        end
+        if count >= verbatim_newline_count then
+            local term_parts = { ']', ']' }
+            while string.find(self, table.concat(term_parts)) do
+                table.insert(term_parts, #term_parts, '=')
+            end
+            local close_term = table.concat(term_parts)
+            term_parts[1], term_parts[#term_parts] = '[', ']'
+            local open_term = table.concat(term_parts)
+            if string.sub(self, 1, 1) == '\n' then
+                open_term = open_term .. '\n'
+            end
+            return open_term .. self .. close_term
+        end
+    end
+    local ret, idx = {}, 0
+    for data, utf8 in string.utf8(self) do
+        if utf8 then
+            idx = idx + 1
+            ret[idx] = escape_char(data)
+        else
+            for i = 1, string.len(data) do
+                idx = idx + 1
+                ret[idx] = escape_char(string.sub(data, i, i))
+            end
+        end
+    end
+    local single, double = 0, 0
+    for _, x in ipairs(ret) do
+        if x == "'" then
+            single = single + 1
+        elseif x == '"' then
+            double = double + 1
+        end
+    end
+    if double > single then
+        single, double = "'", "\\'"
+    else
+        single, double = '"', '\\"'
+    end
+    for i, x in ipairs(ret) do
+        if x == single then
+            ret[i] = double
+        end
+    end
+    table.insert(ret, single)
+    return single .. table.concat(ret)
 end
 
 return string
