@@ -1,6 +1,6 @@
 local qamar = {}
-local util = require 'toolshed.util'
-local codepoints = require('toolshed.util.string').codepoints
+local util = require 'qamar.util'
+local codepoints = require('qamar.util.string').codepoints
 local parser = require 'qamar.parser'
 local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
@@ -32,7 +32,7 @@ local function parse_everything()
         local errors = {}
         for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim')) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
-            local txt = require('toolshed.util').read_file(filename)
+            local txt = util.read_file(filename)
             coroutine.yield()
             if txt then
                 local p = create_parser(txt)

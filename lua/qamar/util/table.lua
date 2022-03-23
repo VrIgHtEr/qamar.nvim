@@ -1,5 +1,5 @@
 local M = {}
-local string = require 'toolshed.util.string'
+local string = require 'qamar.util.string'
 local function isalphanum(c)
     if
         c == 'a'
@@ -96,4 +96,5 @@ M.tinsert = function(tbl, ...)
     end
     return tbl
 end
-return M
+
+return setmetatable(M, { __index = table })

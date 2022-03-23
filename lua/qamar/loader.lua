@@ -1,4 +1,4 @@
-local codepoints = require('toolshed.util.string').codepoints
+local codepoints = require('qamar.util.string').codepoints
 local parser = require 'qamar.parser'
 local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'

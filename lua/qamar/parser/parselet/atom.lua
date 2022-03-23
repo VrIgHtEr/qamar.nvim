@@ -1,5 +1,4 @@
-local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
-local string = require 'toolshed.util.string'
+local token, node, string = require 'qamar.tokenizer.types', require 'qamar.parser.types', require 'qamar.util.string'
 
 local token_node_mapping = {
     [token.name] = node.name,

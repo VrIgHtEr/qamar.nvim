@@ -1,4 +1,4 @@
-local string, deque = require 'toolshed.util.string', require 'qamar.util.deque'
+local string, deque = require 'qamar.util.string', require 'qamar.util.deque'
 
 return function(input)
     if type(input) ~= 'function' then
