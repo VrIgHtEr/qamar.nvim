@@ -276,7 +276,7 @@ function string:escape()
                 table.insert(term_parts, #term_parts, '=')
             end
             local close_term = table.concat(term_parts)
-            term_parts[1], term_parts[#term_parts] = '[', ']'
+            term_parts[1], term_parts[#term_parts] = '[', '['
             local open_term = table.concat(term_parts)
             if string.sub(self, 1, 1) == '\n' then
                 open_term = open_term .. '\n'
