@@ -26,12 +26,13 @@ local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local function parse_everything()
     local starttime = os.clock()
     os.execute("rm -rf '" .. odir .. "'")
+    local files = scandir(idir)
     os.execute("mkdir -p '" .. odir .. "'")
     local ofile = assert(io.open(odir .. '/err', 'wb'))
 
     local co = coroutine.create(function()
         local counter = 0
-        for _, filename in ipairs(scandir(idir)) do
+        for _, filename in ipairs(files) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
             local txt = util.read_file(filename)
             coroutine.yield()

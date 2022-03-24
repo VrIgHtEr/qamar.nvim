@@ -112,13 +112,13 @@ return function(tokenizer)
     end
 
     p.name = function()
-        tokenizer.begin()
-        local ret = p.expression(prec.literal)
-        if ret and ret.type == n.name then
-            tokenizer.commit()
-            return ret
+        local tok = tokenizer.peek()
+        if tok and tok.type == t.name then
+            local ret = p.expression(prec.literal)
+            if ret and ret.type == n.name then
+                return ret
+            end
         end
-        tokenizer.undo()
     end
 
     do
@@ -201,14 +201,15 @@ return function(tokenizer)
     end
 
     p.tableconstructor = function()
-        tokenizer.begin()
-        local ret = p.expression(prec.literal)
-        if ret and ret.type == n.tableconstructor then
-            tokenizer.commit()
-            return ret
+        local tok = tokenizer.peek()
+        if tok and tok.type == t.lbrace then
+            local ret = p.expression(prec.literal)
+            if ret and ret.type == n.tableconstructor then
+                return ret
+            end
         end
-        tokenizer.undo()
     end
+
     p.namelist = wrap({
         type = n.namelist,
         rewrite = function(self)
@@ -231,19 +232,20 @@ return function(tokenizer)
             return tconcat(ret)
         end,
     }, seq(p.name, zom(seq(t.comma, p.name))))
+
     p.vararg = wrap({
         type = n.vararg,
         string = function()
             return '...'
         end,
     }, function()
-        tokenizer.begin()
-        local ret = p.expression(prec.literal)
-        if ret and ret.type == n.vararg then
-            tokenizer.commit()
-            return ret
+        local tok = tokenizer.peek()
+        if tok and tok.type == t.tripledot then
+            local ret = p.expression(prec.literal)
+            if ret and ret.type == n.vararg then
+                return ret
+            end
         end
-        tokenizer.undo()
     end)
     p.parlist = alt(
         wrap({
@@ -387,13 +389,13 @@ return function(tokenizer)
         end,
     }, seq(t.lparen, opt(p.parlist), t.rparen, p.block, t.kw_end))
     p.functiondef = function()
-        tokenizer.begin()
-        local ret = p.expression(prec.literal)
-        if ret and ret.type == n.functiondef then
-            tokenizer.commit()
-            return ret
+        local tok = tokenizer.peek()
+        if tok and tok.type == t.kw_function then
+            local ret = p.expression(prec.literal)
+            if ret and ret.type == n.functiondef then
+                return ret
+            end
         end
-        tokenizer.undo()
     end
     p.var = function()
         tokenizer.begin(prec.atom)
@@ -568,7 +570,17 @@ return function(tokenizer)
     p.chunk = wrap(n.chunk, function()
         if tokenizer.peek() then
             local ret = p.block()
-            return ret and not tokenizer.peek() and ret or nil
+            local peek = tokenizer.peek()
+            if ret then
+                if peek then
+                    error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+                end
+                return ret
+            elseif peek then
+                error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+            else
+                error('PARSE_FAILURE' .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+            end
         else
             return setmetatable({}, {
                 __tostring = function()
