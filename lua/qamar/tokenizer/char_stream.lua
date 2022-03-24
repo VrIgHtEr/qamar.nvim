@@ -1,6 +1,39 @@
 local string, deque = require 'qamar.util.string', require 'qamar.util.deque'
 
-return function(input)
+local function emptyfunc() end
+
+local M = {}
+local MT = {
+    __index = M,
+    __metatable = emptyfunc,
+    __tostring = function(self)
+        local ret = {}
+        for i = 1, self.la.size() do
+            local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
+            local c = self.la[i]
+            table.insert(line, vim.inspect(c))
+            table.insert(ret, table.concat(line))
+        end
+        if self.t.index == self.la.size() then
+            table.insert(ret, '==>')
+        end
+        return table.concat(ret, '\n')
+    end,
+}
+
+local function transaction_copy(self)
+    return {
+        index = self.index,
+        file_char = self.file_char,
+        row = self.row,
+        col = self.col,
+        byte = self.byte,
+        file_byte = self.file_byte,
+        copy = transaction_copy,
+    }
+end
+
+function M.new(input)
     if type(input) ~= 'function' then
         return nil, 'expected a function as input'
     end
@@ -16,312 +49,303 @@ return function(input)
             end
         end
     end
-
-    local char_stream, la, ts, tc, skip_ws_ctr, t =
-        {}, deque(), {}, 0, 0, {
+    return setmetatable({
+        input = input,
+        la = deque(),
+        ts = {},
+        tc = 0,
+        skip_ws_ctr = 0,
+        t = {
             index = 0,
             file_char = 0,
             row = 1,
             col = 1,
             byte = 0,
             file_byte = 0,
-            copy = function(self)
-                local r = {}
-                for k, v in pairs(self) do
-                    r[k] = v
-                end
-                return r
-            end,
-        }
+            copy = transaction_copy,
+        },
+    }, MT)
+end
 
-    function char_stream.begin()
-        tc = tc + 1
-        ts[tc] = t:copy()
+function M:begin()
+    self.tc = self.tc + 1
+    self.ts[self.tc] = self.t:copy()
+end
+
+function M:undo()
+    self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
+end
+
+function M:normalize()
+    if self.tc == 0 then
+        for _ = 1, self.t.index do
+            self.la.pop_front()
+        end
+        self.t.index = 0
     end
+end
 
-    function char_stream.undo()
-        t, ts[tc], tc = ts[tc], nil, tc - 1
-    end
+function M:commit()
+    self.ts[self.tc], self.tc = nil, self.tc - 1
+    self:normalize()
+end
 
-    local function normalize_la()
-        if tc == 0 then
-            for _ = 1, t.index do
-                la.pop_front()
-            end
-            t.index = 0
+function M:fill(amt)
+    while self.la.size() < amt do
+        local c = self.input()
+        if c then
+            self.la.push_back(c)
+        elseif self.la.size() == 0 or self.la[self.la.size()] then
+            self.la.push_back(false)
+            break
         end
     end
+end
 
-    function char_stream.commit()
-        ts[tc], tc = nil, tc - 1
-        normalize_la()
-    end
+function M:peek(skip)
+    skip = skip == nil and 0 or skip
+    local idx = self.t.index + skip + 1
+    self:fill(idx)
+    return self.la[idx] or nil
+end
 
-    local function ensure_filled(amt)
-        while la.size() < amt do
-            local c = input()
-            if c then
-                la.push_back(c)
-            elseif la.size() == 0 or la[la.size()] then
-                la.push_back(false)
-                break
-            end
-        end
-    end
-
-    function char_stream.peek(skip)
-        skip = skip == nil and 0 or skip
-        local idx = t.index + skip + 1
-        ensure_filled(idx)
-        return la[idx] or nil
-    end
-
-    function char_stream.take(amt)
-        amt = amt == nil and 1 or amt
-        local idx = t.index + amt
-        ensure_filled(idx)
-        local ret = {}
-        for i = 1, amt do
-            local c = la[t.index + 1]
-            if not c then
-                break
+function M:take(amt)
+    amt = amt == nil and 1 or amt
+    local idx = self.t.index + amt
+    self:fill(idx)
+    local ret = {}
+    for i = 1, amt do
+        local c = self.la[self.t.index + 1]
+        if not c then
+            break
+        else
+            local off = c:len()
+            self.t.file_char, self.t.file_byte = self.t.file_char + 1, self.t.file_byte + off
+            if c == '\n' then
+                self.t.row, self.t.col, self.t.byte = self.t.row + 1, 1, 0
             else
-                local off = c:len()
-                t.file_char, t.file_byte = t.file_char + 1, t.file_byte + off
-                if c == '\n' then
-                    t.row, t.col, t.byte = t.row + 1, 1, 0
-                else
-                    t.col, t.byte = t.col + 1, t.byte + off
-                end
-                ret[i] = c
+                self.t.col, self.t.byte = self.t.col + 1, self.t.byte + off
             end
-            t.index = t.index + 1
+            ret[i] = c
         end
-        normalize_la()
-        return #ret > 0 and table.concat(ret) or nil
+        self.t.index = self.t.index + 1
     end
+    self:normalize()
+    return #ret > 0 and table.concat(ret) or nil
+end
 
-    function char_stream.pos()
-        return { file_char = t.file_char, row = t.row, col = t.col, file_byte = t.file_byte, byte = t.byte }
-    end
+function M:pos()
+    return { file_char = self.t.file_char, row = self.t.row, col = self.t.col, file_byte = self.t.file_byte, byte = self.t.byte }
+end
 
-    function char_stream.try_consume_string(s)
-        local i = 0
-        for x in string.utf8(s) do
-            local c = char_stream.peek(i)
-            if c ~= x then
-                return
-            end
-            i = i + 1
+function M:try_consume_string(s)
+    local i = 0
+    for x in string.utf8(s) do
+        local c = self:peek(i)
+        if c ~= x then
+            return
         end
-        return char_stream.take(i)
+        i = i + 1
     end
+    return self:take(i)
+end
 
-    function char_stream.skipws()
-        if skip_ws_ctr == 0 then
-            while true do
-                local c = char_stream.peek()
-                if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
-                    break
-                end
-                char_stream.take()
+function M:skipws()
+    if self.skip_ws_ctr == 0 then
+        while true do
+            local c = self:peek()
+            if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
+                break
             end
+            self:take()
         end
     end
+end
 
-    function char_stream.suspend_skip_ws()
-        skip_ws_ctr = skip_ws_ctr + 1
+function M:suspend_skip_ws()
+    self.skip_ws_ctr = self.skip_ws_ctr + 1
+end
+
+function M:resume_skip_ws()
+    if self.skip_ws_ctr > 0 then
+        self.skip_ws_ctr = self.skip_ws_ctr - 1
     end
+end
 
-    function char_stream.resume_skip_ws()
-        if skip_ws_ctr > 0 then
-            skip_ws_ctr = skip_ws_ctr - 1
-        end
-    end
-
-    char_stream.combinators = {
-        alt = function(...)
-            local args = { ... }
-            return function()
-                local ret, right = nil, nil
-                for _, x in ipairs(args) do
-                    char_stream.begin()
-                    char_stream.skipws()
-                    local T = type(x)
-                    if T == 'string' then
-                        T = char_stream.try_consume_string(x)
-                    elseif T == 'function' then
-                        T = x()
-                    else
-                        T = nil
-                    end
-                    if T ~= nil then
-                        if not right or t.file_char > right then
-                            ret, right = T, t.file_char
-                        end
-                    end
-                    char_stream.undo()
-                end
-                if ret then
-                    while t.file_char < right do
-                        char_stream.take()
-                    end
-                    return ret
-                end
-            end
-        end,
-
-        opt = function(x)
-            return function()
+M.combinators = {
+    alt = function(...)
+        local args = { ... }
+        return function(self)
+            local ret, right = nil, nil
+            for _, x in ipairs(args) do
+                self:begin()
+                self:skipws()
                 local T = type(x)
-                char_stream.skipws()
-                if not char_stream.peek() then
-                    return {}
-                end
                 if T == 'string' then
-                    T = char_stream.try_consume_string(x)
+                    T = self:try_consume_string(x)
                 elseif T == 'function' then
-                    T = x()
+                    T = x(self)
                 else
-                    return nil
+                    T = nil
                 end
-                if T == nil then
-                    return {}
+                if T ~= nil then
+                    if not right or self.t.file_char > right then
+                        ret, right = T, self.t.file_char
+                    end
                 end
+                self:undo()
             end
-        end,
-
-        zom = function(x)
-            return function()
-                local ret = {}
-                local T = type(x)
-                while char_stream.peek() do
-                    char_stream.skipws()
-                    local v
-                    if T == 'string' then
-                        v = char_stream.try_consume_string(x)
-                    elseif T == 'function' then
-                        v = x()
-                    else
-                        v = nil
-                    end
-                    if v == nil then
-                        return ret
-                    end
-                    table.insert(ret, v)
+            if ret then
+                while self.t.file_char < right do
+                    self:take()
                 end
-                if not char_stream.peek() then
-                    return ret
-                end
-            end
-        end,
-
-        seq = function(...)
-            local args = { ... }
-            return function()
-                local ret = {}
-                char_stream.begin()
-                for _, x in ipairs(args) do
-                    char_stream.skipws()
-                    local T = type(x)
-                    if T == 'function' then
-                        T = x()
-                    elseif T == 'string' then
-                        T = char_stream.try_consume_string(x)
-                    else
-                        T = nil
-                    end
-                    if T == nil then
-                        char_stream.undo()
-                        return nil
-                    end
-                    table.insert(ret, T)
-                end
-                char_stream.commit()
                 return ret
             end
-        end,
-    }
+        end
+    end,
 
-    function char_stream.alpha()
-        return char_stream.combinators.alt(
-            '_',
-            'a',
-            'b',
-            'c',
-            'd',
-            'e',
-            'f',
-            'g',
-            'h',
-            'i',
-            'j',
-            'k',
-            'l',
-            'm',
-            'n',
-            'o',
-            'p',
-            'q',
-            'r',
-            's',
-            't',
-            'u',
-            'v',
-            'w',
-            'x',
-            'y',
-            'z',
-            'A',
-            'B',
-            'C',
-            'D',
-            'E',
-            'F',
-            'G',
-            'H',
-            'I',
-            'J',
-            'K',
-            'L',
-            'M',
-            'N',
-            'O',
-            'P',
-            'Q',
-            'R',
-            'S',
-            'T',
-            'U',
-            'V',
-            'W',
-            'X',
-            'Y',
-            'Z'
-        )()
-    end
+    opt = function(x)
+        return function(self)
+            local T = type(x)
+            self:skipws()
+            if not self:peek() then
+                return {}
+            end
+            if T == 'string' then
+                T = self:try_consume_string(x)
+            elseif T == 'function' then
+                T = x(self)
+            else
+                return nil
+            end
+            if T == nil then
+                return {}
+            end
+        end
+    end,
 
-    function char_stream.numeric()
-        return char_stream.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')()
-    end
-
-    function char_stream.alphanumeric()
-        return char_stream.combinators.alt(char_stream.alpha, char_stream.numeric)()
-    end
-
-    return setmetatable(char_stream, {
-        __tostring = function()
+    zom = function(x)
+        return function(self)
             local ret = {}
-            for i = 1, la.size() do
-                local line = { (i - 1 == t.index) and '==> ' or '    ' }
-                local c = la[i]
-                table.insert(line, vim.inspect(c))
-                table.insert(ret, table.concat(line))
+            local T = type(x)
+            while self:peek() do
+                self:skipws()
+                local v
+                if T == 'string' then
+                    v = self:try_consume_string(x)
+                elseif T == 'function' then
+                    v = x(self)
+                else
+                    v = nil
+                end
+                if v == nil then
+                    return ret
+                end
+                table.insert(ret, v)
             end
-            if t.index == la.size() then
-                table.insert(ret, '==>')
+            if not self:peek() then
+                return ret
             end
-            return table.concat(ret, '\n')
-        end,
-    })
+        end
+    end,
+
+    seq = function(...)
+        local args = { ... }
+        return function(self)
+            local ret = {}
+            self:begin()
+            for _, x in ipairs(args) do
+                self:skipws()
+                local T = type(x)
+                if T == 'function' then
+                    T = x(self)
+                elseif T == 'string' then
+                    T = self:try_consume_string(x)
+                else
+                    T = nil
+                end
+                if T == nil then
+                    self:undo()
+                    return nil
+                end
+                table.insert(ret, T)
+            end
+            self:commit()
+            return ret
+        end
+    end,
+}
+
+M.ALPHA = M.combinators.alt(
+    '_',
+    'a',
+    'b',
+    'c',
+    'd',
+    'e',
+    'f',
+    'g',
+    'h',
+    'i',
+    'j',
+    'k',
+    'l',
+    'm',
+    'n',
+    'o',
+    'p',
+    'q',
+    'r',
+    's',
+    't',
+    'u',
+    'v',
+    'w',
+    'x',
+    'y',
+    'z',
+    'A',
+    'B',
+    'C',
+    'D',
+    'E',
+    'F',
+    'G',
+    'H',
+    'I',
+    'J',
+    'K',
+    'L',
+    'M',
+    'N',
+    'O',
+    'P',
+    'Q',
+    'R',
+    'S',
+    'T',
+    'U',
+    'V',
+    'W',
+    'X',
+    'Y',
+    'Z'
+)
+
+function M:alpha()
+    M.ALPHA(self)
 end
+
+M.NUMERIC = M.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+
+function M:numeric()
+    return M.NUMERIC(self)
+end
+
+M.ALPHANUMERIC = M.combinators.alt(M.ALPHA, M.NUMERIC)
+
+function M:alphanumeric()
+    return M.ALPHANUMERIC(self)
+end
+
+return M

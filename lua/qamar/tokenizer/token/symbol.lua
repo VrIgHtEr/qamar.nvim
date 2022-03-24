@@ -42,23 +42,28 @@ do
     end
 end
 
-local MT = {__tostring = function(self)return self.value end}
-return function(stream)
-    stream.begin()
-    stream.skipws()
-    local pos = stream.pos()
-    local ret = stream.combinators.alt(unpack(t))()
+local parser = require('qamar.tokenizer.char_stream').combinators.alt(unpack(t))
+local MT = {
+    __tostring = function(self)
+        return self.value
+    end,
+}
+return function(self)
+    self:begin()
+    self:skipws()
+    local pos = self:pos()
+    local ret = parser(self)
     if ret then
-        stream.commit()
-        stream.resume_skip_ws()
+        self:commit()
+        self:resume_skip_ws()
         return setmetatable({
             value = ret,
             type = symbols[ret],
             pos = {
                 left = pos,
-                right = stream.pos(),
+                right = self:pos(),
             },
-        },MT)
+        }, MT)
     end
-    stream.undo()
+    self:undo()
 end

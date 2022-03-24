@@ -74,27 +74,31 @@ local MT = {
     end,
 }
 
-return function(stream, disallow_short_form)
-    stream.begin()
-    stream.skipws()
-    local pos = stream.pos()
-    stream.suspend_skip_ws()
+local ch = require 'qamar.tokenizer.char_stream'
+local terminator_parser = ch.combinators.alt("'", '"')
+local long_form_parser = ch.combinators.seq('[', ch.combinators.zom '=', '[')
+
+return function(self, disallow_short_form)
+    self:begin()
+    self:skipws()
+    local pos = self:pos()
+    self:suspend_skip_ws()
     local function fail()
-        stream.resume_skip_ws()
-        stream.undo()
+        self:resume_skip_ws()
+        self:undo()
     end
     local ret = {}
-    local t = stream.combinators.alt("'", '"')()
+    local t = terminator_parser(self)
     if t then
         if disallow_short_form then
             return fail()
         end
         while true do
-            local c = stream.take()
+            local c = self:take()
             if c == t then
                 break
             elseif c == '\\' then
-                c = stream.take()
+                c = self:take()
                 if c == 'a' then
                     table.insert(ret, '\a')
                 elseif c == 'b' then
@@ -118,28 +122,28 @@ return function(stream, disallow_short_form)
                 elseif c == '\n' then
                     table.insert(ret, '\n')
                 elseif c == 'z' then
-                    stream.skipws()
+                    self:skipws()
                 elseif c == 'x' then
-                    local c1 = tohexdigit(stream.take())
-                    local c2 = tohexdigit(stream.take())
+                    local c1 = tohexdigit(self:take())
+                    local c2 = tohexdigit(self:take())
                     if not c1 or not c2 then
                         return fail()
                     end
                     table.insert(ret, string.char(c1 * 16 + c2))
                 elseif c == 'u' then
-                    if stream.take() ~= '{' then
+                    if self:take() ~= '{' then
                         return fail()
                     end
                     local digits = {}
                     while #digits < 8 do
-                        local nextdigit = tohexdigit(stream.peek())
+                        local nextdigit = tohexdigit(self:peek())
                         if not nextdigit then
                             break
                         end
-                        stream.take()
+                        self:take()
                         table.insert(digits, nextdigit)
                     end
-                    if stream.take() ~= '}' then
+                    if self:take() ~= '}' then
                         return fail()
                     end
                     local s = utf8_encode(digits)
@@ -150,11 +154,11 @@ return function(stream, disallow_short_form)
                 elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
                     local digits = { todecimaldigit(c) }
                     while #digits < 3 do
-                        local nextdigit = todecimaldigit(stream.peek())
+                        local nextdigit = todecimaldigit(self:peek())
                         if not nextdigit then
                             break
                         end
-                        stream.take()
+                        self:take()
                         table.insert(digits, nextdigit)
                     end
                     local num = 0
@@ -175,7 +179,7 @@ return function(stream, disallow_short_form)
             end
         end
     else
-        t = stream.combinators.seq('[', stream.combinators.zom '=', '[')()
+        t = long_form_parser(self)
         if t then
             local closing = { ']' }
             for _ = 1, #t[2] do
@@ -183,26 +187,26 @@ return function(stream, disallow_short_form)
             end
             table.insert(closing, ']')
             closing = table.concat(closing)
-            if stream.peek() == '\n' then
-                stream.take()
+            if self:peek() == '\n' then
+                self:take()
             end
             while true do
-                local closed = stream.try_consume_string(closing)
+                local closed = self:try_consume_string(closing)
                 if closed then
                     break
                 end
-                t = stream.take()
+                t = self:take()
                 if not t then
                     return fail()
                 elseif t == '\r' then
-                    t = stream.peek()
+                    t = self:peek()
                     if t == '\n' then
-                        stream.take()
+                        self:take()
                     end
                     table.insert(ret, '\n')
                 elseif t == '\n' then
                     if t == '\r' then
-                        stream.take()
+                        self:take()
                     end
                     table.insert(ret, '\n')
                 else
@@ -213,15 +217,15 @@ return function(stream, disallow_short_form)
             return fail()
         end
     end
-    stream.commit()
-    stream.resume_skip_ws()
+    self:commit()
+    self:resume_skip_ws()
     ret = table.concat(ret)
     return setmetatable({
         value = ret,
         type = token.string,
         pos = {
             left = pos,
-            right = stream.pos(),
+            right = self:pos(),
         },
     }, MT)
 end

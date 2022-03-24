@@ -2,16 +2,16 @@ local deque, token = require 'qamar.util.deque', require 'qamar.tokenizer.token'
 
 return function(stream)
     do
-        local pos = stream.pos()
+        local pos = stream:pos()
         if pos.file_byte == 0 then
-            if stream.peek() == '#' and stream.peek(1) == '!' then
+            if stream:peek() == '#' and stream:peek(1) == '!' then
                 while true do
-                    local t = stream.peek()
+                    local t = stream:peek()
                     if not t then
                         break
                     end
-                    stream.take()
-                    if stream.pos().row > 1 then
+                    stream:take()
+                    if stream:pos().row > 1 then
                         break
                     end
                 end
@@ -22,7 +22,7 @@ return function(stream)
     local tokenizer, tokenid, la, ts, tc, on_flush, t =
         {}, 0, deque(), {}, 0, nil, {
             index = 0,
-            pos = stream.pos(),
+            pos = stream:pos(),
             copy = function(self)
                 local r = {}
                 for k, v in pairs(self) do

@@ -6,7 +6,7 @@ local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser(tokenizer(char_stream(utf8(str))))
+    return parser(tokenizer(char_stream.new(utf8(str))))
 end
 
 local function scandir(directory)

@@ -8,11 +8,11 @@ local tokenizers = {
 }
 local token = require 'qamar.tokenizer.types'
 
-return function(stream)
+return function(self)
     ::restart::
-    if stream.peek() then
+    if self:peek() then
         for _, x in ipairs(tokenizers) do
-            local ret = x(stream)
+            local ret = x(self)
             if ret then
                 if ret.type == token.comment then
                     goto restart
@@ -20,19 +20,19 @@ return function(stream)
                 return ret
             end
         end
-        stream.skipws()
-        if stream.peek() then
+        self:skipws()
+        if self:peek() then
             local preview = {}
-            stream.begin()
+            self:begin()
             for i = 1, 30 do
-                local t = stream.take()
+                local t = self:take()
                 if not t then
                     break
                 end
                 preview[i] = t
             end
-            stream.undo()
-            error('invalid token on line ' .. stream.pos().row .. ', col ' .. stream.pos().col .. ' ' .. vim.inspect(table.concat(preview)))
+            self:undo()
+            error('invalid token on line ' .. self:pos().row .. ', col ' .. self:pos().col .. ' ' .. vim.inspect(table.concat(preview)))
         end
     end
 end

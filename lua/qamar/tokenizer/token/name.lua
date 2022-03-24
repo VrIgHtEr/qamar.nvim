@@ -1,5 +1,7 @@
 local token = require 'qamar.tokenizer.types'
-
+local s = require 'qamar.tokenizer.char_stream'
+local alphanumeric = s.ALPHANUMERIC
+local alpha = s.ALPHA
 local keywords = require 'qamar.tokenizer.token.keywords'
 
 local MT = {
@@ -7,39 +9,39 @@ local MT = {
         return self.value
     end,
 }
-return function(stream)
-    stream.begin()
-    stream.skipws()
-    local pos = stream.pos()
-    stream.suspend_skip_ws()
+return function(self)
+    self:begin()
+    self:skipws()
+    local pos = self:pos()
+    self:suspend_skip_ws()
     local ret = {}
-    local t = stream.alpha()
+    local t = alpha(self)
     if t == nil then
-        stream.undo()
-        stream.resume_skip_ws()
+        self:undo()
+        self:resume_skip_ws()
         return nil
     end
     while true do
         table.insert(ret, t)
-        t = stream.alphanumeric()
+        t = alphanumeric(self)
         if t == nil then
             break
         end
     end
     ret = table.concat(ret)
     if keywords[ret] then
-        stream.undo()
-        stream.resume_skip_ws()
+        self:undo()
+        self:resume_skip_ws()
         return nil
     end
-    stream.commit()
-    stream.resume_skip_ws()
+    self:commit()
+    self:resume_skip_ws()
     return setmetatable({
         value = ret,
         type = token.name,
         pos = {
             left = pos,
-            right = stream.pos(),
+            right = self:pos(),
         },
     }, MT)
 end

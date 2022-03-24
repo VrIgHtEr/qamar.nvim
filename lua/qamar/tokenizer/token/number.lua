@@ -1,70 +1,80 @@
 local token = require 'qamar.tokenizer.types'
+local s = require 'qamar.tokenizer.char_stream'
 
-local MT = {__tostring = function(self)return self.value end}
-return function(stream)
-    stream.begin()
-    stream.skipws()
-    stream.suspend_skip_ws()
+local MT = {
+    __tostring = function(self)
+        return self.value
+    end,
+}
+
+local hex_start_parser = s.combinators.alt('0x', '0X')
+local hex_digit_parser, hex_exponent_parser, decimal_exponent_parser =
+    s.combinators.alt(s.NUMERIC, 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F'), s.combinators.alt('p', 'P'), s.combinators.alt('e', 'E')
+local sign_parser = s.combinators.alt('-', '+')
+
+return function(self)
+    self:begin()
+    self:skipws()
+    self:suspend_skip_ws()
     local function fail()
-        stream.resume_skip_ws()
-        stream.undo()
+        self:resume_skip_ws()
+        self:undo()
     end
-    local pos = stream.pos()
-    local val = stream.combinators.alt('0x', '0X')()
+    local pos = self:pos()
+    local val = hex_start_parser(self)
     local ret = {}
     local digitparser, exponentparser
     if val then
         table.insert(ret, val:lower())
-        digitparser, exponentparser =
-            stream.combinators.alt(stream.numeric, 'a', 'b', 'c', 'd', 'e', 'f', 'A', 'B', 'C', 'D', 'E', 'F'), stream.combinators.alt('p', 'P')
+        digitparser, exponentparser = hex_digit_parser, hex_exponent_parser
     else
-        digitparser, exponentparser = stream.numeric, stream.combinators.alt('e', 'E')
+        digitparser, exponentparser = s.NUMERIC, decimal_exponent_parser
     end
 
-    val = digitparser()
+    val = digitparser(self)
     if not val then
         return fail()
     end
     while val ~= nil do
         table.insert(ret, val:lower())
-        val = digitparser()
+        val = digitparser(self)
     end
 
-    val = stream.try_consume_string '.'
+    val = self:try_consume_string '.'
     if val then
         table.insert(ret, val)
-        val = digitparser()
+        val = digitparser(self)
         if not val then
             return fail()
         end
         while val ~= nil do
             table.insert(ret, val:lower())
-            val = digitparser()
+            val = digitparser(self)
         end
     end
 
-    val = exponentparser()
+    val = exponentparser(self)
     if val then
         table.insert(ret, val)
-        local sign = stream.combinators.alt('-', '+')()
-        val = stream.numeric()
+        local sign = sign_parser(self)
+        val = self:numeric()
         if sign and not val then
             return fail()
         end
         while val ~= nil do
             table.insert(ret, val:lower())
-            val = digitparser()
+            val = digitparser(self)
         end
     end
 
-    stream.resume_skip_ws()
-    stream.commit()
+    self:resume_skip_ws()
+    self:commit()
     return setmetatable({
         value = table.concat(ret),
         type = token.number,
         pos = {
             left = pos,
-            right = stream.pos(),
+            right = self:pos(),
         },
-    },MT)
+    }, MT)
 end

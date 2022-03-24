@@ -7,29 +7,32 @@ local MT = {
         return self.value
     end,
 }
-return function(stream)
-    stream.begin()
-    stream.skipws()
-    local pos = stream.pos()
-    local ret = stream.combinators.alt(unpack(keywords))()
+
+local parser = require('qamar.tokenizer.char_stream').combinators.alt(unpack(keywords))
+
+return function(self)
+    self:begin()
+    self:skipws()
+    local pos = self:pos()
+    local ret = parser(self)
     if ret then
-        stream.begin()
-        stream.suspend_skip_ws()
-        local next = stream.alphanumeric()
-        stream.resume_skip_ws()
-        stream.undo()
+        self:begin()
+        self:suspend_skip_ws()
+        local next = self:alphanumeric()
+        self:resume_skip_ws()
+        self:undo()
         if not next then
-            stream.commit()
-            stream.resume_skip_ws()
+            self:commit()
+            self:resume_skip_ws()
             return setmetatable({
                 value = ret,
                 type = token['kw_' .. ret],
                 pos = {
                     left = pos,
-                    right = stream.pos(),
+                    right = self:pos(),
                 },
             }, MT)
         end
     end
-    stream.undo()
+    self:undo()
 end
