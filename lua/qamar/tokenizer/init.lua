@@ -1,6 +1,29 @@
 local deque, token = require 'qamar.util.deque', require 'qamar.tokenizer.token'
 
-return function(stream)
+local emptyfunc = function() end
+local M = {}
+local MT = {
+    __index = M,
+    __metatable = emptyfunc,
+    __tostring = function(self)
+        local ret = {}
+        for i = 1, self.la.size() do
+            local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
+            table.insert(line, (vim.inspect(self.la[i]):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')))
+            table.insert(ret, table.concat(line))
+        end
+        if self.t.index == self.la.size() then
+            table.insert(ret, '==>')
+        end
+        return table.concat(ret, '\n')
+    end,
+}
+
+local function copy_transaction(self)
+    return { copy = self.copy, index = self.index, pos = self.pos }
+end
+
+function M.new(stream)
     do
         local pos = stream:pos()
         if pos.file_byte == 0 then
@@ -18,242 +41,230 @@ return function(stream)
             end
         end
     end
+    return setmetatable({
+        stream = stream,
+        tokenid = 0,
+        la = deque(),
+        ts = {},
+        tc = 0,
+        on_flush = nil,
+        t = {
 
-    local tokenizer, tokenid, la, ts, tc, on_flush, t =
-        {}, 0, deque(), {}, 0, nil, {
             index = 0,
             pos = stream:pos(),
-            copy = function(self)
-                local r = {}
-                for k, v in pairs(self) do
-                    r[k] = v
-                end
-                return r
-            end,
-        }
+            copy = copy_transaction,
+        },
+    }, MT)
+end
 
-    function tokenizer.begin()
-        tc = tc + 1
-        ts[tc] = t:copy()
-    end
+function M:begin()
+    self.tc = self.tc + 1
+    self.ts[self.tc] = self.t:copy()
+end
 
-    function tokenizer.undo()
-        t, ts[tc], tc = ts[tc], nil, tc - 1
-    end
+function M:undo()
+    self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
+end
 
-    local function normalize_la()
-        if tc == 0 then
-            for _ = 1, t.index do
-                la.pop_front()
-            end
-            t.index = 0
-            if on_flush then
-                on_flush(tokenid)
-            end
+function M:normalize()
+    if self.tc == 0 then
+        for _ = 1, self.t.index do
+            self.la.pop_front()
+        end
+        self.t.index = 0
+        if self.on_flush then
+            self.on_flush(self.tokenid)
         end
     end
+end
 
-    function tokenizer.commit()
-        ts[tc], tc = nil, tc - 1
-        normalize_la()
-    end
+function M:commit()
+    self.ts[self.tc], self.tc = nil, self.tc - 1
+    self:normalize()
+end
 
-    local function ensure_filled(amt)
-        while la.size() < amt do
-            local c = token(stream)
-            if c then
-                c.id = tokenid
-                tokenid = tokenid + 1
-                la.push_back(c)
-            elseif la.size() == 0 or la[la.size()] then
-                la.push_back(false)
-                break
-            end
+function M:fill(amt)
+    while self.la.size() < amt do
+        local c = token(self.stream)
+        if c then
+            c.id = self.tokenid
+            self.tokenid = self.tokenid + 1
+            self.la.push_back(c)
+        elseif self.la.size() == 0 or self.la[self.la.size()] then
+            self.la.push_back(false)
+            break
         end
     end
+end
 
-    function tokenizer.peek(skip)
-        skip = skip == nil and 0 or skip
-        local idx = t.index + skip + 1
-        ensure_filled(idx)
-        return la[idx] or false
-    end
+function M:peek(skip)
+    skip = skip == nil and 0 or skip
+    local idx = self.t.index + skip + 1
+    self:fill(idx)
+    return self.la[idx] or false
+end
 
-    function tokenizer.take(amt)
-        amt = amt == nil and 1 or amt
-        local idx = t.index + amt
-        ensure_filled(idx)
-        local ret = {}
-        for i = 1, amt do
-            local c = la[t.index + 1]
-            if not c then
-                break
-            end
-            ret[i] = c
-            t.pos = c.pos.right
-            t.index = t.index + 1
+function M:take(amt)
+    amt = amt == nil and 1 or amt
+    local idx = self.t.index + amt
+    self:fill(idx)
+    local ret = {}
+    for i = 1, amt do
+        local c = self.la[self.t.index + 1]
+        if not c then
+            break
         end
-        normalize_la()
-        return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
+        ret[i] = c
+        self.t.pos = c.pos.right
+        self.t.index = self.t.index + 1
     end
+    self:normalize()
+    return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
+end
 
-    function tokenizer.pos()
-        return t.pos
-    end
+function M:pos()
+    return self.t.pos
+end
 
-    function tokenizer.next_id()
-        local x = tokenizer.peek()
-        return x and x.id or tokenid
-    end
+function M:next_id()
+    local x = self:peek()
+    return x and x.id or self.tokenid
+end
 
-    function tokenizer.take_until(id)
-        while true do
-            local x = tokenizer.peek()
-            if not x or x.id >= id then
-                return
-            end
-            tokenizer.take()
+function M:take_until(id)
+    while true do
+        local x = self:peek()
+        if not x or x.id >= id then
+            return
         end
+        self:take()
     end
+end
 
-    tokenizer.combinators = {
-        alt = function(...)
-            local args = { ... }
-            return function()
-                local ret, right = nil, nil
-                local left = tokenizer.peek() and tokenizer.peek().pos.left
-                for _, x in ipairs(args) do
-                    tokenizer.begin()
-                    local T = type(x)
-                    if T == 'number' then
-                        local tok = tokenizer.peek()
-                        T = (tok and tok.type == x) and tokenizer.take() or nil
-                    elseif T == 'function' then
-                        T = x()
-                    else
-                        T = nil
-                    end
-                    if T ~= nil then
-                        if not right or t.pos.file_char > right then
-                            T.pos = { left = left, right = t.pos }
-                            ret, right = T, t.pos.file_char
-                        end
-                    end
-                    tokenizer.undo()
-                end
-                if ret then
-                    while t.pos.file_char < right do
-                        tokenizer.take()
-                    end
-                    return ret
-                end
-            end
-        end,
-
-        opt = function(x)
-            return function()
-                if not tokenizer.peek() then
-                    return setmetatable({ pos = { left = t.pos, right = t.pos } }, {
-                        __tostring = function()
-                            return ''
-                        end,
-                    })
-                end
-                local left = tokenizer.peek().pos.left
+M.combinators = {
+    alt = function(...)
+        local args = { ... }
+        return function(self)
+            local ret, right = nil, nil
+            local left = self:peek() and self:peek().pos.left
+            for _, x in ipairs(args) do
+                self:begin()
                 local T = type(x)
                 if T == 'number' then
-                    local tok = tokenizer.peek()
-                    T = (tok and tok.type == x) and tokenizer.take() or nil
+                    local tok = self:peek()
+                    T = (tok and tok.type == x) and self:take() or nil
                 elseif T == 'function' then
-                    T = x()
+                    T = x(self)
                 else
-                    return nil
+                    T = nil
                 end
-                if T == nil then
-                    return setmetatable({ pos = { left = t.pos, right = t.pos } }, {
-                        __tostring = function()
-                            return ''
-                        end,
-                    })
+                if T ~= nil then
+                    if not right or self.t.pos.file_char > right then
+                        T.pos = { left = left, right = self.t.pos }
+                        ret, right = T, self.t.pos.file_char
+                    end
                 end
-                T.pos = { left = left, right = t.pos }
-                return T
+                self:undo()
             end
-        end,
-
-        zom = function(x)
-            return function()
-                local ret = { pos = { left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos } }
-                local T = type(x)
-                while tokenizer.peek() do
-                    local v
-                    if T == 'number' then
-                        local tok = tokenizer.peek()
-                        v = (tok and tok.type == x) and tokenizer.take() or nil
-                    elseif T == 'function' then
-                        v = x()
-                    else
-                        v = nil
-                    end
-                    if v == nil then
-                        if not ret.pos.right then
-                            ret.pos.right = t.pos
-                        end
-                        return ret
-                    end
-                    table.insert(ret, v)
-                    ret.pos.right = v.pos.right
+            if ret then
+                while self.t.pos.file_char < right do
+                    self:take()
                 end
-                if not tokenizer.peek() then
-                    return ret
-                end
-            end
-        end,
-
-        seq = function(...)
-            local args = { ... }
-            return function()
-                local ret = { pos = { left = tokenizer.peek() and tokenizer.peek().pos.left or t.pos } }
-                tokenizer.begin()
-                for _, x in ipairs(args) do
-                    local T = type(x)
-                    if T == 'function' then
-                        T = x()
-                    elseif T == 'number' then
-                        local tok = tokenizer.peek()
-                        T = (tok and tok.type == x) and tokenizer.take() or nil
-                    else
-                        T = nil
-                    end
-                    if T == nil then
-                        tokenizer.undo()
-                        return nil
-                    end
-                    table.insert(ret, T)
-                end
-                tokenizer.commit()
-                ret.pos.right = #ret == 0 and ret.pos.left or ret[#ret].pos.right
                 return ret
             end
-        end,
-    }
+        end
+    end,
 
-    function tokenizer.on_flush(func)
-        on_flush = func
-    end
+    opt = function(x)
+        return function(self)
+            if not self:peek() then
+                return setmetatable({ pos = { left = self.t.pos, right = self.t.pos } }, {
+                    __tostring = function()
+                        return ''
+                    end,
+                })
+            end
+            local left = self:peek().pos.left
+            local T = type(x)
+            if T == 'number' then
+                local tok = self:peek()
+                T = (tok and tok.type == x) and self:take() or nil
+            elseif T == 'function' then
+                T = x(self)
+            else
+                return nil
+            end
+            if T == nil then
+                return setmetatable({ pos = { left = self.t.pos, right = self.t.pos } }, {
+                    __tostring = function()
+                        return ''
+                    end,
+                })
+            end
+            T.pos = { left = left, right = self.t.pos }
+            return T
+        end
+    end,
 
-    return setmetatable(tokenizer, {
-        __tostring = function()
-            local ret = {}
-            for i = 1, la.size() do
-                local line = { (i - 1 == t.index) and '==> ' or '    ' }
-                table.insert(line, (vim.inspect(la[i]):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')))
-                table.insert(ret, table.concat(line))
+    zom = function(x)
+        return function(self)
+            local ret = { pos = { left = self:peek() and self:peek().pos.left or self.t.pos } }
+            local T = type(x)
+            while self:peek() do
+                local v
+                if T == 'number' then
+                    local tok = self:peek()
+                    v = (tok and tok.type == x) and self:take() or nil
+                elseif T == 'function' then
+                    v = x(self)
+                else
+                    v = nil
+                end
+                if v == nil then
+                    if not ret.pos.right then
+                        ret.pos.right = self.t.pos
+                    end
+                    return ret
+                end
+                table.insert(ret, v)
+                ret.pos.right = v.pos.right
             end
-            if t.index == la.size() then
-                table.insert(ret, '==>')
+            if not self:peek() then
+                return ret
             end
-            return table.concat(ret, '\n')
-        end,
-    })
+        end
+    end,
+
+    seq = function(...)
+        local args = { ... }
+        return function(self)
+            local ret = { pos = { left = self:peek() and self:peek().pos.left or self.t.pos } }
+            self:begin()
+            for _, x in ipairs(args) do
+                local T = type(x)
+                if T == 'function' then
+                    T = x(self)
+                elseif T == 'number' then
+                    local tok = self:peek()
+                    T = (tok and tok.type == x) and self:take() or nil
+                else
+                    T = nil
+                end
+                if T == nil then
+                    self:undo()
+                    return nil
+                end
+                table.insert(ret, T)
+            end
+            self:commit()
+            ret.pos.right = #ret == 0 and ret.pos.left or ret[#ret].pos.right
+            return ret
+        end
+    end,
+}
+
+function M:on_flush(func)
+    self.on_flush = func
 end
+
+return M

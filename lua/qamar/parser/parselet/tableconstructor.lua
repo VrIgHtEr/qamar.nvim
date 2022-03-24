@@ -13,8 +13,8 @@ return function(self, parser, tok)
             return ''
         end,
     })
-    if parser.tokenizer.peek() then
-        local rbrace = parser.tokenizer.take()
+    if parser.tokenizer:peek() then
+        local rbrace = parser.tokenizer:take()
         if rbrace.type == token.rbrace then
             return setmetatable({
                 value = fieldlist,
