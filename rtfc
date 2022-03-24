@@ -1,0 +1,3 @@
+#!/bin/env zsh
+
+while [[ true ]] ; do echo -n "\e[G\e[K" && echo -n "$(find $1 -type f 2>/dev/null | wc -l)" && sleep 1 ; done

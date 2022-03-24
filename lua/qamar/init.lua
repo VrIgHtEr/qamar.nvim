@@ -21,15 +21,17 @@ local function scandir(directory)
 end
 
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 
 local function parse_everything()
     local starttime = os.clock()
+    os.execute("rm -rf '" .. odir .. "'")
     os.execute("mkdir -p '" .. odir .. "'")
     local ofile = assert(io.open(odir .. '/err', 'wb'))
 
     local co = coroutine.create(function()
         local counter = 0
-        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site')) do
+        for _, filename in ipairs(scandir(idir)) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
             local txt = util.read_file(filename)
             coroutine.yield()
@@ -69,14 +71,19 @@ local function parse_everything()
             local stat = coroutine.status(co)
             if stat == 'dead' then
                 local time = os.clock() - starttime
-                print('PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds')
+                local message = 'PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds'
+                print(message)
+                ofile:write(message .. '\n')
+                ofile:flush()
                 ofile:close()
             else
                 vim.schedule(step)
             end
         else
-            ofile:close()
             print('ERROR: ' .. tostring(parsed))
+            ofile:write('ERROR: ' .. tostring(parsed) .. '\n')
+            ofile:flush()
+            ofile:close()
         end
     end
     step()

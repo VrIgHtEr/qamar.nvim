@@ -135,6 +135,7 @@ return function(tokenizer)
                         if tok and tok.type == t.assignment then
                             local value = p.expression()
                             if value then
+                                tokenizer.commit()
                                 return setmetatable(
                                     { key = key, value = value, pos = { left = left, right = value.pos.right }, type = n.field_raw },
                                     mt.field_raw
@@ -156,6 +157,7 @@ return function(tokenizer)
                 if tok and tok.type == t.assignment then
                     local value = p.expression()
                     if value then
+                        tokenizer.commit()
                         return setmetatable(
                             { key = key.value, value = value, type = n.field_name, pos = { left = left, right = value.pos.right } },
                             mt.field_name
