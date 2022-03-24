@@ -22,7 +22,17 @@ return function(stream)
         end
         stream.skipws()
         if stream.peek() then
-            error('invalid token on line ' .. stream.pos().row .. ', col ' .. stream.pos().col)
+            local preview = {}
+            stream.begin()
+            for i = 1, 30 do
+                local t = stream.take()
+                if not t then
+                    break
+                end
+                preview[i] = t
+            end
+            stream.undo()
+            error('invalid token on line ' .. stream.pos().row .. ', col ' .. stream.pos().col .. ' ' .. vim.inspect(table.concat(preview)))
         end
     end
 end

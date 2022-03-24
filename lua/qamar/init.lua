@@ -20,15 +20,16 @@ local function scandir(directory)
     return t
 end
 
---while [[ true ]] ; do echo -n "\e[G\e[K" && bash -c 'find /home/cedric/luaparse/cedric -type f | wc -l' && echo -n "\e[F" && sleep 1 ; done
-local odir = '/home/cedric/luaparse'
+local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 
 local function parse_everything()
     local starttime = os.clock()
+    os.execute("mkdir -p '" .. odir .. "'")
+    local ofile = assert(io.open(odir .. '/err', 'wb'))
+
     local co = coroutine.create(function()
         local counter = 0
-        local errors = {}
-        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/')) do
+        for _, filename in ipairs(scandir(vim.fn.stdpath 'data' .. '/site')) do
             print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
             local txt = util.read_file(filename)
             coroutine.yield()
@@ -38,8 +39,11 @@ local function parse_everything()
                 if success and tree then
                     local ok, str = pcall(tostring, tree)
                     if not ok then
-                        table.insert(errors, 'TOSTRING: ' .. filename)
-                        table.insert(errors, tostring(str))
+                        ofile:write('TOSTRING: ' .. filename .. '\n')
+                        if str ~= nil then
+                            ofile:write(tostring(str) .. '\n')
+                        end
+                        ofile:flush()
                     else
                         counter = counter + 1
                         local outpath = filename:gsub('^/home/', odir .. '/')
@@ -49,28 +53,29 @@ local function parse_everything()
                         util.write_file(outpath, str)
                     end
                 else
-                    table.insert(errors, filename)
-                    table.insert(errors, tostring(tree))
+                    ofile:write(filename .. '\n')
+                    if tree ~= nil then
+                        ofile:write(tostring(tree) .. '\n')
+                    end
+                    ofile:flush()
                 end
             end
         end
-        return counter, errors
+        return counter
     end)
     local function step()
-        local success, parsed, errors = coroutine.resume(co)
+        local success, parsed = coroutine.resume(co)
         if success then
             local stat = coroutine.status(co)
             if stat == 'dead' then
-                for _, x in ipairs(errors) do
-                    print('ERROR: ' .. x)
-                end
-                util.write_file(odir .. '/errors.txt', table.concat(errors, '\n'))
                 local time = os.clock() - starttime
                 print('PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds')
+                ofile:close()
             else
                 vim.schedule(step)
             end
         else
+            ofile:close()
             print('ERROR: ' .. tostring(parsed))
         end
     end
