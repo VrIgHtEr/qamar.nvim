@@ -38,8 +38,8 @@ return function(self, parser, left, tok)
                         return ''
                     end,
                 })
-            if parser.tokenizer:peek() then
-                local rparen = parser.tokenizer:take()
+            if parser.tokenizer.peek() then
+                local rparen = parser.tokenizer.take()
                 if rparen.type == token.rparen then
                     arglist = args
                     right = rparen.pos.right
@@ -66,14 +66,14 @@ return function(self, parser, left, tok)
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
-            if parser.tokenizer:peek() then
-                local name = parser.tokenizer:take()
+            if parser.tokenizer.peek() then
+                local name = parser.tokenizer.take()
                 if name.type == token.name then
                     sname = name.value
 
-                    local next = parser.tokenizer:peek()
+                    local next = parser.tokenizer.peek()
                     if next then
-                        parser.tokenizer:take()
+                        parser.tokenizer.take()
                         if next.type == token.lparen then
                             local args = parser.explist()
                                 or setmetatable({}, {
@@ -81,8 +81,8 @@ return function(self, parser, left, tok)
                                         return ''
                                     end,
                                 })
-                            if parser.tokenizer:peek() then
-                                local rparen = parser.tokenizer:take()
+                            if parser.tokenizer.peek() then
+                                local rparen = parser.tokenizer.take()
                                 if rparen.type == token.rparen then
                                     arglist = args
                                     right = rparen.pos.right

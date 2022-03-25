@@ -6,7 +6,7 @@ local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser(tokenizer.new(char_stream.new(utf8(str))))
+    return parser(tokenizer(char_stream.new(utf8(str))))
 end
 
 local function scandir(directory)
@@ -21,7 +21,7 @@ local function scandir(directory)
 end
 
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 
 local function parse_everything()
     local starttime = os.clock()
