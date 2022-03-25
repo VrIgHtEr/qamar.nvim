@@ -36,8 +36,8 @@ function M.error(...)
     return nil, table.concat(p, ':')
 end
 
-function M.get_script_path()
-    local info = debug.getinfo(1, 'S')
+function M.get_script_path(level)
+    local info = debug.getinfo(level or 1, 'S')
     local script_path = info.source:match [[^@?(.*[\/])[^\/]-$]]
     return script_path
 end
