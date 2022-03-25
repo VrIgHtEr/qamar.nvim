@@ -19,8 +19,8 @@ local MT = {
     end,
 }
 
-local tableconstructor = require 'qamar.parser.parselet2.tableconstructor'
-local atom = require 'qamar.parser.parselet2.atom'
+local tableconstructor = require 'qamar.parser.parselet.tableconstructor'
+local atom = require 'qamar.parser.parselet.atom'
 
 return function(self, parser, left, tok)
     if
