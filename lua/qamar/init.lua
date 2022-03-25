@@ -2,11 +2,10 @@ local qamar = {}
 local util = require 'qamar.util'
 local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
-local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser(tokenizer.new(char_stream.new(utf8(str))))
+    return parser.new(char_stream.new(utf8(str)))
 end
 
 local function scandir(directory)
@@ -38,7 +37,7 @@ local function parse_everything()
             coroutine.yield()
             if txt then
                 local p = create_parser(txt)
-                local success, tree = pcall(p.chunk)
+                local success, tree = pcall(p.chunk, p)
                 if success and tree then
                     local ok, str = pcall(tostring, tree)
                     if not ok then

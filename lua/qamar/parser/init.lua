@@ -1,11 +1,8 @@
+local M = require 'qamar.tokenizer'
 local parselet, t, n = require 'qamar.parser.parselet', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local prec = require 'qamar.parser.precedence'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
-local alt, seq, opt, zom =
-    require('qamar.tokenizer').combinators.alt,
-    require('qamar.tokenizer').combinators.seq,
-    require('qamar.tokenizer').combinators.opt,
-    require('qamar.tokenizer').combinators.zom
+local alt, seq, opt, zom = M.combinators.alt, M.combinators.seq, M.combinators.opt, M.combinators.zom
 
 local mt = {
     field_raw = {
@@ -58,8 +55,8 @@ local function wrap(node, parser)
     end
 end
 
-local function get_precedence(tokenizer)
-    local next = tokenizer:peek()
+local function get_precedence(self)
+    local next = self:peek()
     if next then
         local infix = parselet.infix[next.type]
         if infix then
@@ -68,8 +65,6 @@ local function get_precedence(tokenizer)
     end
     return 0
 end
-
-local M = {}
 
 function M:expression(precedence)
     precedence = precedence or 0
@@ -405,8 +400,8 @@ M.functiondef = function(self)
 end
 
 M.var = function(self)
-    self:begin(prec.atom)
-    local ret = M.expression(self)
+    self:begin()
+    local ret = self:expression(prec.atom)
     if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
         self:commit()
         return ret

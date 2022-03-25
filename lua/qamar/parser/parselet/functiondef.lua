@@ -9,7 +9,7 @@ local MT = {
 }
 
 return function(self, parser, tok)
-    local body = parser.funcbody()
+    local body = parser:funcbody()
     if body then
         return setmetatable({
             value = body,
