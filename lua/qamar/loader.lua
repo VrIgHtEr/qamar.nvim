@@ -1,6 +1,6 @@
 local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
-local tokenizer = require 'qamar.tokenizer'
+local tokenizer = require 'qamar.parser.token_stream'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
