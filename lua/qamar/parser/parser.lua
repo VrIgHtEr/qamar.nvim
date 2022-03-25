@@ -257,7 +257,7 @@ local seq = function(...)
     end
 end
 
-local parselet = require 'qamar.parser.parselet'
+local parselet = require 'qamar.parser.parselet2'
 
 local function get_precedence(self)
     local next = self:peek()

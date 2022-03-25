@@ -57,7 +57,7 @@ local MT = {
 }
 
 return function(self, parser, left, tok)
-    local right = parser.expression(self.precedence - (self.right_associative and 1 or 0))
+    local right = parser:expression(self.precedence - (self.right_associative and 1 or 0))
     if not right then
         return nil
     end

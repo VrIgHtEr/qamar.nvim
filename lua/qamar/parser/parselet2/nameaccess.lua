@@ -16,9 +16,9 @@ return function(self, parser, left, tok)
         or left.type == node.subexpression
     then
         local l = left.pos.left
-        tok = parser.tokenizer.peek()
+        tok = parser:peek()
         if tok and tok.type == token.name then
-            parser.tokenizer.take()
+            parser:take()
             return setmetatable({
                 table = left,
                 key = tok,

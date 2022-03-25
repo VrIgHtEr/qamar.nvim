@@ -19,8 +19,8 @@ local MT = {
     end,
 }
 
-local tableconstructor = require 'qamar.parser.parselet.tableconstructor'
-local atom = require 'qamar.parser.parselet.atom'
+local tableconstructor = require 'qamar.parser.parselet2.tableconstructor'
+local atom = require 'qamar.parser.parselet2.atom'
 
 return function(self, parser, left, tok)
     if
@@ -32,14 +32,14 @@ return function(self, parser, left, tok)
     then
         local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            local args = parser.explist()
+            local args = parser:explist()
                 or setmetatable({}, {
                     __tostring = function()
                         return ''
                     end,
                 })
-            if parser.tokenizer.peek() then
-                local rparen = parser.tokenizer.take()
+            if parser:peek() then
+                local rparen = parser:take()
                 if rparen.type == token.rparen then
                     arglist = args
                     right = rparen.pos.right
@@ -66,23 +66,23 @@ return function(self, parser, left, tok)
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
-            if parser.tokenizer.peek() then
-                local name = parser.tokenizer.take()
+            if parser:peek() then
+                local name = parser:take()
                 if name.type == token.name then
                     sname = name.value
 
-                    local next = parser.tokenizer.peek()
+                    local next = parser:peek()
                     if next then
-                        parser.tokenizer.take()
+                        parser:take()
                         if next.type == token.lparen then
-                            local args = parser.explist()
+                            local args = parser:explist()
                                 or setmetatable({}, {
                                     __tostring = function()
                                         return ''
                                     end,
                                 })
-                            if parser.tokenizer.peek() then
-                                local rparen = parser.tokenizer.take()
+                            if parser:peek() then
+                                local rparen = parser:take()
                                 if rparen.type == token.rparen then
                                     arglist = args
                                     right = rparen.pos.right
