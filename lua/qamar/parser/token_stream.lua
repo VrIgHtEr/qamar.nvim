@@ -19,8 +19,8 @@ return function(stream)
         end
     end
 
-    local tokenizer, tokenid, la, ts, tc, on_flush, t =
-        {}, 0, deque(), {}, 0, nil, {
+    local tokenizer, tokenid, la, ts, tc, t =
+        {}, 0, deque(), {}, 0, {
             index = 0,
             pos = stream:pos(),
             copy = function(self)
@@ -47,9 +47,6 @@ return function(stream)
                 la.pop_front()
             end
             t.index = 0
-            if on_flush then
-                on_flush(tokenid)
-            end
         end
     end
 
@@ -237,10 +234,6 @@ return function(stream)
             end
         end,
     }
-
-    function tokenizer.on_flush(func)
-        on_flush = func
-    end
 
     return setmetatable(tokenizer, {
         __tostring = function()
