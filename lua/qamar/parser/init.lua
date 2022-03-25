@@ -79,28 +79,6 @@ function parser:commit()
     self:normalize()
 end
 
-local function print_call_stack()
-    local level = 1
-    print 'STACK TRACE:'
-    while true do
-        level = level + 1
-        local info = debug.getinfo(level, 'Sn')
-        if not info then
-            break
-        end
-        local line = { '    ', tostring(level), ': ', info.what }
-        if info.what == 'Lua' then
-            table.insert(line, ' ')
-            table.insert(line, info.source)
-            table.insert(line, ':')
-            table.insert(line, tostring(info.linedefined))
-            table.insert(line, ':')
-            table.insert(line, tostring(info.name))
-        end
-        print(table.concat(line))
-    end
-end
-
 function parser:fill(amt)
     while self.la.size() < amt do
         local c = tokenizer(self.stream)
@@ -279,94 +257,29 @@ local seq = function(...)
     end
 end
 
-local parselet = require 'qamar.parser.parselet'
-
-local function get_precedence(self)
-    local next = self:peek()
-    if next then
-        local infix = parselet.infix[next.type]
-        if infix then
-            return infix.precedence
-        end
-    end
-    return 0
-end
-
-function parser:expression(precedence)
-    precedence = precedence or 0
-
-    local tok = self:peek()
-    if not tok then
-        return
-    end
-    local prefix = parselet.prefix[tok.type]
-    if not prefix then
-        return
-    end
-    self:begin()
-    self:take()
-    local left = prefix:parse(self, tok)
-    if not left then
-        self:undo()
-        return
-    end
-    while precedence < get_precedence(self) do
-        tok = self:peek()
-        if not tok then
-            self:commit()
-            return left
-        end
-        local infix = parselet.infix[tok.type]
-        if not infix then
-            self:commit()
-            return left
-        end
-        self:begin()
-        self:take()
-        local right = infix:parse(self, left, tok)
-        if not right then
-            self:undo()
-            self:undo()
-            return left
-        else
-            self:commit()
-            left = right
-        end
-    end
-    self:commit()
-    return left
-end
-
-local precedence = require 'qamar.parser.precedence'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local mt = {
-    field_raw = {
-        __tostring = function(self)
-            return tconcat { '[', self.key, ']', '=', self.value }
-        end,
-    },
-    field_name = {
-        __tostring = function(self)
-            return tconcat { self.key, '=', self.value }
-        end,
-    },
-    fieldlist = {
-        __tostring = function(self)
-            local ret, idx = {}, 1
-            for i, x in ipairs(self) do
-                if i > 1 then
-                    ret[idx], idx = ',', idx + 1
-                end
-                ret[idx], idx = x, idx + 1
-            end
-            return tconcat(ret)
-        end,
-    },
-}
+parser.expression = require 'qamar.parser.production.expression'
+parser.name = require 'qamar.parser.production.name'
+parser.field_raw = require 'qamar.parser.production.field_raw'
+parser.field_name = require 'qamar.parser.production.field_name'
+parser.fieldlist = require 'qamar.parser.production.fieldlist'
+parser.field = require 'qamar.parser.production.field'
+parser.tableconstructor = require 'qamar.parser.production.tableconstructor'
+parser.vararg = require 'qamar.parser.production.vararg'
+parser.attrib = require 'qamar.parser.production.attrib'
+parser.namelist = require 'qamar.parser.production.namelist'
+parser.explist = require 'qamar.parser.production.explist'
+parser.label = require 'qamar.parser.production.label'
+parser.functiondef = require 'qamar.parser.production.functiondef'
+parser.block = require 'qamar.parser.production.block'
+parser.var = require 'qamar.parser.production.var'
+parser.parlist = require 'qamar.parser.production.parlist'
+parser.attnamelist = require 'qamar.parser.production.attnamelist'
+parser.varlist = require 'qamar.parser.production.varlist'
 
 local function wrap(node, parser_func)
     if type(node) ~= 'table' then
@@ -394,212 +307,6 @@ local function wrap(node, parser_func)
     end
 end
 
-function parser:name()
-    local tok = self:peek()
-    if tok and tok.type == token.name then
-        local ret = self:expression(precedence.literal)
-        if ret and ret.type == n.name then
-            return ret
-        end
-    end
-end
-
-function parser:field_raw()
-    local tok = self:peek()
-    if tok and tok.type == token.lbracket then
-        self:begin()
-        local left = self:take().pos.left
-        local key = self:expression()
-        if key then
-            tok = self:take()
-            if tok and tok.type == token.rbracket then
-                tok = self:take()
-                if tok and tok.type == token.assignment then
-                    local value = self:expression()
-                    if value then
-                        self:commit()
-                        return setmetatable({ key = key, value = value, pos = { left = left, right = value.pos.right }, type = n.field_raw }, mt.field_raw)
-                    end
-                end
-            end
-        end
-        self:undo()
-    end
-end
-
-function parser:field_name()
-    local key = self:peek()
-    if key and key.type == token.name then
-        self:begin()
-        local left = self:take().pos.left
-        local tok = self:take()
-        if tok and tok.type == token.assignment then
-            local value = self:expression()
-            if value then
-                self:commit()
-                return setmetatable({ key = key.value, value = value, type = n.field_name, pos = { left = left, right = value.pos.right } }, mt.field_name)
-            end
-        end
-        self:undo()
-    end
-end
-
-parser.field = alt(parser.field_raw, parser.field_name, parser.expression)
-
-function parser:fieldlist()
-    local field = self:field()
-    if field then
-        local pos = { left = field.pos.left, right = field.pos.right }
-        local ret, idx = setmetatable({ field, type = n.fieldlist, pos = pos }, mt.fieldlist), 2
-        while true do
-            local tok = self:peek()
-            if tok and (tok.type == token.comma or tok.type == token.semicolon) then
-                self:begin()
-                self:take()
-                field = self:field()
-                if not field then
-                    self:undo()
-                    break
-                end
-                ret[idx], idx = field, idx + 1
-                self:commit()
-            else
-                break
-            end
-        end
-        local tok = self:peek()
-        if tok and (tok.type == token.comma or tok.type == token.semicolon) then
-            self:take()
-        end
-        return ret
-    end
-end
-
-function parser:tableconstructor()
-    local tok = self:peek()
-    if tok and tok.type == token.lbrace then
-        local ret = self:expression(precedence.literal)
-        if ret and ret.type == n.tableconstructor then
-            return ret
-        end
-    end
-end
-
-parser.namelist = wrap({
-    type = n.namelist,
-    rewrite = function(self)
-        local ret = { self[1] }
-        if self[2][1] then
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, x[2])
-            end
-        end
-        return ret
-    end,
-    string = function(self)
-        local ret = {}
-        for i, x in ipairs(self) do
-            if i > 1 then
-                tinsert(ret, ',')
-            end
-            tinsert(ret, x)
-        end
-        return tconcat(ret)
-    end,
-}, seq(parser.name, zom(seq(token.comma, parser.name))))
-
-parser.vararg = wrap({
-    type = n.vararg,
-    string = function()
-        return '...'
-    end,
-}, function(self)
-    local tok = self:peek()
-    if tok and tok.type == token.tripledot then
-        local ret = self:expression(precedence.literal)
-        if ret and ret.type == n.vararg then
-            return ret
-        end
-    end
-end)
-
-parser.parlist = alt(
-    wrap({
-        type = n.parlist,
-        rewrite = function(self)
-            local ret = { self[1] }
-            if self[2][1] then
-                tinsert(ret, self[2][2])
-            end
-            return ret
-        end,
-        string = function(self)
-            local ret = {}
-            for i, x in ipairs(self) do
-                if i > 1 then
-                    tinsert(ret, ',')
-                end
-                tinsert(ret, x)
-            end
-            return tconcat(ret)
-        end,
-    }, seq(parser.namelist, opt(seq(token.comma, parser.vararg)))),
-    wrap(n.parlist, seq(parser.vararg))
-)
-
-parser.explist = wrap({
-    type = n.explist,
-    rewrite = function(self)
-        local ret = { self[1] }
-        if self[2][1] then
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, x[2])
-            end
-        end
-        return ret
-    end,
-    string = function(self)
-        local ret = {}
-        for i, x in ipairs(self) do
-            if i > 1 then
-                tinsert(ret, ',')
-            end
-            tinsert(ret, x)
-        end
-        return tconcat(ret)
-    end,
-}, seq(parser.expression, zom(seq(token.comma, parser.expression))))
-
-parser.attrib = wrap({
-    type = n.attrib,
-    string = function(self)
-        return self[1] and (tconcat { '<', self[2], '>' }) or ''
-    end,
-}, opt(seq(token.less, parser.name, token.greater)))
-
-parser.attnamelist = wrap({
-    type = n.attnamelist,
-    rewrite = function(self)
-        local ret = { { self[1], self[2] } }
-        if self[3][1] then
-            for _, x in ipairs(self[3]) do
-                tinsert(ret, { x[2], x[3] })
-            end
-        end
-        return ret
-    end,
-    string = function(self)
-        local ret = {}
-        for i, x in ipairs(self) do
-            if i > 1 then
-                tinsert(ret, ',')
-            end
-            tinsert(ret, x[1], x[2])
-        end
-        return tconcat(ret)
-    end,
-}, seq(parser.name, parser.attrib, zom(seq(token.comma, parser.name, parser.attrib))))
-
 parser.retstat = wrap({
     type = n.retstat,
     rewrite = function(self)
@@ -613,16 +320,6 @@ parser.retstat = wrap({
         return tconcat(ret)
     end,
 }, seq(token.kw_return, opt(parser.explist), opt(token.semicolon)))
-
-parser.label = wrap({
-    type = n.label,
-    rewrite = function(self)
-        return { self[2] }
-    end,
-    string = function(self)
-        return tconcat { '::', self[1], '::' }
-    end,
-}, seq(token.doublecolon, parser.name, token.doublecolon))
 
 parser.funcname = wrap({
     type = n.funcname,
@@ -638,26 +335,6 @@ parser.funcname = wrap({
     end,
 }, seq(parser.name, zom(seq(token.dot, parser.name)), opt(seq(token.colon, parser.name))))
 
-parser.block = wrap(
-    {
-        type = n.block,
-        string = function(self)
-            local ret = {}
-            for _, x in ipairs(self[1]) do
-                tinsert(ret, x)
-            end
-            tinsert(ret, self[2])
-            return tconcat(ret)
-        end,
-    },
-    seq(
-        zom(function(self)
-            return self:stat()
-        end),
-        opt(parser.retstat)
-    )
-)
-
 parser.funcbody = wrap({
     type = n.funcbody,
     rewrite = function(self)
@@ -672,49 +349,6 @@ parser.funcbody = wrap({
         return tconcat(ret)
     end,
 }, seq(token.lparen, opt(parser.parlist), token.rparen, parser.block, token.kw_end))
-
-function parser:functiondef()
-    local tok = self:peek()
-    if tok and tok.type == token.kw_function then
-        local ret = self:expression(precedence.literal)
-        if ret and ret.type == n.functiondef then
-            return ret
-        end
-    end
-end
-
-function parser:var()
-    self:begin()
-    local ret = self:expression(precedence.atom)
-    if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
-        self:commit()
-        return ret
-    end
-    self:undo()
-end
-
-parser.varlist = wrap({
-    type = n.varlist,
-    rewrite = function(self)
-        local ret = { self[1] }
-        if self[2][1] then
-            for _, x in ipairs(self[2]) do
-                tinsert(ret, x[2])
-            end
-        end
-        return ret
-    end,
-    string = function(self)
-        local ret = {}
-        for i, x in ipairs(self) do
-            if i > 1 then
-                tinsert(ret, ',')
-            end
-            tinsert(ret, x)
-        end
-        return tconcat(ret)
-    end,
-}, seq(parser.var, zom(seq(token.comma, parser.var))))
 
 parser.stat = alt(
     wrap({
@@ -890,7 +524,7 @@ parser.stat = alt(
 parser.chunk = wrap(n.chunk, function(self)
     if self:peek() then
         local ret = self:block()
-        local peek = self:peek()
+        local peek = self.la[self.la.size()] or nil
         if ret then
             if peek then
                 error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)

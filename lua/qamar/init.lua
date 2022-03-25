@@ -32,34 +32,36 @@ local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
-            print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
-            local txt = util.read_file(filename)
-            coroutine.yield()
-            if txt then
-                local p = create_parser(txt)
-                local success, tree = pcall(p.chunk, p)
-                if success and tree then
-                    local ok, str = pcall(tostring, tree)
-                    if not ok then
-                        ofile:write('TOSTRING: ' .. filename .. '\n')
-                        if str ~= nil then
-                            ofile:write(tostring(str) .. '\n')
+            if true or filename:match '.*/test.lua$' then
+                print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
+                local txt = util.read_file(filename)
+                coroutine.yield()
+                if txt then
+                    local p = create_parser(txt)
+                    local success, tree = pcall(p.chunk, p)
+                    if success and tree then
+                        local ok, str = pcall(tostring, tree)
+                        if not ok then
+                            ofile:write('TOSTRING: ' .. filename .. '\n')
+                            if str ~= nil then
+                                ofile:write(tostring(str) .. '\n')
+                            end
+                            ofile:flush()
+                        else
+                            counter = counter + 1
+                            local outpath = filename:gsub('^/home/', odir .. '/')
+                            outpath = vim.fn.fnamemodify(outpath, ':p')
+                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                            os.execute("mkdir -p '" .. outdir .. "'")
+                            util.write_file(outpath, str)
+                        end
+                    else
+                        ofile:write(filename .. '\n')
+                        if tree ~= nil then
+                            ofile:write(tostring(tree) .. '\n')
                         end
                         ofile:flush()
-                    else
-                        counter = counter + 1
-                        local outpath = filename:gsub('^/home/', odir .. '/')
-                        outpath = vim.fn.fnamemodify(outpath, ':p')
-                        local outdir = vim.fn.fnamemodify(outpath, ':p:h')
-                        os.execute("mkdir -p '" .. outdir .. "'")
-                        util.write_file(outpath, str)
                     end
-                else
-                    ofile:write(filename .. '\n')
-                    if tree ~= nil then
-                        ofile:write(tostring(tree) .. '\n')
-                    end
-                    ofile:flush()
                 end
             end
         end

@@ -42,4 +42,33 @@ function M.get_script_path(level)
     return script_path
 end
 
+function M.get_stack_level_string(level)
+    local info = debug.getinfo(level, 'Sn')
+    if info then
+        local line = { info.what }
+        if info.what == 'Lua' then
+            table.insert(line, ' ')
+            table.insert(line, info.source)
+            table.insert(line, ':')
+            table.insert(line, tostring(info.linedefined))
+            table.insert(line, ':')
+            table.insert(line, tostring(info.name))
+        end
+        return table.concat(line)
+    end
+end
+
+function M.print_call_stack()
+    local level = 1
+    print 'STACK TRACE:'
+    while true do
+        level = level + 1
+        local str = M.get_stack_level_string(level)
+        if not str then
+            break
+        end
+        print('    ' .. level .. ': ' .. str)
+    end
+end
+
 return M

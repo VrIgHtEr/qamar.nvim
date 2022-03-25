@@ -35,6 +35,7 @@ local types = {
     parlist = '$parlist',
     explist = '$explist',
     attrib = '$attrib',
+    attname = '$attname',
     attnamelist = '$attnamelist',
     retstat = '$retstat',
     label = '$label',
