@@ -1,9 +1,10 @@
 local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
+local tokenizer = require 'qamar.tokenizer'
 local char_stream = require 'qamar.tokenizer.char_stream'
 
 local function create_parser(str)
-    return parser.new(char_stream.new(utf8(str)))
+    return parser(tokenizer.new(char_stream.new(utf8(str))))
 end
 
 local function get_runtime_paths()
@@ -29,7 +30,7 @@ return function(modulename)
         if file then
             local str = file:read '*a'
             file:close()
-            local chunk = parser.chunk(create_parser(str))
+            local chunk = create_parser(str).chunk()
             if chunk then
                 local chunkstr = tostring(chunk)
                 if chunkstr then

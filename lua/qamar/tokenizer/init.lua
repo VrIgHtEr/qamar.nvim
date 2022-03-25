@@ -47,6 +47,7 @@ function M.new(stream)
         la = deque(),
         ts = {},
         tc = 0,
+        on_flush = nil,
         t = {
 
             index = 0,
@@ -71,6 +72,9 @@ function M:normalize()
             self.la.pop_front()
         end
         self.t.index = 0
+        if self.on_flush then
+            self.on_flush(self.tokenid)
+        end
     end
 end
 
@@ -258,5 +262,9 @@ M.combinators = {
         end
     end,
 }
+
+function M:on_flush(func)
+    self.on_flush = func
+end
 
 return M

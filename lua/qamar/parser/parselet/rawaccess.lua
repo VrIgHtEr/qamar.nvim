@@ -16,19 +16,19 @@ return function(self, parser, left, tok)
         or left.type == node.subexpression
     then
         local l = left.pos.left
-        parser:begin()
-        local exp = parser:expression()
+        parser.tokenizer:begin()
+        local exp = parser.expression()
         if not exp then
-            parser:undo()
+            parser.tokenizer:undo()
             return nil
         end
-        tok = parser:peek()
+        tok = parser.tokenizer:peek()
         if not tok or tok.type ~= token.rbracket then
-            parser:undo()
+            parser.tokenizer:undo()
             return nil
         end
-        parser:take()
-        parser:commit()
+        parser.tokenizer:take()
+        parser.tokenizer:commit()
         return setmetatable({
             table = left,
             key = exp,

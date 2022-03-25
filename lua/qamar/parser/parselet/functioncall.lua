@@ -32,14 +32,14 @@ return function(self, parser, left, tok)
     then
         local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            local args = parser:explist()
+            local args = parser.explist()
                 or setmetatable({}, {
                     __tostring = function()
                         return ''
                     end,
                 })
-            if parser:peek() then
-                local rparen = parser:take()
+            if parser.tokenizer:peek() then
+                local rparen = parser.tokenizer:take()
                 if rparen.type == token.rparen then
                     arglist = args
                     right = rparen.pos.right
@@ -66,23 +66,23 @@ return function(self, parser, left, tok)
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
-            if parser:peek() then
-                local name = parser:take()
+            if parser.tokenizer:peek() then
+                local name = parser.tokenizer:take()
                 if name.type == token.name then
                     sname = name.value
 
-                    local next = parser:peek()
+                    local next = parser.tokenizer:peek()
                     if next then
-                        parser:take()
+                        parser.tokenizer:take()
                         if next.type == token.lparen then
-                            local args = parser:explist()
+                            local args = parser.explist()
                                 or setmetatable({}, {
                                     __tostring = function()
                                         return ''
                                     end,
                                 })
-                            if parser:peek() then
-                                local rparen = parser:take()
+                            if parser.tokenizer:peek() then
+                                local rparen = parser.tokenizer:take()
                                 if rparen.type == token.rparen then
                                     arglist = args
                                     right = rparen.pos.right

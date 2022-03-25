@@ -9,19 +9,19 @@ local MT = {
 
 return function(self, parser, tok)
     local left = tok.pos.left
-    parser:begin()
+    parser.tokenizer:begin()
     local exp = parser.expression()
     if not exp then
-        parser:undo()
+        parser.tokenizer:undo()
         return nil
     end
-    tok = parser:peek()
+    tok = parser.tokenizer:peek()
     if not tok or tok.type ~= token.rparen then
-        parser:undo()
+        parser.tokenizer:undo()
         return nil
     end
-    parser:take()
-    parser:commit()
+    parser.tokenizer:take()
+    parser.tokenizer:commit()
     return setmetatable({
         value = exp,
         type = node.subexpression,
