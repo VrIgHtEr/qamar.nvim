@@ -1,7 +1,7 @@
 local cfg = require 'qamar.config'
-local precedence = require 'qamar.parser.precedence'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
+local precedence = require 'qamar.parser.precedence'
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)

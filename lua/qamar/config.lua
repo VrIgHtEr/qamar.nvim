@@ -14,7 +14,7 @@ M.dedent = function()
     return M
 end
 
-local function space()
+M.space = function()
     local ret = {}
     for _ = 0, il - 1 do
         table.insert(ret, '  ')
@@ -24,7 +24,7 @@ end
 
 M.trace = function(str, level)
     local s = util.get_stack_level_string(3 + (level or 0))
-    return print(space() .. tostring(s) .. ': ' .. str)
+    return print(M.space() .. tostring(s) .. ': ' .. str)
 end
 M.itrace = function(str)
     M.trace(str, 1)

@@ -9,11 +9,13 @@ local MT = {
     __tostring = function(self)
         local ret = {}
         for i = 1, self.la.size() do
-            local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
-            table.insert(line, (vim.inspect(self.la[i]):gsub('\r\n', '\n'):gsub('\r', '\n'):gsub('\n%s*', ' ')))
+            local line = { cfg.space() .. ((i - 1 == self.t.index) and '==> ' or '    ') }
+            local x = self.la[i] or 'EOF'
+            table.insert(line, vim.inspect(x.value))
             table.insert(ret, table.concat(line))
         end
         if self.t.index == self.la.size() then
+            table.insert(ret, cfg.space())
             table.insert(ret, '==>')
         end
         return table.concat(ret, '\n')
@@ -59,7 +61,7 @@ end
 
 function parser:begin()
     cfg.trace('BEGIN:' .. self.tc, 1)
-    cfg.trace(tostring(self), 1)
+    --    print(self)
     self.tc = self.tc + 1
     self.ts[self.tc] = self.t:copy()
 end
@@ -67,6 +69,7 @@ end
 function parser:undo()
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
     cfg.trace('UNDO:' .. self.tc, 1)
+    --    print(self)
 end
 
 function parser:normalize()
@@ -82,6 +85,7 @@ function parser:commit()
     self.ts[self.tc], self.tc = nil, self.tc - 1
     self:normalize()
     cfg.trace('COMMIT:' .. self.tc, 1)
+    --    print(self)
 end
 
 function parser:fill(amt)

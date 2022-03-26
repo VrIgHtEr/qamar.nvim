@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local parselet = require 'qamar.parser.parselet'
 
@@ -7,9 +6,11 @@ local function get_precedence(self)
     if next then
         local infix = parselet.infix[next.type]
         if infix then
+            cfg.trace('PRECEDENCE ' .. infix.precedence)
             return infix.precedence
         end
     end
+    cfg.trace 'PRECEDENCE 0'
     return 0
 end
 
@@ -19,12 +20,12 @@ return function(self, precedence)
 
     local tok = self:peek()
     if not tok then
-        cfg.dtrace 'EXIT'
+        cfg.dtrace 'EXIT 1'
         return
     end
     local prefix = parselet.prefix[tok.type]
     if not prefix then
-        cfg.dtrace 'EXIT'
+        cfg.dtrace 'EXIT 2'
         return
     end
     self:begin()
@@ -32,20 +33,20 @@ return function(self, precedence)
     local left = prefix:parse(self, tok)
     if not left then
         self:undo()
-        cfg.dtrace 'EXIT'
+        cfg.dtrace 'EXIT 3'
         return
     end
     while precedence < get_precedence(self) do
         tok = self:peek()
         if not tok then
             self:commit()
-            cfg.dtrace('EXIT: ' .. tostring(left))
+            cfg.dtrace('EXIT 4: ' .. tostring(left))
             return left
         end
         local infix = parselet.infix[tok.type]
         if not infix then
             self:commit()
-            cfg.dtrace('EXIT: ' .. tostring(left))
+            cfg.dtrace('EXIT 5: ' .. tostring(left))
             return left
         end
         self:begin()
@@ -54,7 +55,7 @@ return function(self, precedence)
         if not right then
             self:undo()
             self:undo()
-            cfg.dtrace('EXIT: ' .. tostring(left))
+            cfg.dtrace('EXIT 6: ' .. tostring(left))
             return left
         else
             self:commit()
@@ -62,6 +63,6 @@ return function(self, precedence)
         end
     end
     self:commit()
-    cfg.dtrace('EXIT: ' .. tostring(left))
+    cfg.dtrace('EXIT 7: ' .. tostring(left))
     return left
 end
