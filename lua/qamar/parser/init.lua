@@ -264,8 +264,8 @@ local tinsert = require('qamar.util.table').tinsert
 
 parser.expression = require 'qamar.parser.production.expression'
 parser.name = require 'qamar.parser.production.name'
-parser.field_raw = require 'qamar.parser.production.field_raw'
-parser.field_name = require 'qamar.parser.production.field_name'
+parser.field_raw = require 'qamar.parser.production.field.raw'
+parser.field_name = require 'qamar.parser.production.field.name'
 parser.fieldlist = require 'qamar.parser.production.fieldlist'
 parser.field = require 'qamar.parser.production.field'
 parser.tableconstructor = require 'qamar.parser.production.tableconstructor'
@@ -280,6 +280,8 @@ parser.var = require 'qamar.parser.production.var'
 parser.parlist = require 'qamar.parser.production.parlist'
 parser.attnamelist = require 'qamar.parser.production.attnamelist'
 parser.varlist = require 'qamar.parser.production.varlist'
+parser.retstat = require 'qamar.parser.production.retstat'
+parser.funcname = require 'qamar.parser.production.funcname'
 
 local function wrap(node, parser_func)
     if type(node) ~= 'table' then
@@ -306,34 +308,6 @@ local function wrap(node, parser_func)
         return ret
     end
 end
-
-parser.retstat = wrap({
-    type = n.retstat,
-    rewrite = function(self)
-        return { self[2] }
-    end,
-    string = function(self)
-        local ret = { 'return' }
-        if self[1].type then
-            tinsert(ret, self[1])
-        end
-        return tconcat(ret)
-    end,
-}, seq(token.kw_return, opt(parser.explist), opt(token.semicolon)))
-
-parser.funcname = wrap({
-    type = n.funcname,
-    string = function(self)
-        local ret = { self[1] }
-        for _, x in ipairs(self[2]) do
-            tinsert(ret, '.', x[2])
-        end
-        if self[3][1] then
-            tinsert(ret, ':', self[3][2])
-        end
-        return tconcat(ret)
-    end,
-}, seq(parser.name, zom(seq(token.dot, parser.name)), opt(seq(token.colon, parser.name))))
 
 parser.funcbody = wrap({
     type = n.funcbody,

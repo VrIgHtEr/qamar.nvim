@@ -1,5 +1,3 @@
-local precedence = require 'qamar.parser.precedence'
-local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
@@ -7,10 +5,9 @@ local tinsert = require('qamar.util.table').tinsert
 local mt = {
     __tostring = function(self)
         local ret = {}
-        for _, x in ipairs(self[1]) do
+        for _, x in ipairs(self) do
             tinsert(ret, x)
         end
-        tinsert(ret, self[2])
         return tconcat(ret)
     end,
 }

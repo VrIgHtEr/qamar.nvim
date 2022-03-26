@@ -57,7 +57,7 @@ return function(self)
         end
 
         local last = ret[#ret]
-        ret.pos.right = last[#last].pos.right
+        ret.pos.right = (last.attrib and last.attrib or last.name).pos.right
         return ret
     end
 end

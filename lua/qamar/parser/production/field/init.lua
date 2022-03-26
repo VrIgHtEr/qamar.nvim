@@ -1,5 +1,5 @@
-local field_raw = require 'qamar.parser.production.field_raw'
-local field_name = require 'qamar.parser.production.field_name'
+local field_raw = require 'qamar.parser.production.field.raw'
+local field_name = require 'qamar.parser.production.field.name'
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)
