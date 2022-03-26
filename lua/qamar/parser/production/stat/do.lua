@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -13,9 +12,7 @@ local mt = {
 local block = require 'qamar.parser.production.block'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_do then
         local kw_do = self:begintake()
@@ -24,13 +21,16 @@ return function(self)
             tok = self:take()
             if tok and tok.type == token.kw_end then
                 self:commit()
-                return setmetatable({
+                local ret = setmetatable({
                     body = body,
                     type = n.stat_do,
                     pos = { left = kw_do.pos.left, right = tok.pos.right },
                 }, mt)
+                cfg.dtrace('EXIT: ' .. tostring(ret))
+                return ret
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

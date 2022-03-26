@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local tconcat = require('qamar.util.table').tconcat
 
@@ -14,9 +13,7 @@ local block = require 'qamar.parser.production.block'
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_repeat then
         local kw_repeat = self:begintake()
@@ -28,15 +25,18 @@ return function(self)
                 local condition = expression(self)
                 if condition then
                     self:commit()
-                    return setmetatable({
+                    local ret = setmetatable({
                         body = body,
                         condition = condition,
                         type = n.stat_repeat,
                         pos = { left = kw_repeat.pos.left, right = condition.pos.right },
                     }, mt)
+                    cfg.dtrace('EXIT: ' .. tostring(ret))
+                    return ret
                 end
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

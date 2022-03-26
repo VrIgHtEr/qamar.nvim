@@ -10,7 +10,7 @@ end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
-    local proc = popen('find "' .. directory .. '" -type f -name "*.lua"')
+    local proc = popen('find "' .. directory .. '" -maxdepth 1 -type f -name "*.lua"')
     for filename in proc:lines() do
         i = i + 1
         t[i] = filename
@@ -33,6 +33,7 @@ local function parse_everything()
         local counter = 0
         for _, filename in ipairs(files) do
             if true or filename:match '.*/test.lua$' then
+                print '-----------------------------------------------------------------------------------'
                 print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                 local txt = util.read_file(filename)
                 coroutine.yield()

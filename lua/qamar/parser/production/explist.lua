@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -21,9 +20,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local v = expression(self)
     if v then
         local ret = setmetatable({ v, type = n.explist, pos = { left = v.pos.left } }, mt)
@@ -45,6 +42,8 @@ return function(self)
         end
 
         ret.pos.right = ret[#ret].pos.right
+        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
+    cfg.dtrace 'EXIT'
 end

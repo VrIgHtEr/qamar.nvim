@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local empty = require 'qamar.parser.production.stat.empty'
 local localvar = require 'qamar.parser.production.stat.localvar'
@@ -17,10 +16,8 @@ local stat_do = require 'qamar.parser.production.stat.do'
 local stat_if = require 'qamar.parser.production.stat.if'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
-    return localvar(self)
+    cfg.itrace 'ENTER'
+    local ret = localvar(self)
         or localfunc(self)
         or func(self)
         or stat_if(self)
@@ -35,4 +32,6 @@ return function(self)
         or stat_goto(self)
         or assign(self)
         or functioncall(self)
+    cfg.dtrace('EXIT: ' .. tostring(ret))
+    return ret
 end

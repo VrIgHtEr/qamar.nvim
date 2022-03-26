@@ -38,8 +38,9 @@ end
 
 function M.get_script_path(level)
     local info = debug.getinfo(1 + (level or 1), 'S')
-    local script_path = info.source:match [[^@?(.*[\/])[^\/]-$]]
-    return script_path
+    return info and info.source
+    --    local script_path = info.source:match [[^@?(.*[\/])[^\/]-$]]
+    --    return script_path
 end
 
 function M.get_stack_level_string(level)
@@ -48,11 +49,9 @@ function M.get_stack_level_string(level)
         local line = { info.what }
         if info.what == 'Lua' then
             table.insert(line, ' ')
-            table.insert(line, info.source)
+            table.insert(line, tostring(info.name))
             table.insert(line, ':')
             table.insert(line, tostring(info.linedefined))
-            table.insert(line, ':')
-            table.insert(line, tostring(info.name))
         end
         return table.concat(line)
     end

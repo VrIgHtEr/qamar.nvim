@@ -14,17 +14,17 @@ local function get_precedence(self)
 end
 
 return function(self, precedence)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
     precedence = precedence or 0
+    cfg.itrace('ENTER ' .. tostring(precedence))
 
     local tok = self:peek()
     if not tok then
+        cfg.dtrace 'EXIT'
         return
     end
     local prefix = parselet.prefix[tok.type]
     if not prefix then
+        cfg.dtrace 'EXIT'
         return
     end
     self:begin()
@@ -32,17 +32,20 @@ return function(self, precedence)
     local left = prefix:parse(self, tok)
     if not left then
         self:undo()
+        cfg.dtrace 'EXIT'
         return
     end
     while precedence < get_precedence(self) do
         tok = self:peek()
         if not tok then
             self:commit()
+            cfg.dtrace('EXIT: ' .. tostring(left))
             return left
         end
         local infix = parselet.infix[tok.type]
         if not infix then
             self:commit()
+            cfg.dtrace('EXIT: ' .. tostring(left))
             return left
         end
         self:begin()
@@ -51,6 +54,7 @@ return function(self, precedence)
         if not right then
             self:undo()
             self:undo()
+            cfg.dtrace('EXIT: ' .. tostring(left))
             return left
         else
             self:commit()
@@ -58,5 +62,6 @@ return function(self, precedence)
         end
     end
     self:commit()
+    cfg.dtrace('EXIT: ' .. tostring(left))
     return left
 end

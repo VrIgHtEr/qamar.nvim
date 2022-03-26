@@ -22,9 +22,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local v = vararg(self)
     if v then
         return setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
@@ -47,7 +45,9 @@ return function(self)
                 end
             end
             ret.pos.right = ret[#ret].pos.right
+            cfg.dtrace('EXIT: ' .. tostring(ret))
             return ret
         end
     end
+    cfg.dtrace 'EXIT'
 end

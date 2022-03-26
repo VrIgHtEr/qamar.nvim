@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
@@ -8,6 +10,9 @@ local MT = {
 }
 
 return function(self, parser, left, tok)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     if
         left.type == node.name
         or left.type == node.table_nameaccess

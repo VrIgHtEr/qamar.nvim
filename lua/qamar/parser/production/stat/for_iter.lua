@@ -15,9 +15,7 @@ local explist = require 'qamar.parser.production.explist'
 local block = require 'qamar.parser.production.block'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_for then
         local kw_for = self:begintake()
@@ -34,13 +32,15 @@ return function(self)
                             tok = self:take()
                             if tok and tok.type == token.kw_end then
                                 self:commit()
-                                return setmetatable({
+                                local ret = setmetatable({
                                     type = n.stat_for_iter,
                                     names = names,
                                     iterators = iterators,
                                     body = body,
                                     pos = { left = kw_for.pos.left, right = tok.pos.right },
                                 }, mt)
+                                cfg.dtrace('EXIT: ' .. tostring(ret))
+                                return ret
                             end
                         end
                     end
@@ -49,4 +49,5 @@ return function(self)
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

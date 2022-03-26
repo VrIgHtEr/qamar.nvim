@@ -13,9 +13,7 @@ local mt = {
 local expression = require 'qamar.parser.production.expression'
 local block = require 'qamar.parser.production.block'
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_while then
         local kw_while = self:begintake()
@@ -28,16 +26,19 @@ return function(self)
                     tok = self:take()
                     if tok and tok.type == token.kw_end then
                         self:commit()
-                        return setmetatable({
+                        local ret = setmetatable({
                             condition = condition,
                             body = body,
                             type = n.stat_while,
                             pos = { left = kw_while.pos.left, right = tok.pos.right },
                         }, mt)
+                        cfg.dtrace('EXIT: ' .. tostring(ret))
+                        return ret
                     end
                 end
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -8,9 +7,7 @@ local name = require 'qamar.parser.production.funcname'
 local funcbody = require 'qamar.parser.production.funcbody'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local kw_function = self:peek()
     if kw_function and kw_function.type == token.kw_local then
         self:begintake()
@@ -19,13 +16,16 @@ return function(self)
             local body = funcbody(self)
             if body then
                 self:commit()
-                return setmetatable({ name = funcname, body = body, type = n.stat_func, pos = { left = kw_function.pos.left, right = body.pos.right } }, {
+                local ret = setmetatable({ name = funcname, body = body, type = n.stat_func, pos = { left = kw_function.pos.left, right = body.pos.right } }, {
                     __tostring = function(s)
                         return tconcat { 'function', s.name, s.body }
                     end,
                 })
+                cfg.dtrace('EXIT: ' .. tostring(ret))
+                return ret
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

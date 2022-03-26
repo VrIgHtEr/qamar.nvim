@@ -19,9 +19,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local f = field(self)
     if f then
         local pos = { left = f.pos.left, right = f.pos.right }
@@ -46,6 +44,8 @@ return function(self)
         if tok and (tok.type == token.comma or tok.type == token.semicolon) then
             self:take()
         end
+        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
+    cfg.dtrace 'EXIT'
 end

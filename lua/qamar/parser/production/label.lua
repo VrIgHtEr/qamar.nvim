@@ -12,11 +12,10 @@ local mt = {
 local name = require 'qamar.parser.production.name'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local left = self:peek()
     if not left or left.type ~= token.doublecolon then
+        cfg.dtrace 'EXIT'
         return
     end
     self:begintake()
@@ -24,15 +23,19 @@ return function(self)
     local nam = name(self)
     if not nam then
         self:undo()
+        cfg.dtrace 'EXIT'
         return
     end
 
     local right = self:take()
     if not right or right.type ~= token.doublecolon then
         self:undo()
+        cfg.dtrace 'EXIT'
         return
     end
 
     self:commit()
-    return setmetatable { { name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt }
+    local ret = setmetatable { { name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt }
+    cfg.dtrace('EXIT: ' .. tostring(ret))
+    return ret
 end

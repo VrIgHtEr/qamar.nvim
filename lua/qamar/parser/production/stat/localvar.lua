@@ -19,9 +19,7 @@ local attnamelist = require 'qamar.parser.production.attnamelist'
 local explist = require 'qamar.parser.production.explist'
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_local then
         self:begintake()
@@ -43,8 +41,10 @@ return function(self)
             else
                 ret.pos.right = names.pos.right
             end
+            cfg.dtrace('EXIT: ' .. tostring(ret))
             return ret
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

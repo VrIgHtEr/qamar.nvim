@@ -12,9 +12,7 @@ local mt = {
 local varlist = require 'qamar.parser.production.varlist'
 local explist = require 'qamar.parser.production.explist'
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     self:begin()
     local target = varlist(self)
     if target then
@@ -23,14 +21,17 @@ return function(self)
             local value = explist(self)
             if value then
                 self:commit()
-                return setmetatable({
+                local ret = setmetatable({
                     target = target,
                     value = value,
                     type = n.stat_assign,
                     pos = { left = target.pos.left, right = value.pos.right },
                 }, mt)
+                cfg.dtrace('EXIT: ' .. tostring(ret))
+                return ret
             end
         end
     end
     self:undo()
+    cfg.dtrace 'EXIT'
 end

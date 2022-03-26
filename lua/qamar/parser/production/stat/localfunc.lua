@@ -13,9 +13,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local kw_local = self:peek()
     if kw_local and kw_local.type == token.kw_local then
         self:begintake()
@@ -26,13 +24,16 @@ return function(self)
                 local body = funcbody(self)
                 if body then
                     self:commit()
-                    return setmetatable(
+                    local ret = setmetatable(
                         { name = funcname, body = body, type = n.stat_localfunc, pos = { left = kw_local.pos.left, right = body.pos.right } },
                         mt
                     )
+                    cfg.dtrace('EXIT: ' .. tostring(ret))
+                    return ret
                 end
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

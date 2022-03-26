@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -15,9 +14,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local ret = setmetatable({ type = n.block, pos = {} }, mt)
     while true do
         local stat = self:stat()
@@ -37,5 +34,6 @@ return function(self)
         ret.pos.left = ret[1].pos.left
         ret.pos.right = ret[#ret].pos.right
     end
+    cfg.dtrace('EXIT ' .. tostring(ret))
     return ret
 end

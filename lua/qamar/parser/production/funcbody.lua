@@ -20,9 +20,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local lparen = self:peek()
     if lparen and lparen.type == token.lparen then
         self:begintake()
@@ -34,10 +32,13 @@ return function(self)
                 tok = self:take()
                 if tok and tok.type == token.kw_end then
                     self:commit()
-                    return setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
+                    local ret = setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
+                    cfg.dtrace('EXIT: ' .. tostring(ret))
+                    return ret
                 end
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end

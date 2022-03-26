@@ -18,9 +18,7 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local retkw = self:peek()
     if retkw and retkw.type == token.kw_return then
         self:take()
@@ -32,6 +30,8 @@ return function(self)
         else
             ret.pos.right = ret.explist and ret.explist.pos.right or retkw.pos.right
         end
+        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
+    cfg.dtrace 'EXIT'
 end

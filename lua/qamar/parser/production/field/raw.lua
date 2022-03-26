@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -11,9 +10,7 @@ local mt = {
     end,
 }
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
+    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.lbracket then
         self:begin()
@@ -27,11 +24,14 @@ return function(self)
                     local value = expression(self)
                     if value then
                         self:commit()
-                        return setmetatable({ key = key, value = value, pos = { left = left, right = value.pos.right }, type = n.field_raw }, mt)
+                        local ret = setmetatable({ key = key, value = value, pos = { left = left, right = value.pos.right }, type = n.field_raw }, mt)
+                        cfg.dtrace('EXIT: ' .. tostring(ret))
+                        return ret
                     end
                 end
             end
         end
         self:undo()
     end
+    cfg.dtrace 'EXIT'
 end
