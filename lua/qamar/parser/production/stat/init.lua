@@ -11,19 +11,24 @@ local assign = require 'qamar.parser.production.stat.assign'
 local stat_repeat = require 'qamar.parser.production.stat.repeat'
 local stat_while = require 'qamar.parser.production.stat.while'
 local for_iter = require 'qamar.parser.production.stat.for_iter'
+local stat_do = require 'qamar.parser.production.stat.do'
+local stat_if = require 'qamar.parser.production.stat.if'
 
 return function(self)
-    return empty(self)
+    return false
         or localvar(self)
-        or label(self)
-        or stat_break(self)
-        or stat_goto(self)
         or localfunc(self)
         or func(self)
-        or for_num(self)
+        or stat_if(self)
         or for_iter(self)
+        or for_num(self)
         or stat_while(self)
+        or stat_do(self)
         or stat_repeat(self)
+        or stat_break(self)
+        or empty(self)
+        or label(self)
+        or stat_goto(self)
         or assign(self)
         or functioncall(self)
 end

@@ -142,11 +142,6 @@ function parser:take_until(id)
     end
 end
 
-local token = require 'qamar.tokenizer.types'
-local n = require 'qamar.parser.types'
-local tconcat = require('qamar.util.table').tconcat
-local tinsert = require('qamar.util.table').tinsert
-
 parser.expression = require 'qamar.parser.production.expression'
 parser.name = require 'qamar.parser.production.name'
 parser.field_raw = require 'qamar.parser.production.field.raw'
@@ -170,46 +165,5 @@ parser.funcname = require 'qamar.parser.production.funcname'
 parser.funcbody = require 'qamar.parser.production.funcbody'
 parser.stat = require 'qamar.parser.production.stat'
 parser.chunk = require 'qamar.parser.production.chunk'
---[[
-
-
-wrap(
-    {
-        type = n.stat_if,
-        string = function(self)
-            local ret = { 'if', self[2], 'then', self[4] }
-            for _, x in ipairs(self[5]) do
-                tinsert(ret, 'elseif', x[2], 'then', x[4])
-            end
-            if self[6][1] then
-                tinsert(ret, 'else', self[6][2])
-            end
-            tinsert(ret, 'end')
-            return tconcat(ret)
-        end,
-    },
-    seq(
-        token.kw_if,
-        parser.expression,
-        token.kw_then,
-        parser.block,
-        zom(seq(token.kw_elseif, parser.expression, token.kw_then, parser.block)),
-        opt(seq(token.kw_else, parser.block)),
-        token.kw_end
-    )
-)
-
-wrap({
-    type = n.stat_do,
-    rewrite = function(self)
-        return { self[2] }
-    end,
-    string = function(self)
-        return tconcat { 'do', self[1], 'end' }
-    end,
-}, seq(token.kw_do, parser.block, token.kw_end))
-
-
-]]
 
 return parser
