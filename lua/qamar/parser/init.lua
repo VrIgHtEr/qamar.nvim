@@ -118,6 +118,11 @@ function parser:take(amt)
     return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
 end
 
+function parser:begintake(amt)
+    self:begin()
+    return self:take(amt)
+end
+
 function parser:pos()
     return self.t.pos
 end
@@ -282,240 +287,141 @@ parser.attnamelist = require 'qamar.parser.production.attnamelist'
 parser.varlist = require 'qamar.parser.production.varlist'
 parser.retstat = require 'qamar.parser.production.retstat'
 parser.funcname = require 'qamar.parser.production.funcname'
+parser.funcbody = require 'qamar.parser.production.funcbody'
+parser.stat = require 'qamar.parser.production.stat'
+parser.chunk = require 'qamar.parser.production.chunk'
+--[[
+wrap({
+    type = n.localfunc,
+    rewrite = function(self)
+        return { self[3], self[4] }
+    end,
+    string = function(self)
+        return tconcat { 'local function', self[1], self[2] }
+    end,
+}, seq(token.kw_local, token.kw_function, parser.name, parser.funcbody))
 
-local function wrap(node, parser_func)
-    if type(node) ~= 'table' then
-        node = { type = node }
-    end
-    return function(self)
-        local ret = parser_func(self)
-        if ret then
-            ret.type = node.type
-            ret.typename = n[node.type]
-            if node.rewrite then
-                local x = node.rewrite(ret)
-                for i = 1, #ret do
-                    ret[i] = nil
-                end
-                for i = 1, #x do
-                    ret[i] = x[i]
-                end
-            end
-            if node.string then
-                setmetatable(ret, { __tostring = node.string })
-            end
-        end
-        return ret
-    end
-end
+wrap({
+    type = n.func,
+    rewrite = function(self)
+        return { self[2], self[3] }
+    end,
+    string = function(self)
+        return tconcat { 'function', self[1], self[2] }
+    end,
+}, seq(token.kw_function, parser.funcname, parser.funcbody))
 
-parser.funcbody = wrap({
-    type = n.funcbody,
+wrap(
+    {
+        type = n.for_num,
+        string = function(self)
+            local ret = { 'for', self[2], '=', self[4], ',', self[6] }
+            if self[7][1] then
+                tinsert(ret, ',', self[7][2])
+            end
+            tinsert(ret, 'do', self[9], 'end')
+            return tconcat(ret)
+        end,
+    },
+    seq(
+        token.kw_for,
+        parser.name,
+        token.assignment,
+        parser.expression,
+        token.comma,
+        parser.expression,
+        opt(seq(token.comma, parser.expression)),
+        token.kw_do,
+        parser.block,
+        token.kw_end
+    )
+)
+
+wrap({
+    type = n.stat_for_iter,
+    rewrite = function(self)
+        return { self[2], self[4], self[6] }
+    end,
+    string = function(self)
+        return tconcat { 'for', self[1], 'in', self[2], 'do', self[3], 'end' }
+    end,
+}, seq(token.kw_for, parser.namelist, token.kw_in, parser.explist, token.kw_do, parser.block, token.kw_end))
+
+wrap(
+    {
+        type = n.stat_if,
+        string = function(self)
+            local ret = { 'if', self[2], 'then', self[4] }
+            for _, x in ipairs(self[5]) do
+                tinsert(ret, 'elseif', x[2], 'then', x[4])
+            end
+            if self[6][1] then
+                tinsert(ret, 'else', self[6][2])
+            end
+            tinsert(ret, 'end')
+            return tconcat(ret)
+        end,
+    },
+    seq(
+        token.kw_if,
+        parser.expression,
+        token.kw_then,
+        parser.block,
+        zom(seq(token.kw_elseif, parser.expression, token.kw_then, parser.block)),
+        opt(seq(token.kw_else, parser.block)),
+        token.kw_end
+    )
+)
+
+wrap({
+    type = n.stat_do,
+    rewrite = function(self)
+        return { self[2] }
+    end,
+    string = function(self)
+        return tconcat { 'do', self[1], 'end' }
+    end,
+}, seq(token.kw_do, parser.block, token.kw_end))
+
+wrap({
+    type = n.stat_while,
     rewrite = function(self)
         return { self[2], self[4] }
     end,
     string = function(self)
-        local ret = { '(' }
-        if self[1][1] then
-            tinsert(ret, self[1][1])
-        end
-        tinsert(ret, ')', self[2], 'end')
-        return tconcat(ret)
+        return tconcat { 'while', self[1], 'do', self[2], 'end' }
     end,
-}, seq(token.lparen, opt(parser.parlist), token.rparen, parser.block, token.kw_end))
+}, seq(token.kw_while, parser.expression, token.kw_do, parser.block, token.kw_end))
 
-parser.stat = alt(
-    wrap({
-        type = n.stat_empty,
-        string = function()
-            return ';'
-        end,
-    }, seq(token.semicolon)),
+wrap({
+    type = n.stat_repeat,
+    rewrite = function(self)
+        return { self[2], self[4] }
+    end,
+    string = function(self)
+        return tconcat { 'repeat', self[1], 'until', self[2] }
+    end,
+}, seq(token.kw_repeat, parser.block, token.kw_until, parser.expression))
 
-    wrap({
-        type = n.stat_localvar,
-        string = function(self)
-            local ret = { 'local', self[2] }
-            if self[3][1] then
-                tinsert(ret, '=', self[3][2])
-            end
-            return tconcat(ret)
-        end,
-    }, seq(token.kw_local, parser.attnamelist, opt(seq(token.assignment, parser.explist)))),
+wrap({
+    type = n.stat_assign,
+    rewrite = function(self)
+        return { self[1], self[3] }
+    end,
+    string = function(self)
+        return tconcat { self[1], '=', self[2] }
+    end,
+}, seq(parser.varlist, token.assignment, parser.explist))
 
-    wrap(n.stat_label, parser.label),
-
-    wrap({
-        type = n.stat_break,
-        string = function()
-            return 'break'
-        end,
-    }, seq(token.kw_break)),
-
-    wrap({
-        type = n.stat_goto,
-        rewrite = function(self)
-            return { self[2] }
-        end,
-        string = function(self)
-            return tconcat { 'goto', self[1] }
-        end,
-    }, seq(token.kw_goto, parser.name)),
-
-    wrap({
-        type = n.localfunc,
-        rewrite = function(self)
-            return { self[3], self[4] }
-        end,
-        string = function(self)
-            return tconcat { 'local function', self[1], self[2] }
-        end,
-    }, seq(token.kw_local, token.kw_function, parser.name, parser.funcbody)),
-
-    wrap({
-        type = n.func,
-        rewrite = function(self)
-            return { self[2], self[3] }
-        end,
-        string = function(self)
-            return tconcat { 'function', self[1], self[2] }
-        end,
-    }, seq(token.kw_function, parser.funcname, parser.funcbody)),
-
-    wrap(
-        {
-            type = n.for_num,
-            string = function(self)
-                local ret = { 'for', self[2], '=', self[4], ',', self[6] }
-                if self[7][1] then
-                    tinsert(ret, ',', self[7][2])
-                end
-                tinsert(ret, 'do', self[9], 'end')
-                return tconcat(ret)
-            end,
-        },
-        seq(
-            token.kw_for,
-            parser.name,
-            token.assignment,
-            parser.expression,
-            token.comma,
-            parser.expression,
-            opt(seq(token.comma, parser.expression)),
-            token.kw_do,
-            parser.block,
-            token.kw_end
-        )
-    ),
-
-    wrap({
-        type = n.stat_for_iter,
-        rewrite = function(self)
-            return { self[2], self[4], self[6] }
-        end,
-        string = function(self)
-            return tconcat { 'for', self[1], 'in', self[2], 'do', self[3], 'end' }
-        end,
-    }, seq(token.kw_for, parser.namelist, token.kw_in, parser.explist, token.kw_do, parser.block, token.kw_end)),
-
-    wrap(
-        {
-            type = n.stat_if,
-            string = function(self)
-                local ret = { 'if', self[2], 'then', self[4] }
-                for _, x in ipairs(self[5]) do
-                    tinsert(ret, 'elseif', x[2], 'then', x[4])
-                end
-                if self[6][1] then
-                    tinsert(ret, 'else', self[6][2])
-                end
-                tinsert(ret, 'end')
-                return tconcat(ret)
-            end,
-        },
-        seq(
-            token.kw_if,
-            parser.expression,
-            token.kw_then,
-            parser.block,
-            zom(seq(token.kw_elseif, parser.expression, token.kw_then, parser.block)),
-            opt(seq(token.kw_else, parser.block)),
-            token.kw_end
-        )
-    ),
-
-    wrap({
-        type = n.stat_do,
-        rewrite = function(self)
-            return { self[2] }
-        end,
-        string = function(self)
-            return tconcat { 'do', self[1], 'end' }
-        end,
-    }, seq(token.kw_do, parser.block, token.kw_end)),
-
-    wrap({
-        type = n.stat_while,
-        rewrite = function(self)
-            return { self[2], self[4] }
-        end,
-        string = function(self)
-            return tconcat { 'while', self[1], 'do', self[2], 'end' }
-        end,
-    }, seq(token.kw_while, parser.expression, token.kw_do, parser.block, token.kw_end)),
-
-    wrap({
-        type = n.stat_repeat,
-        rewrite = function(self)
-            return { self[2], self[4] }
-        end,
-        string = function(self)
-            return tconcat { 'repeat', self[1], 'until', self[2] }
-        end,
-    }, seq(token.kw_repeat, parser.block, token.kw_until, parser.expression)),
-
-    wrap({
-        type = n.stat_assign,
-        rewrite = function(self)
-            return { self[1], self[3] }
-        end,
-        string = function(self)
-            return tconcat { self[1], '=', self[2] }
-        end,
-    }, seq(parser.varlist, token.assignment, parser.explist)),
-
-    function(self)
-        self:begin()
-        local ret = self:expression()
-        if ret and ret.type == n.functioncall then
-            self:commit()
-            return ret
-        end
-        self:undo()
+local expressionstatement = function(self)
+    self:begin()
+    local ret = self:expression()
+    if ret and ret.type == n.functioncall then
+        self:commit()
+        return ret
     end
-)
-
-parser.chunk = wrap(n.chunk, function(self)
-    if self:peek() then
-        local ret = self:block()
-        local peek = self.la[self.la.size()] or nil
-        if ret then
-            if peek then
-                error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
-            end
-            return ret
-        elseif peek then
-            error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
-        else
-            error('PARSE_FAILURE' .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
-        end
-    else
-        return setmetatable({}, {
-            __tostring = function()
-                return ''
-            end,
-        })
-    end
-end)
+    self:undo()
+end
+]]
 
 return parser

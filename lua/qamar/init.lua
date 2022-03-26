@@ -20,7 +20,7 @@ local function scandir(directory)
 end
 
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter'
 
 local function parse_everything()
     local starttime = os.clock()
