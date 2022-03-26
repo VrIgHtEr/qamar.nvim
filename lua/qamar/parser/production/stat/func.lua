@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -6,6 +8,9 @@ local name = require 'qamar.parser.production.funcname'
 local funcbody = require 'qamar.parser.production.funcbody'
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local kw_function = self:peek()
     if kw_function and kw_function.type == token.kw_local then
         self:begintake()

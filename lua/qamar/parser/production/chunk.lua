@@ -1,4 +1,9 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     if self:peek() then
         local parser = function()
             local ret = self:block()

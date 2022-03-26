@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -21,12 +23,15 @@ local mt = {
 }
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local v = name(self)
     if v then
         local ret = setmetatable({ v, type = n.funcname, pos = { left = v.pos.left } }, mt)
         while true do
             local t = self:peek()
-            if not t or t.type ~= token.comma then
+            if not t or t.type ~= token.dot then
                 break
             end
             self:begin()

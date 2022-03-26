@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -16,6 +18,9 @@ local mt = {
 }
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local retkw = self:peek()
     if retkw and retkw.type == token.kw_return then
         self:take()

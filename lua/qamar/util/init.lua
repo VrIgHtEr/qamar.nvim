@@ -37,7 +37,7 @@ function M.error(...)
 end
 
 function M.get_script_path(level)
-    local info = debug.getinfo(level or 1, 'S')
+    local info = debug.getinfo(1 + (level or 1), 'S')
     local script_path = info.source:match [[^@?(.*[\/])[^\/]-$]]
     return script_path
 end

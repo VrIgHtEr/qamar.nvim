@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local parselet = require 'qamar.parser.parselet'
 
 local function get_precedence(self)
@@ -12,6 +14,9 @@ local function get_precedence(self)
 end
 
 return function(self, precedence)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     precedence = precedence or 0
 
     local tok = self:peek()

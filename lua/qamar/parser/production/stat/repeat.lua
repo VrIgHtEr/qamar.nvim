@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local tconcat = require('qamar.util.table').tconcat
 
 local mt = {
@@ -12,6 +14,9 @@ local block = require 'qamar.parser.production.block'
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local tok = self:peek()
     if tok and tok.type == token.kw_repeat then
         local kw_repeat = self:begintake()

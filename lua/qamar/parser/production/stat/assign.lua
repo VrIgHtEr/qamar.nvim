@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -10,6 +12,9 @@ local mt = {
 local varlist = require 'qamar.parser.production.varlist'
 local explist = require 'qamar.parser.production.explist'
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     self:begin()
     local target = varlist(self)
     if target then

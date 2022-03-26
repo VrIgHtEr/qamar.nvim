@@ -1,22 +1,28 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 
 local mt = {
     __tostring = function(self)
-        return '::' .. self.name .. '::'
+        return '::' .. tostring(self.name) .. '::'
     end,
 }
 
+local name = require 'qamar.parser.production.name'
+
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local left = self:peek()
     if not left or left.type ~= token.doublecolon then
         return
     end
-    self:begin()
-    self:take()
+    self:begintake()
 
-    local name = self:take()
-    if not name or name.type ~= token.name then
+    local nam = name(self)
+    if not nam then
         self:undo()
         return
     end
@@ -28,5 +34,5 @@ return function(self)
     end
 
     self:commit()
-    return setmetatable { { name = name.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt }
+    return setmetatable { { name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt }
 end

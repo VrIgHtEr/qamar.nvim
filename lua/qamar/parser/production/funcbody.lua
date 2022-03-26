@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -18,18 +20,19 @@ local mt = {
 }
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local lparen = self:peek()
     if lparen and lparen.type == token.lparen then
         self:begintake()
         local pars = parlist(self)
-        local tok = self:peek()
+        local tok = self:take()
         if tok and tok.type == token.rparen then
-            self:take()
             local body = block(self)
             if body then
-                tok = self:peek()
+                tok = self:take()
                 if tok and tok.type == token.kw_end then
-                    self:take()
                     self:commit()
                     return setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
                 end

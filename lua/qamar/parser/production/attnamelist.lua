@@ -1,3 +1,5 @@
+local util = require 'qamar.util'
+local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local node = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -13,13 +15,19 @@ local mt = {
             if i > 1 then
                 tinsert(ret, ',')
             end
-            tinsert(ret, x[1], x[2])
+            tinsert(ret, x.name)
+            if x.attrib then
+                tinsert(ret, x.attrib)
+            end
         end
         return tconcat(ret)
     end,
 }
 
 return function(self)
+    if cfg.trace then
+        print(util.get_script_path())
+    end
     local n = name(self)
     if n then
         local a = attrib(self)
