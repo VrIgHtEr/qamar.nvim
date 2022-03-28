@@ -21,7 +21,7 @@ end
 
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/toolshed.nvim/lua/toolshed/util/sys'
+local idir = vim.fn.stdpath 'data' .. '/site/pack'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'

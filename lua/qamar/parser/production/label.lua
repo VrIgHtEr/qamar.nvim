@@ -33,7 +33,7 @@ return function(self)
     end
 
     self:commit()
-    local ret = setmetatable { { name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt }
+    local ret = setmetatable({ name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt)
     cfg.dtrace('EXIT: ' .. tostring(ret))
     return ret
 end
