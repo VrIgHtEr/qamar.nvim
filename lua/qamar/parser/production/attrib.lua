@@ -14,8 +14,7 @@ return function(self)
         return
     end
     cfg.itrace 'ENTER'
-    self:begin()
-    self:take()
+    self:begintake()
 
     local name = self:take()
     if not name or name.type ~= token.name then

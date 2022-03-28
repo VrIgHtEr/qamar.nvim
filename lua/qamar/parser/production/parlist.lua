@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -25,7 +24,9 @@ return function(self)
     cfg.itrace 'ENTER'
     local v = vararg(self)
     if v then
-        return setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
+        local ret = setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
+        cfg.dtrace('EXIT: ' .. tostring(ret))
+        return ret
     else
         v = namelist(self)
         if v then

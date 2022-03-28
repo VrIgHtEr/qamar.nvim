@@ -1,20 +1,18 @@
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
-local expression = require 'qamar.parser.production.expression'
 
+local mt = {
+    __tostring = function(self)
+        return self.value
+    end,
+}
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.name then
-        self:begintake()
-        local ret = expression(self)
-        if ret and ret.type == n.name then
-            self:commit()
-            cfg.dtrace('EXIT: ' .. tostring(ret))
-            return ret
-        end
-        self:undo()
+        cfg.itrace 'ENTER'
+        local ret = setmetatable({ value = tok.value, type = n.name, pos = tok.pos }, mt)
+        cfg.dtrace('EXIT: ' .. tostring(ret))
+        return ret
     end
-    cfg.dtrace 'EXIT'
 end

@@ -1,5 +1,6 @@
 local M = {}
 local util = require 'qamar.util'
+local dbg = require 'qdbg'
 
 M.expression_display_modes = { prefix = 'prefix', infix = 'infix', postfix = 'postfix' }
 M.expression_display_mode = M.expression_display_modes.infix
@@ -8,11 +9,9 @@ local file = nil
 
 function M.set_path(p)
     if file then
-        file:close()
-        file = nil
+        return
     end
-    print(p)
-    file = io.open(p, 'wb')
+    file = dbg.create_fifo(p)
 end
 
 local il = 0
@@ -27,6 +26,9 @@ end
 M.dedent = function()
     il = il - 1
     return M
+end
+function M.indentlevel()
+    return il
 end
 
 M.print = function(str)

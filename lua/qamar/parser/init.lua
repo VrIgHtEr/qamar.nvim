@@ -64,14 +64,16 @@ function parser.new(stream)
     }, MT)
 end
 
-function parser:begin()
-    cfg.trace('BEGIN:' .. self.tc, 1)
+function parser:begin(level)
+    cfg.trace('BEGIN:' .. self.tc, 1 + (level or 0))
+    cfg.indent()
     self.tc = self.tc + 1
     self.ts[self.tc] = self.t:copy()
 end
 
 function parser:undo()
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
+    cfg.dedent()
     cfg.trace('UNDO:' .. self.tc, 1)
 end
 
@@ -87,6 +89,7 @@ end
 function parser:commit()
     self.ts[self.tc], self.tc = nil, self.tc - 1
     self:normalize()
+    cfg.dedent()
     cfg.trace('COMMIT:' .. self.tc, 1)
 end
 
@@ -130,7 +133,7 @@ function parser:take(amt)
 end
 
 function parser:begintake(amt)
-    self:begin()
+    self:begin(1)
     return self:take(amt)
 end
 

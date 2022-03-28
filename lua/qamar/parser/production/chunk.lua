@@ -1,10 +1,15 @@
 local cfg = require 'qamar.config'
 return function(self)
-    cfg.reset()
     if self:peek() then
         local parser = function()
             local ret = self:block()
             local peek = self.la[self.la.size()] or nil
+            if cfg.indentlevel() ~= 0 then
+                error(
+                    '****************************************************************\n****************************************************************\n****************************************************************\n****************************************************************\n****************************************************************\n****************************************************************\n****************************************************************\n****************************************************************\nINVALID ENDING INDENT LEVEL: '
+                        .. cfg.indentlevel()
+                )
+            end
             if ret then
                 if peek then
                     error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)

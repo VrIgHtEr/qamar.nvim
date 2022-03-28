@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -20,9 +19,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local lparen = self:peek()
     if lparen and lparen.type == token.lparen then
+        cfg.itrace 'ENTER'
         self:begintake()
         local pars = parlist(self)
         local tok = self:take()
@@ -39,6 +38,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

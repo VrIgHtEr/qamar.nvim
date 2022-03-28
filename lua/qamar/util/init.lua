@@ -46,9 +46,8 @@ end
 function M.get_stack_level_string(level)
     local info = debug.getinfo(level, 'Sn')
     if info then
-        local line = { info.what }
+        local line = {}
         if info.what == 'Lua' then
-            table.insert(line, ' ')
             table.insert(line, tostring(info.name))
             table.insert(line, ':')
             table.insert(line, tostring(info.linedefined))

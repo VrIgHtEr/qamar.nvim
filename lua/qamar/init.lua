@@ -19,51 +19,55 @@ local function scandir(directory)
     return t
 end
 
+local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/hrsh7th/opt/nvim-cmp/lua/cmp/utils'
 local cfg = require 'qamar.config'
 local print = cfg.print
+local dbg = require 'qdbg'
 
 local function parse_everything()
     local starttime = os.clock()
     os.execute("rm -rf '" .. odir .. "'")
     local files = scandir(idir)
     os.execute("mkdir -p '" .. odir .. "'")
-    cfg.set_path(odir .. '/out')
-    local ofile = assert(io.open(odir .. '/err', 'wb'))
+    cfg.set_path(logpath .. '/out')
+    local ofile = assert(dbg.create_fifo(logpath .. '/err'))
 
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
-            print '-----------------------------------------------------------------------------------'
-            print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
-            local txt = util.read_file(filename)
-            coroutine.yield()
-            if txt then
-                local p = create_parser(txt)
-                local success, tree = pcall(p.chunk, p)
-                if success and tree then
-                    local ok, str = pcall(tostring, tree)
-                    if not ok then
-                        ofile:write('TOSTRING: ' .. filename .. '\n')
-                        if str ~= nil then
-                            ofile:write(tostring(str) .. '\n')
+            if filename:match '^.*/api.lua' then
+                print '-----------------------------------------------------------------------------------'
+                print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
+                local txt = util.read_file(filename)
+                coroutine.yield()
+                if txt then
+                    local p = create_parser(txt)
+                    local success, tree = pcall(p.chunk, p)
+                    if success and tree then
+                        local ok, str = pcall(tostring, tree)
+                        if not ok then
+                            ofile:write('TOSTRING: ' .. filename .. '\n')
+                            if str ~= nil then
+                                ofile:write(tostring(str) .. '\n')
+                            end
+                            ofile:flush()
+                        else
+                            counter = counter + 1
+                            local outpath = filename:gsub('^/home/', odir .. '/')
+                            outpath = vim.fn.fnamemodify(outpath, ':p')
+                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                            os.execute("mkdir -p '" .. outdir .. "'")
+                            util.write_file(outpath, str)
+                        end
+                    else
+                        ofile:write(filename .. '\n')
+                        if tree ~= nil then
+                            ofile:write(tostring(tree) .. '\n')
                         end
                         ofile:flush()
-                    else
-                        counter = counter + 1
-                        local outpath = filename:gsub('^/home/', odir .. '/')
-                        outpath = vim.fn.fnamemodify(outpath, ':p')
-                        local outdir = vim.fn.fnamemodify(outpath, ':p:h')
-                        os.execute("mkdir -p '" .. outdir .. "'")
-                        util.write_file(outpath, str)
                     end
-                else
-                    ofile:write(filename .. '\n')
-                    if tree ~= nil then
-                        ofile:write(tostring(tree) .. '\n')
-                    end
-                    ofile:flush()
                 end
             end
         end
@@ -79,7 +83,6 @@ local function parse_everything()
                 print(message)
                 ofile:write(message .. '\n')
                 ofile:flush()
-                ofile:close()
             else
                 vim.schedule(step)
             end
@@ -87,7 +90,6 @@ local function parse_everything()
             print('ERROR: ' .. tostring(parsed))
             ofile:write('ERROR: ' .. tostring(parsed) .. '\n')
             ofile:flush()
-            ofile:close()
         end
     end
     step()
