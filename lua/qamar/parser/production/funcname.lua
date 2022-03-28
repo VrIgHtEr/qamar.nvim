@@ -10,7 +10,7 @@ local mt = {
         local ret = {}
         local max = #self
         local objectaccess = self.objectaccess
-        for i, x in ipairs(ret) do
+        for i, x in ipairs(self) do
             if i > 1 then
                 tinsert(ret, i == max and objectaccess and ':' or '.')
             end
@@ -43,8 +43,7 @@ return function(self)
 
         local tok = self:peek()
         if tok and tok.type == token.colon then
-            self:begin()
-            self:take()
+            self:begintake()
             v = name(self)
             if v then
                 self:commit()
