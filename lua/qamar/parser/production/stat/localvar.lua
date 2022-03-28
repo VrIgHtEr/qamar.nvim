@@ -19,9 +19,9 @@ local attnamelist = require 'qamar.parser.production.attnamelist'
 local explist = require 'qamar.parser.production.explist'
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_local then
+        cfg.itrace 'ENTER'
         self:begintake()
         local names = attnamelist(self)
         if names then
@@ -45,6 +45,6 @@ return function(self)
             return ret
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

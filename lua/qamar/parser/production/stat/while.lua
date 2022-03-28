@@ -13,9 +13,9 @@ local mt = {
 local expression = require 'qamar.parser.production.expression'
 local block = require 'qamar.parser.production.block'
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_while then
+        cfg.itrace 'ENTER'
         local kw_while = self:begintake()
         local condition = expression(self)
         if condition then
@@ -39,6 +39,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

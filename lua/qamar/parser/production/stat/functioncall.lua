@@ -1,14 +1,13 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
-local precedence = require 'qamar.parser.precedence'
 local n = require 'qamar.parser.types'
 
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)
     cfg.itrace 'ENTER'
+    cfg.print(self)
     self:begin()
-    local ret = expression(self, precedence.literal)
+    local ret = expression(self)
     if ret and ret.type == n.functioncall then
         self:commit()
         cfg.dtrace('EXIT: ' .. tostring(ret))

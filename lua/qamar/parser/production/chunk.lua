@@ -1,6 +1,6 @@
 local cfg = require 'qamar.config'
 return function(self)
-    cfg.itrace 'ENTER'
+    cfg.reset()
     if self:peek() then
         local parser = function()
             local ret = self:block()
@@ -9,14 +9,12 @@ return function(self)
                 if peek then
                     error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
                 end
-                cfg.dtrace('EXIT: ' .. tostring(ret))
                 return ret
             elseif peek then
                 error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
             else
                 error('PARSE_FAILURE' .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
             end
-            cfg.dtrace 'EXIT'
         end
         --[[        setfenv(
             parser,

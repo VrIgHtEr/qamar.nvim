@@ -20,9 +20,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local v = expression(self)
     if v then
+        cfg.itrace 'ENTER'
         local ret = setmetatable({ v, type = n.explist, pos = { left = v.pos.left } }, mt)
         while true do
             local t = self:peek()
@@ -45,5 +45,4 @@ return function(self)
         cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
-    cfg.dtrace 'EXIT'
 end

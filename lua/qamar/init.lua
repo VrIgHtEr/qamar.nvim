@@ -10,7 +10,7 @@ end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
-    local proc = popen('find "' .. directory .. '" -maxdepth 1 -type f -name "*.lua"')
+    local proc = popen('find "' .. directory .. '" -type f -name "*.lua"')
     for filename in proc:lines() do
         i = i + 1
         t[i] = filename
@@ -20,61 +20,62 @@ local function scandir(directory)
 end
 
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/'
+local cfg = require 'qamar.config'
+local print = cfg.print
 
 local function parse_everything()
     local starttime = os.clock()
     os.execute("rm -rf '" .. odir .. "'")
     local files = scandir(idir)
     os.execute("mkdir -p '" .. odir .. "'")
+    cfg.set_path(odir .. '/out')
     local ofile = assert(io.open(odir .. '/err', 'wb'))
 
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
-            if true or filename:match '.*/test.lua$' then
-                print '-----------------------------------------------------------------------------------'
-                print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
-                local txt = util.read_file(filename)
-                coroutine.yield()
-                if txt then
-                    local p = create_parser(txt)
-                    local success, tree = pcall(p.chunk, p)
-                    if success and tree then
-                        local ok, str = pcall(tostring, tree)
-                        if not ok then
-                            ofile:write('TOSTRING: ' .. filename .. '\n')
-                            if str ~= nil then
-                                ofile:write(tostring(str) .. '\n')
-                            end
-                            ofile:flush()
-                        else
-                            counter = counter + 1
-                            local outpath = filename:gsub('^/home/', odir .. '/')
-                            outpath = vim.fn.fnamemodify(outpath, ':p')
-                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
-                            os.execute("mkdir -p '" .. outdir .. "'")
-                            util.write_file(outpath, str)
-                        end
-                    else
-                        ofile:write(filename .. '\n')
-                        if tree ~= nil then
-                            ofile:write(tostring(tree) .. '\n')
+            print '-----------------------------------------------------------------------------------'
+            print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
+            local txt = util.read_file(filename)
+            coroutine.yield()
+            if txt then
+                local p = create_parser(txt)
+                local success, tree = pcall(p.chunk, p)
+                if success and tree then
+                    local ok, str = pcall(tostring, tree)
+                    if not ok then
+                        ofile:write('TOSTRING: ' .. filename .. '\n')
+                        if str ~= nil then
+                            ofile:write(tostring(str) .. '\n')
                         end
                         ofile:flush()
+                    else
+                        counter = counter + 1
+                        local outpath = filename:gsub('^/home/', odir .. '/')
+                        outpath = vim.fn.fnamemodify(outpath, ':p')
+                        local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                        os.execute("mkdir -p '" .. outdir .. "'")
+                        util.write_file(outpath, str)
                     end
+                else
+                    ofile:write(filename .. '\n')
+                    if tree ~= nil then
+                        ofile:write(tostring(tree) .. '\n')
+                    end
+                    ofile:flush()
                 end
             end
         end
-        return counter
+        return counter, #files
     end)
     local function step()
-        local success, parsed = coroutine.resume(co)
+        local success, parsed, total = coroutine.resume(co)
         if success then
             local stat = coroutine.status(co)
             if stat == 'dead' then
                 local time = os.clock() - starttime
-                local message = 'PARSED ' .. tostring(parsed) .. ' FILES IN ' .. tostring(time) .. ' seconds'
+                local message = 'PARSED ' .. tostring(parsed) .. ' OF ' .. total .. ' FILES IN ' .. tostring(time) .. ' seconds'
                 print(message)
                 ofile:write(message .. '\n')
                 ofile:flush()

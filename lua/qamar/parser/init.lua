@@ -1,5 +1,6 @@
 local cfg = require 'qamar.config'
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
+local tokentypes = require 'qamar.tokenizer.types'
 
 local parser = {}
 
@@ -11,6 +12,10 @@ local MT = {
         for i = 1, self.la.size() do
             local line = { cfg.space() .. ((i - 1 == self.t.index) and '==> ' or '    ') }
             local x = self.la[i] or 'EOF'
+            if x.type then
+                table.insert(line, tokentypes[x.type])
+                table.insert(line, ' ')
+            end
             table.insert(line, vim.inspect(x.value))
             table.insert(ret, table.concat(line))
         end
@@ -61,7 +66,6 @@ end
 
 function parser:begin()
     cfg.trace('BEGIN:' .. self.tc, 1)
-    --    print(self)
     self.tc = self.tc + 1
     self.ts[self.tc] = self.t:copy()
 end
@@ -69,7 +73,6 @@ end
 function parser:undo()
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
     cfg.trace('UNDO:' .. self.tc, 1)
-    --    print(self)
 end
 
 function parser:normalize()
@@ -85,7 +88,6 @@ function parser:commit()
     self.ts[self.tc], self.tc = nil, self.tc - 1
     self:normalize()
     cfg.trace('COMMIT:' .. self.tc, 1)
-    --    print(self)
 end
 
 function parser:fill(amt)

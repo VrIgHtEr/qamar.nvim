@@ -13,9 +13,9 @@ local block = require 'qamar.parser.production.block'
 local expression = require 'qamar.parser.production.expression'
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_repeat then
+        cfg.itrace 'ENTER'
         local kw_repeat = self:begintake()
 
         local body = block(self)
@@ -37,6 +37,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

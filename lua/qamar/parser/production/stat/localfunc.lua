@@ -13,9 +13,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local kw_local = self:peek()
     if kw_local and kw_local.type == token.kw_local then
+        cfg.itrace 'ENTER'
         self:begintake()
         local kw_function = self:take()
         if kw_function and kw_function.type == token.kw_function then
@@ -34,6 +34,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

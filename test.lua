@@ -1,7 +1,7 @@
 vim.o.termguicolors = true
 return {
     config = function()
-        table.insert(package.loaders, 2, require 'qamar.loader')
+        --        table.insert(package.loaders, 2, require 'qamar.loader')
 
         nnoremap(
             '<leader>cr',

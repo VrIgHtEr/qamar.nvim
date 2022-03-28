@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -12,12 +11,11 @@ local mt = {
 local name = require 'qamar.parser.production.name'
 
 return function(self)
-    cfg.itrace 'ENTER'
     local left = self:peek()
     if not left or left.type ~= token.doublecolon then
-        cfg.dtrace 'EXIT'
         return
     end
+    cfg.itrace 'ENTER'
     self:begintake()
 
     local nam = name(self)

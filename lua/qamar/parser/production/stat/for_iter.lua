@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -15,9 +14,9 @@ local explist = require 'qamar.parser.production.explist'
 local block = require 'qamar.parser.production.block'
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_for then
+        cfg.itrace 'ENTER'
         local kw_for = self:begintake()
         local names = namelist(self)
         if names then
@@ -48,6 +47,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

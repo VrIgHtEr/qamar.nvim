@@ -25,11 +25,9 @@ local mt = {
 }
 
 return function(self)
-    if cfg.trace then
-        print(util.get_script_path())
-    end
     local n = name(self)
     if n then
+        cfg.itrace 'ENTER'
         local a = attrib(self)
         local ret = setmetatable({
             {
@@ -66,6 +64,7 @@ return function(self)
 
         local last = ret[#ret]
         ret.pos.right = (last.attrib and last.attrib or last.name).pos.right
+        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
 end

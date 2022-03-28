@@ -1,4 +1,3 @@
-local util = require 'qamar.util'
 local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -21,9 +20,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local kw_for = self:peek()
     if kw_for and kw_for.type == token.kw_for then
+        cfg.itrace 'ENTER'
         self:begintake()
         local varname = name(self)
         if varname then
@@ -71,6 +70,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

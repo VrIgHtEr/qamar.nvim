@@ -12,9 +12,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local kw_goto = self:peek()
     if kw_goto and kw_goto.type == token.kw_goto then
+        cfg.itrace 'ENTER'
         self:begintake()
         local label = name(self)
         if label then
@@ -24,6 +24,6 @@ return function(self)
             return ret
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

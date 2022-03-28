@@ -12,12 +12,12 @@ local mt = {
 local varlist = require 'qamar.parser.production.varlist'
 local explist = require 'qamar.parser.production.explist'
 return function(self)
-    cfg.itrace 'ENTER'
-    self:begin()
     local target = varlist(self)
     if target then
         local tok = self:take()
         if tok and tok.type == token.assignment then
+            cfg.itrace 'ENTER'
+            self:begin()
             local value = explist(self)
             if value then
                 self:commit()
@@ -30,8 +30,8 @@ return function(self)
                 cfg.dtrace('EXIT: ' .. tostring(ret))
                 return ret
             end
+            self:undo()
+            cfg.dtrace 'EXIT'
         end
     end
-    self:undo()
-    cfg.dtrace 'EXIT'
 end

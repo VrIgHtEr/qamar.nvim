@@ -21,9 +21,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_if then
+        cfg.itrace 'ENTER'
         local kw_if = self:begintake()
         local condition = expression(self)
         if condition then
@@ -89,6 +89,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end

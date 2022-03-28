@@ -9,13 +9,12 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.semicolon then
+        cfg.itrace 'ENTER'
         self:take()
         local ret = setmetatable({ type = n.stat_empty, pos = tok.pos }, mt)
         cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
-    cfg.dtrace 'EXIT'
 end

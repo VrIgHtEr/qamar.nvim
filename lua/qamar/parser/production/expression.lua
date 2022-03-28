@@ -14,6 +14,8 @@ local function get_precedence(self)
     return 0
 end
 
+local types = require 'qamar.parser.types'
+
 return function(self, precedence)
     precedence = precedence or 0
     cfg.itrace('ENTER ' .. tostring(precedence))
@@ -40,13 +42,13 @@ return function(self, precedence)
         tok = self:peek()
         if not tok then
             self:commit()
-            cfg.dtrace('EXIT 4: ' .. tostring(left))
+            cfg.dtrace('EXIT 4:' .. types[left.type] .. ': ' .. tostring(left))
             return left
         end
         local infix = parselet.infix[tok.type]
         if not infix then
             self:commit()
-            cfg.dtrace('EXIT 5: ' .. tostring(left))
+            cfg.dtrace('EXIT 5:' .. types[left.type] .. ': ' .. tostring(left))
             return left
         end
         self:begin()
@@ -55,7 +57,7 @@ return function(self, precedence)
         if not right then
             self:undo()
             self:undo()
-            cfg.dtrace('EXIT 6: ' .. tostring(left))
+            cfg.dtrace('EXIT 6:' .. types[left.type] .. ': ' .. tostring(left))
             return left
         else
             self:commit()
@@ -63,6 +65,6 @@ return function(self, precedence)
         end
     end
     self:commit()
-    cfg.dtrace('EXIT 7: ' .. tostring(left))
+    cfg.dtrace('EXIT 7:' .. types[left.type] .. ': ' .. tostring(left))
     return left
 end

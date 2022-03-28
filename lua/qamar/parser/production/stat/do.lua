@@ -12,9 +12,9 @@ local mt = {
 local block = require 'qamar.parser.production.block'
 
 return function(self)
-    cfg.itrace 'ENTER'
     local tok = self:peek()
     if tok and tok.type == token.kw_do then
+        cfg.itrace 'ENTER'
         local kw_do = self:begintake()
         local body = block(self)
         if body then
@@ -31,6 +31,6 @@ return function(self)
             end
         end
         self:undo()
+        cfg.dtrace 'EXIT'
     end
-    cfg.dtrace 'EXIT'
 end
