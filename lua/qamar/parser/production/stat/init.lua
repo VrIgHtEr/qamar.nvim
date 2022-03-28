@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local empty = require 'qamar.parser.production.stat.empty'
 local localvar = require 'qamar.parser.production.stat.localvar'
 local label = require 'qamar.parser.production.label'
@@ -16,8 +15,7 @@ local stat_do = require 'qamar.parser.production.stat.do'
 local stat_if = require 'qamar.parser.production.stat.if'
 
 return function(self)
-    cfg.itrace 'ENTER'
-    local ret = localvar(self)
+    return localvar(self)
         or localfunc(self)
         or func(self)
         or stat_if(self)
@@ -32,6 +30,4 @@ return function(self)
         or stat_goto(self)
         or assign(self)
         or functioncall(self)
-    cfg.dtrace('EXIT: ' .. tostring(ret))
-    return ret
 end

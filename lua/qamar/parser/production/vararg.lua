@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 
@@ -11,9 +10,6 @@ return function(self)
     local tok = self:peek()
     if tok and tok.type == token.tripledot then
         self:take()
-        cfg.itrace 'ENTER'
-        local ret = setmetatable({ type = n.vararg, pos = tok.pos }, mt)
-        cfg.dtrace('EXIT: ' .. tostring(ret))
-        return ret
+        return setmetatable({ type = n.vararg, pos = tok.pos }, mt)
     end
 end

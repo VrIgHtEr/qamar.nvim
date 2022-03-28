@@ -1,5 +1,3 @@
-local util = require 'qamar.util'
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -18,7 +16,6 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local retkw = self:peek()
     if retkw and retkw.type == token.kw_return then
         self:take()
@@ -30,8 +27,6 @@ return function(self)
         else
             ret.pos.right = ret.explist and ret.explist.pos.right or retkw.pos.right
         end
-        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
-    cfg.dtrace 'EXIT'
 end

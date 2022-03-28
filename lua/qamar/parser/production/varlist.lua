@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -22,7 +21,6 @@ local mt = {
 return function(self)
     local v = var(self)
     if v then
-        cfg.itrace 'ENTER'
         local ret = setmetatable({ v, type = n.varlist, pos = { left = v.pos.left } }, mt)
         while true do
             local t = self:peek()
@@ -42,7 +40,6 @@ return function(self)
         end
 
         ret.pos.right = ret[#ret].pos.right
-        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
 end

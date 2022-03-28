@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -21,12 +20,9 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local v = vararg(self)
     if v then
-        local ret = setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
-        cfg.dtrace('EXIT: ' .. tostring(ret))
-        return ret
+        return setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
     else
         v = namelist(self)
         if v then
@@ -46,9 +42,7 @@ return function(self)
                 end
             end
             ret.pos.right = ret[#ret].pos.right
-            cfg.dtrace('EXIT: ' .. tostring(ret))
             return ret
         end
     end
-    cfg.dtrace 'EXIT'
 end

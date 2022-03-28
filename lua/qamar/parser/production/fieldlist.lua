@@ -1,5 +1,3 @@
-local util = require 'qamar.util'
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -19,7 +17,6 @@ local mt = {
 }
 
 return function(self)
-    cfg.itrace 'ENTER'
     local f = field(self)
     if f then
         local pos = { left = f.pos.left, right = f.pos.right }
@@ -44,8 +41,6 @@ return function(self)
         if tok and (tok.type == token.comma or tok.type == token.semicolon) then
             self:take()
         end
-        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
-    cfg.dtrace 'EXIT'
 end

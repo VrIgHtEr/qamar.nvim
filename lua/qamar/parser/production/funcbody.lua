@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -21,7 +20,6 @@ local mt = {
 return function(self)
     local lparen = self:peek()
     if lparen and lparen.type == token.lparen then
-        cfg.itrace 'ENTER'
         self:begintake()
         local pars = parlist(self)
         local tok = self:take()
@@ -31,13 +29,10 @@ return function(self)
                 tok = self:take()
                 if tok and tok.type == token.kw_end then
                     self:commit()
-                    local ret = setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
-                    cfg.dtrace('EXIT: ' .. tostring(ret))
-                    return ret
+                    return setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
                 end
             end
         end
         self:undo()
-        cfg.dtrace 'EXIT'
     end
 end

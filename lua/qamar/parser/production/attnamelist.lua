@@ -1,5 +1,3 @@
-local util = require 'qamar.util'
-local cfg = require 'qamar.config'
 local token = require 'qamar.tokenizer.types'
 local node = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -27,7 +25,6 @@ local mt = {
 return function(self)
     local n = name(self)
     if n then
-        cfg.itrace 'ENTER'
         local a = attrib(self)
         local ret = setmetatable({
             {
@@ -64,7 +61,6 @@ return function(self)
 
         local last = ret[#ret]
         ret.pos.right = (last.attrib and last.attrib or last.name).pos.right
-        cfg.dtrace('EXIT: ' .. tostring(ret))
         return ret
     end
 end

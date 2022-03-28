@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
@@ -9,7 +8,6 @@ local MT = {
 }
 
 return function(self, parser, left, tok)
-    cfg.itrace 'ENTER'
     if
         left.type == node.name
         or left.type == node.table_nameaccess
@@ -29,9 +27,7 @@ return function(self, parser, left, tok)
                 right_associative = self.right_associative,
                 pos = { left = l, right = tok.pos.right },
             }, MT)
-            cfg.dtrace('EXIT: ' .. tostring(ret))
             return ret
         end
     end
-    cfg.dtrace 'EXIT'
 end
