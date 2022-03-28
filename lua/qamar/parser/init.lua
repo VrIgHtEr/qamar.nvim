@@ -9,7 +9,7 @@ local MT = {
     __tostring = function(self)
         local ret = {}
         for i = 1, self.la.size() do
-            local line = { cfg.space() .. ((i - 1 == self.t.index) and '==> ' or '    ') }
+            local line = { ((i - 1 == self.t.index) and '==> ' or '    ') }
             local x = self.la[i] or 'EOF'
             if x.type then
                 table.insert(line, tokentypes[x.type])
@@ -19,7 +19,6 @@ local MT = {
             table.insert(ret, table.concat(line))
         end
         if self.t.index == self.la.size() then
-            table.insert(ret, cfg.space())
             table.insert(ret, '==>')
         end
         return table.concat(ret, '\n')
@@ -63,7 +62,7 @@ function parser.new(stream)
     }, MT)
 end
 
-function parser:begin(level)
+function parser:begin()
     self.tc = self.tc + 1
     self.ts[self.tc] = self.t:copy()
 end
@@ -126,7 +125,7 @@ function parser:take(amt)
 end
 
 function parser:begintake(amt)
-    self:begin(1)
+    self:begin()
     return self:take(amt)
 end
 

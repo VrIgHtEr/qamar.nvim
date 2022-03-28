@@ -4,7 +4,7 @@ local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
 local name = require 'qamar.parser.production.name'
-local attrib = require 'qamar.parser.production.attrib'
+local attribute = require 'qamar.parser.production.attrib'
 
 local mt = {
     __tostring = function(self)
@@ -25,7 +25,7 @@ local mt = {
 return function(self)
     local n = name(self)
     if n then
-        local a = attrib(self)
+        local a = attribute(self)
         local ret = setmetatable({
             {
                 name = n,
@@ -45,7 +45,7 @@ return function(self)
             self:take()
             n = name(self)
             if n then
-                a = attrib(self)
+                a = attribute(self)
                 self:commit()
                 table.insert(ret, {
                     name = n,

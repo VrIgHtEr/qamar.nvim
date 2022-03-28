@@ -27,5 +27,5 @@ return function(self)
     end
 
     self:commit()
-    return setmetatable { { name = name.value, type = n.attrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt }
+    return setmetatable({ name = name.value, type = n.attrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt)
 end
