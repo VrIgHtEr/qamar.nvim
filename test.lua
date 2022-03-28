@@ -1,13 +1,45 @@
-vim.o.termguicolors = true
-return {
-    config = function()
-        --        table.insert(package.loaders, 2, require 'qamar.loader')
+local utf8 = require('qamar.util.string').utf8
+local parser = require 'qamar.parser'
+local char_stream = require 'qamar.tokenizer.char_stream'
 
-        nnoremap(
-            '<leader>cr',
-            ":mes clear<cr>:lua local to_unload = {} for k in pairs(package.loaded) do if k == 'qamar' or (#k >= 6 and k:sub(1, 6) == 'qamar.') then table.insert(to_unload, k) end end for _, k in ipairs(to_unload) do package.loaded[k] = nil end require'qamar'.run()<cr>",
-            'silent',
-            'test run qamar'
-        )
-    end,
-}
+local function create_parser(str)
+    return parser.new(char_stream.new(utf8(str)))
+end
+
+local function get_runtime_paths()
+    local delimiter = ','
+    local ret = {}
+    for path in vim.o.runtimepath:gmatch('([^,]*)' .. delimiter) do
+        table.insert(ret, path)
+    end
+    return ret
+end
+
+return function(modulename)
+    modulename = string.gsub(modulename, '%.', '/')
+    for _, runtimepath in ipairs(get_runtime_paths()) do
+        local path = runtimepath .. '/lua/' .. modulename
+        local path2 = runtimepath .. '/lua/' .. modulename .. '/init.qamar'
+        path = path .. '.qamar'
+        local file = io.open(path, 'rb')
+        if not file then
+            path = path2
+            file = io.open(path, 'rb')
+        end
+        if file then
+            local str = file:read '*a'
+            file:close()
+            local chunk = create_parser(str):chunk()
+            if chunk then
+                local chunkstr = tostring(chunk)
+                if chunkstr then
+                    local loaded = load(chunkstr, path)
+                    if loaded then
+                        return loaded
+                    end
+                end
+            end
+        end
+    end
+    return ''
+end

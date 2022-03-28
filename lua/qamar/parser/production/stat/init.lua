@@ -17,7 +17,6 @@ local stat_if = require 'qamar.parser.production.stat.if'
 
 return function(self)
     cfg.itrace 'ENTER'
-    cfg.print(self)
     local ret = localvar(self)
         or localfunc(self)
         or func(self)

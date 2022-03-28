@@ -10,6 +10,7 @@ local mt = {
 return function(self)
     local tok = self:peek()
     if tok and tok.type == token.name then
+        self:take()
         cfg.itrace 'ENTER'
         local ret = setmetatable({ value = tok.value, type = n.name, pos = tok.pos }, mt)
         cfg.dtrace('EXIT: ' .. tostring(ret))

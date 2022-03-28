@@ -73,7 +73,7 @@ return function(self)
                         end
                     end
 
-                    tok = self:peek()
+                    tok = self:take()
                     if tok and tok.type == token.kw_end then
                         self:commit()
                         local ret = setmetatable({

@@ -22,6 +22,7 @@ end
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 local idir = vim.fn.stdpath 'data' .. '/site/pack/hrsh7th/opt/nvim-cmp/lua/cmp/utils'
+idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'
@@ -33,11 +34,14 @@ local function parse_everything()
     os.execute("mkdir -p '" .. odir .. "'")
     cfg.set_path(logpath .. '/out')
     local ofile = assert(dbg.create_fifo(logpath .. '/err'))
+    ofile:write '\n'
+    ofile:flush()
+    cfg.print '\n'
 
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
-            if filename:match '^.*/api.lua' then
+            if filename:match '^.*/test.lua' then
                 print '-----------------------------------------------------------------------------------'
                 print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                 local txt = util.read_file(filename)

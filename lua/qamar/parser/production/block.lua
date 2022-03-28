@@ -34,6 +34,6 @@ return function(self)
         ret.pos.left = ret[1].pos.left
         ret.pos.right = ret[#ret].pos.right
     end
-    cfg.dtrace('EXIT ' .. tostring(ret))
+    cfg.dtrace('EXIT: ' .. tostring(ret))
     return ret
 end
