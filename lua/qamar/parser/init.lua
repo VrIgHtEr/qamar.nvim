@@ -1,4 +1,3 @@
-local cfg = require 'qamar.config'
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
 
@@ -65,16 +64,12 @@ function parser.new(stream)
 end
 
 function parser:begin(level)
-    cfg.trace('BEGIN:' .. self.tc, 1 + (level or 0))
-    cfg.indent()
     self.tc = self.tc + 1
     self.ts[self.tc] = self.t:copy()
 end
 
 function parser:undo()
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
-    cfg.dedent()
-    cfg.trace('UNDO:' .. self.tc, 1)
 end
 
 function parser:normalize()
@@ -89,8 +84,6 @@ end
 function parser:commit()
     self.ts[self.tc], self.tc = nil, self.tc - 1
     self:normalize()
-    cfg.dedent()
-    cfg.trace('COMMIT:' .. self.tc, 1)
 end
 
 function parser:fill(amt)
