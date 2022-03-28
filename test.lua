@@ -1,45 +1,19 @@
-local utf8 = require('qamar.util.string').utf8
-local parser = require 'qamar.parser'
-local char_stream = require 'qamar.tokenizer.char_stream'
+local M = {}
 
-local function create_parser(str)
-    return parser.new(char_stream.new(utf8(str)))
-end
+M.is_linux = 0
+M.is_macos = 0
+M.is_windows = 0
 
-local function get_runtime_paths()
-    local delimiter = ','
-    local ret = {}
-    for path in vim.o.runtimepath:gmatch('([^,]*)' .. delimiter) do
-        table.insert(ret, path)
-    end
-    return ret
+if vim.fn.has 'mac' == 1 then
+    M.is_macos = 1
+    M.system_name = 'macos'
+elseif vim.fn.has 'unix' == 1 then
+    M.is_linux = 1
+    M.system_name = 'linux'
+elseif vim.fn.has 'win32' == 1 then
+    M.is_windows = 1
+    M.system_name = 'windows'
+else
+    M.system_name = 'unknown'
 end
-
-return function(modulename)
-    modulename = string.gsub(modulename, '%.', '/')
-    for _, runtimepath in ipairs(get_runtime_paths()) do
-        local path = runtimepath .. '/lua/' .. modulename
-        local path2 = runtimepath .. '/lua/' .. modulename .. '/init.qamar'
-        path = path .. '.qamar'
-        local file = io.open(path, 'rb')
-        if not file then
-            path = path2
-            file = io.open(path, 'rb')
-        end
-        if file then
-            local str = file:read '*a'
-            file:close()
-            local chunk = create_parser(str):chunk()
-            if chunk then
-                local chunkstr = tostring(chunk)
-                if chunkstr then
-                    local loaded = load(chunkstr, path)
-                    if loaded then
-                        return loaded
-                    end
-                end
-            end
-        end
-    end
-    return ''
-end
+return M

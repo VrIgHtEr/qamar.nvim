@@ -38,7 +38,7 @@ return function(self)
                             break
                         end
                         self:begintake()
-                        condition = expression()
+                        condition = expression(self)
                         if condition then
                             tok = self:take()
                             if tok and tok.type == token.kw_then then

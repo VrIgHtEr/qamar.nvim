@@ -1,5 +1,6 @@
 local cfg = require 'qamar.config'
 return function(self)
+    cfg.reset()
     if self:peek() then
         local parser = function()
             local ret = self:block()

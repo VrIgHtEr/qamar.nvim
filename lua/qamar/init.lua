@@ -21,8 +21,7 @@ end
 
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/hrsh7th/opt/nvim-cmp/lua/cmp/utils'
-idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
+local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/toolshed.nvim/lua/toolshed/util/sys'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'
@@ -41,7 +40,7 @@ local function parse_everything()
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
-            if filename:match '^.*/test.lua' then
+            if true or filename:match '^.*/test.lua' then
                 print '-----------------------------------------------------------------------------------'
                 print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                 local txt = util.read_file(filename)
