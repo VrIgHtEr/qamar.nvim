@@ -69,9 +69,12 @@ local function parse_everything()
                             print(vim.inspect(tree, {
                                 process = function(item, path)
                                     local x = path[#path]
-                                    if x ~= 'pos' and x ~= 'precedence' and x ~= 'right_associative' and tostring(x) ~= 'inspect.METATABLE' then
+                                    if x ~= 'precedence' and x ~= 'right_associative' and tostring(x) ~= 'inspect.METATABLE' then
                                         if x == 'type' then
                                             return types[item] or item
+                                        end
+                                        if x == 'pos' then
+                                            return item.left.row .. ':' .. item.left.col .. ' - ' .. item.right.row .. ':' .. item.right.col
                                         end
                                         return item
                                     end
