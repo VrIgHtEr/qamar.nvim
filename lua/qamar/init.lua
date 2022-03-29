@@ -38,6 +38,8 @@ local function parse_everything()
     ofile:flush()
     cfg.print '\n'
 
+    local types = require 'qamar.parser.types'
+
     local co = coroutine.create(function()
         local counter = 0
         for _, filename in ipairs(files) do
@@ -64,6 +66,17 @@ local function parse_everything()
                             local outdir = vim.fn.fnamemodify(outpath, ':p:h')
                             os.execute("mkdir -p '" .. outdir .. "'")
                             util.write_file(outpath, str)
+                            print(vim.inspect(tree, {
+                                process = function(item, path)
+                                    local x = path[#path]
+                                    if x ~= 'pos' and x ~= 'precedence' and x ~= 'right_associative' and tostring(x) ~= 'inspect.METATABLE' then
+                                        if x == 'type' then
+                                            return types[item] or item
+                                        end
+                                        return item
+                                    end
+                                end,
+                            }))
                         end
                     else
                         ofile:write(filename .. '\n')
