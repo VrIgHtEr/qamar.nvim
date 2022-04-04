@@ -41,6 +41,7 @@ local function parse_everything()
     local types = require 'qamar.parser.types'
 
     local co = coroutine.create(function()
+        dbg.stats = {}
         local counter = 0
         for _, filename in ipairs(files) do
             if true or filename:match '^.*/test.lua' then
@@ -92,6 +93,24 @@ local function parse_everything()
                         ofile:flush()
                     end
                 end
+            end
+        end
+
+        local total = 0
+        for _, v in pairs(dbg.stats) do
+            total = total + v
+        end
+        if total > 0 then
+            local stats = {}
+            for k, v in pairs(dbg.stats) do
+                table.insert(stats, { name = k, frequency = v / total })
+            end
+            table.sort(stats, function(a, b)
+                return a.frequency > b.frequency
+            end)
+            print ''
+            for _, x in ipairs(stats) do
+                print(x.name .. ': ' .. (x.frequency * 100) .. '%')
             end
         end
         return counter, #files

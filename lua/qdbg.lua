@@ -15,4 +15,6 @@ function M.create_fifo(path)
     end
 end
 
+M.stats = {}
+
 return M
