@@ -22,6 +22,7 @@ return function(self)
     local v = name(self)
     if v then
         local ret = setmetatable({ v, type = n.namelist, pos = { left = v.pos.left } }, mt)
+        local idx = 0
         while true do
             local t = self:peek()
             if not t or t.type ~= token.comma then
@@ -32,7 +33,8 @@ return function(self)
             v = name(self)
             if v then
                 self:commit()
-                table.insert(ret, v)
+                idx = idx + 1
+                ret[idx] = v
             else
                 self:undo()
                 break

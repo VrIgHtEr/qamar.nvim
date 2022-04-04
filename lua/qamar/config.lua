@@ -42,8 +42,8 @@ end
 
 M.space = function()
     local ret = {}
-    for _ = 0, il - 1 do
-        table.insert(ret, '  ')
+    for i = 1, il do
+        ret[i] = '  '
     end
     return table.concat(ret)
 end

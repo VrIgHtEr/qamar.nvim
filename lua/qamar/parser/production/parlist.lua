@@ -27,6 +27,7 @@ return function(self)
         v = namelist(self)
         if v then
             local ret = setmetatable({ type = n.parlist, pos = { left = v.pos.left } }, mt)
+            local idx = 0
             for i, x in ipairs(v) do
                 ret[i] = x
             end
@@ -36,7 +37,8 @@ return function(self)
                 v = vararg(self)
                 if v then
                     self:commit()
-                    table.insert(ret, v)
+                    idx = idx + 1
+                    ret[idx] = v
                 else
                     self:undo()
                 end

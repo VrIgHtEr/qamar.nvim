@@ -36,6 +36,7 @@ return function(self)
             type = node.attnamelist,
             pos = { left = n.pos.left },
         }, mt)
+        local idx = 0
         while true do
             local t = self:peek()
             if not t or t.type ~= token.comma then
@@ -47,12 +48,13 @@ return function(self)
             if n then
                 a = attribute(self)
                 self:commit()
-                table.insert(ret, {
+                idx = idx + 1
+                ret[idx] = {
                     name = n,
                     attrib = a,
                     type = node.attname,
                     pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
-                })
+                }
             else
                 self:undo()
                 break

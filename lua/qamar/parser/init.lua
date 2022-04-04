@@ -8,18 +8,25 @@ local MT = {
     __index = parser,
     __tostring = function(self)
         local ret = {}
+        local idx = 0
         for i = 1, self.la.size() do
             local line = { ((i - 1 == self.t.index) and '==> ' or '    ') }
+            local index = 1
             local x = self.la[i] or 'EOF'
             if x.type then
-                table.insert(line, tokentypes[x.type])
-                table.insert(line, ' ')
+                index = index + 1
+                line[index] = tokentypes[x.type]
+                index = index + 1
+                line[index] = ' '
             end
-            table.insert(line, vim.inspect(x.value))
-            table.insert(ret, table.concat(line))
+            index = index + 1
+            line[index] = vim.inspect(x.value)
+            idx = idx + 1
+            ret[idx] = table.concat(line)
         end
         if self.t.index == self.la.size() then
-            table.insert(ret, '==>')
+            idx = idx + 1
+            ret[idx] = '==>'
         end
         return table.concat(ret, '\n')
     end,

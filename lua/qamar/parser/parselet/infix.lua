@@ -30,22 +30,30 @@ local MT = {
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = {}
+            local idx = 0
             local paren = self.left.precedence < self.precedence or self.left.precedence == self.precedence and self.right_associative
             if paren then
-                table.insert(ret, '(')
+                idx = idx + 1
+                ret[idx] = '('
             end
-            table.insert(ret, self.left)
+            idx = idx + 1
+            ret[idx] = self.left
             if paren then
-                table.insert(ret, ')')
+                idx = idx + 1
+                ret[idx] = ')'
             end
-            table.insert(ret, node[self.type])
+            idx = idx + 1
+            ret[idx] = node[self.type]
             paren = self.right.precedence < self.precedence or self.right.precedence == self.precedence and not self.right_associative
             if paren then
-                table.insert(ret, '(')
+                idx = idx + 1
+                ret[idx] = '('
             end
-            table.insert(ret, self.right)
+            idx = idx + 1
+            ret[idx] = self.right
             if paren then
-                table.insert(ret, ')')
+                idx = idx + 1
+                ret[idx] = ')'
             end
             return tconcat(ret)
         elseif config.expression_display_mode == config.expression_display_modes.prefix then

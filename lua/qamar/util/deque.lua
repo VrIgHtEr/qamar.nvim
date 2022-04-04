@@ -46,8 +46,10 @@ return function()
 
     local function grow()
         local newbuf = {}
+        local i = 0
         for x in iterator() do
-            table.insert(newbuf, x)
+            i = i + 1
+            newbuf[i] = x
         end
         head = size()
         buf = newbuf

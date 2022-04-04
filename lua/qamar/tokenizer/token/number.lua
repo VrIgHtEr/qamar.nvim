@@ -23,9 +23,11 @@ return function(self)
     local pos = self:pos()
     local val = hex_start_parser(self)
     local ret = {}
+    local idx = 0
     local digitparser, exponentparser
     if val then
-        table.insert(ret, val:lower())
+        idx = idx + 1
+        ret[idx] = val:lower()
         digitparser, exponentparser = hex_digit_parser, hex_exponent_parser
     else
         digitparser, exponentparser = s.NUMERIC, decimal_exponent_parser
@@ -36,33 +38,38 @@ return function(self)
         return fail()
     end
     while val ~= nil do
-        table.insert(ret, val:lower())
+        idx = idx + 1
+        ret[idx] = val:lower()
         val = digitparser(self)
     end
 
     val = self:try_consume_string '.'
     if val then
-        table.insert(ret, val)
+        idx = idx + 1
+        ret[idx] = val
         val = digitparser(self)
         if not val then
             return fail()
         end
         while val ~= nil do
-            table.insert(ret, val:lower())
+            idx = idx + 1
+            ret[idx] = val:lower()
             val = digitparser(self)
         end
     end
 
     val = exponentparser(self)
     if val then
-        table.insert(ret, val)
+        idx = idx + 1
+        ret[idx] = val
         local sign = sign_parser(self)
         val = self:numeric()
         if sign and not val then
             return fail()
         end
         while val ~= nil do
-            table.insert(ret, val:lower())
+            idx = idx + 1
+            ret[idx] = val:lower()
             val = digitparser(self)
         end
     end

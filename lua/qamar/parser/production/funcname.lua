@@ -24,6 +24,7 @@ return function(self)
     local v = name(self)
     if v then
         local ret = setmetatable({ v, type = n.funcname, pos = { left = v.pos.left } }, mt)
+        local idx = 0
         while true do
             local t = self:peek()
             if not t or t.type ~= token.dot then
@@ -34,7 +35,8 @@ return function(self)
             v = name(self)
             if v then
                 self:commit()
-                table.insert(ret, v)
+                idx = idx + 1
+                ret[idx] = v
             else
                 self:undo()
                 break
@@ -47,7 +49,8 @@ return function(self)
             v = name(self)
             if v then
                 self:commit()
-                table.insert(ret, v)
+                idx = idx + 1
+                ret[idx] = v
                 ret.objectaccess = true
             else
                 self:undo()

@@ -42,10 +42,12 @@ function string:codepoints()
         end
         assert(c >= 194 and c <= 244, 'invalid byte in utf-8 sequence: ' .. tostring(c))
         local ret = { c }
+        local idx = 1
         c = nxt()
         assert(c, 'unexpected eof in utf-8 string')
         assert(c >= 128 and c <= 191, 'expected multibyte sequence: ' .. tostring(c))
-        table.insert(ret, c)
+        idx = idx + 1
+        ret[idx] = c
         local count = 2
         while true do
             cache = nxt()
@@ -56,7 +58,8 @@ function string:codepoints()
             if count > 4 then
                 error 'multibyte sequence too long in utf-8 string'
             end
-            table.insert(ret, cache)
+            idx = idx + 1
+            ret[idx] = cache
         end
         return string.char(unpack(ret))
     end
@@ -89,11 +92,13 @@ function string:lines()
     local codepoints = string.filteredcodepoints(self)
     return function()
         local line = {}
+        local idx = 0
         for c in codepoints do
             if c == '\n' then
                 return table.concat(line)
             end
-            table.insert(line, c)
+            idx = idx + 1
+            line[idx] = c
         end
         if #line > 0 then
             return table.concat(line)
@@ -251,11 +256,14 @@ local function escape_char(char)
         local b = string.byte(char)
         if b < 32 or b >= 127 then
             local ret = { '\\' }
+            local idx = 1
             local str = tostring(b)
             for _ = string.len(str), 2 do
-                table.insert(ret, '0')
+                idx = idx + 1
+                ret[idx] = '0'
             end
-            table.insert(ret, str)
+            idx = idx + 1
+            ret[idx] = str
             return table.concat(ret)
         else
             return char
@@ -285,6 +293,7 @@ function string:escape()
         end
     end
     local ret, idx = {}, 0
+    local index = 0
     for data, utf8 in string.utf8(self) do
         if utf8 then
             idx = idx + 1
@@ -314,7 +323,8 @@ function string:escape()
             ret[i] = double
         end
     end
-    table.insert(ret, single)
+    index = index + 1
+    ret[index] = single
     return single .. table.concat(ret)
 end
 

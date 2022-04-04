@@ -48,9 +48,9 @@ function M.get_stack_level_string(level)
     if info then
         local line = {}
         if info.what == 'Lua' then
-            table.insert(line, tostring(info.name))
-            table.insert(line, ':')
-            table.insert(line, tostring(info.linedefined))
+            line[1] = tostring(info.name)
+            line[2] = ':'
+            line[3] = tostring(info.linedefined)
         end
         return table.concat(line)
     end

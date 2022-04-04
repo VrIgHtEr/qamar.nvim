@@ -15,6 +15,7 @@ return function(self)
     local pos = self:pos()
     self:suspend_skip_ws()
     local ret = {}
+    local idx = 0
     local t = alpha(self)
     if t == nil then
         self:undo()
@@ -22,7 +23,8 @@ return function(self)
         return nil
     end
     while true do
-        table.insert(ret, t)
+        idx = idx + 1
+        ret[idx] = t
         t = alphanumeric(self)
         if t == nil then
             break

@@ -20,12 +20,14 @@ return function(self)
         return ret
     end
     ret = {}
+    local idx = 0
     while true do
         local c = self:peek()
         if not c or c == '\n' then
             break
         end
-        table.insert(ret, self:take())
+        idx = idx + 1
+        ret[idx] = self:take()
     end
     self:commit()
     self:resume_skip_ws()

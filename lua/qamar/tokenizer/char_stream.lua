@@ -8,14 +8,17 @@ local MT = {
     __metatable = emptyfunc,
     __tostring = function(self)
         local ret = {}
+        local idx = 0
         for i = 1, self.la.size() do
             local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
             local c = self.la[i]
-            table.insert(line, vim.inspect(c))
-            table.insert(ret, table.concat(line))
+            line[2] = vim.inspect(c)
+            idx = idx + 1
+            ret[idx] = table.concat(line)
         end
         if self.t.index == self.la.size() then
-            table.insert(ret, '==>')
+            idx = idx + 1
+            ret[idx] = '==>'
         end
         return table.concat(ret, '\n')
     end,
@@ -227,6 +230,7 @@ M.combinators = {
     zom = function(x)
         return function(self)
             local ret = {}
+            local idx = 0
             local T = type(x)
             while self:peek() do
                 self:skipws()
@@ -241,7 +245,8 @@ M.combinators = {
                 if v == nil then
                     return ret
                 end
-                table.insert(ret, v)
+                idx = idx + 1
+                ret[idx] = v
             end
             if not self:peek() then
                 return ret
@@ -253,6 +258,7 @@ M.combinators = {
         local args = { ... }
         return function(self)
             local ret = {}
+            local idx = 0
             self:begin()
             for _, x in ipairs(args) do
                 self:skipws()
@@ -268,7 +274,8 @@ M.combinators = {
                     self:undo()
                     return nil
                 end
-                table.insert(ret, T)
+                idx = idx + 1
+                ret[idx] = T
             end
             self:commit()
             return ret

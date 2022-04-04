@@ -74,13 +74,16 @@ end
 M.tconcat = function(self)
     local prevalpha = false
     local ret = {}
+    local i = 0
     for _, x in ipairs(self) do
         x = string.trim(tostring(x))
         if x ~= '' then
             if prevalpha and isalphanum(x:sub(1, 1)) then
-                table.insert(ret, ' ')
+                i = i + 1
+                ret[i] = ' '
             end
-            table.insert(ret, x)
+            i = i + 1
+            ret[i] = x
             prevalpha = isalphanum(x:sub(x:len(), x:len()))
         end
     end

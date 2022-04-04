@@ -47,6 +47,7 @@ local function utf8_encode(hex)
                     cont_bytes, rem, max = 5, 1, 6 * 5 + 1
                 end
                 local ret = {}
+                local index = 0
                 while bits < max do
                     binstr = '0' .. binstr
                     bits = bits + 1
@@ -57,10 +58,12 @@ local function utf8_encode(hex)
                 end
                 s = '0' .. s
                 s = s .. string.sub(binstr, 1, rem)
-                table.insert(ret, string.char(tonumber(s, 2)))
+                index = index + 1
+                ret[index] = string.char(tonumber(s, 2))
                 binstr = string.sub(binstr, rem + 1)
                 for x = 1, cont_bytes * 6 - 1, 6 do
-                    table.insert(ret, string.char(tonumber('10' .. string.sub(binstr, x, x + 5), 2)))
+                    index = index + 1
+                    ret[index] = string.char(tonumber('10' .. string.sub(binstr, x, x + 5), 2))
                 end
                 return table.concat(ret)
             end
@@ -88,6 +91,7 @@ return function(self, disallow_short_form)
         self:undo()
     end
     local ret = {}
+    local i = 0
     local t = terminator_parser(self)
     if t then
         if disallow_short_form then
@@ -100,27 +104,38 @@ return function(self, disallow_short_form)
             elseif c == '\\' then
                 c = self:take()
                 if c == 'a' then
-                    table.insert(ret, '\a')
+                    i = i + 1
+                    ret[i] = '\a'
                 elseif c == 'b' then
-                    table.insert(ret, '\b')
+                    i = i + 1
+                    ret[i] = '\b'
                 elseif c == 'f' then
-                    table.insert(ret, '\f')
+                    i = i + 1
+                    ret[i] = '\f'
                 elseif c == 'n' then
-                    table.insert(ret, '\n')
+                    i = i + 1
+                    ret[i] = '\n'
                 elseif c == 'r' then
-                    table.insert(ret, '\r')
+                    i = i + 1
+                    ret[i] = '\r'
                 elseif c == 't' then
-                    table.insert(ret, '\t')
+                    i = i + 1
+                    ret[i] = '\t'
                 elseif c == 'v' then
-                    table.insert(ret, '\v')
+                    i = i + 1
+                    ret[i] = '\v'
                 elseif c == '\\' then
-                    table.insert(ret, '\\')
+                    i = i + 1
+                    ret[i] = '\\'
                 elseif c == '"' then
-                    table.insert(ret, '"')
+                    i = i + 1
+                    ret[i] = '"'
                 elseif c == "'" then
-                    table.insert(ret, "'")
+                    i = i + 1
+                    ret[i] = "'"
                 elseif c == '\n' then
-                    table.insert(ret, '\n')
+                    i = i + 1
+                    ret[i] = '\n'
                 elseif c == 'z' then
                     self:skipws()
                 elseif c == 'x' then
@@ -129,19 +144,22 @@ return function(self, disallow_short_form)
                     if not c1 or not c2 then
                         return fail()
                     end
-                    table.insert(ret, string.char(c1 * 16 + c2))
+                    i = i + 1
+                    ret[i] = string.char(c1 * 16 + c2)
                 elseif c == 'u' then
                     if self:take() ~= '{' then
                         return fail()
                     end
                     local digits = {}
+                    local idx = 0
                     while #digits < 8 do
                         local nextdigit = tohexdigit(self:peek())
                         if not nextdigit then
                             break
                         end
                         self:take()
-                        table.insert(digits, nextdigit)
+                        idx = idx + 1
+                        digits[idx] = nextdigit
                     end
                     if self:take() ~= '}' then
                         return fail()
@@ -150,16 +168,19 @@ return function(self, disallow_short_form)
                     if not s then
                         return fail()
                     end
-                    table.insert(ret, s)
+                    i = i + 1
+                    ret[i] = s
                 elseif c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
                     local digits = { todecimaldigit(c) }
+                    local idx = 1
                     while #digits < 3 do
                         local nextdigit = todecimaldigit(self:peek())
                         if not nextdigit then
                             break
                         end
                         self:take()
-                        table.insert(digits, nextdigit)
+                        idx = idx + 1
+                        digits[idx] = nextdigit
                     end
                     local num = 0
                     for _, d in ipairs(digits) do
@@ -168,24 +189,29 @@ return function(self, disallow_short_form)
                     if num > 255 then
                         return fail()
                     end
-                    table.insert(ret, string.char(num))
+                    i = i + 1
+                    ret[i] = string.char(num)
                 else
                     return fail()
                 end
             elseif not c or c == '\n' then
                 return fail()
             else
-                table.insert(ret, c)
+                i = i + 1
+                ret[i] = c
             end
         end
     else
         t = long_form_parser(self)
         if t then
             local closing = { ']' }
+            local idx = 1
             for _ = 1, #t[2] do
-                table.insert(closing, '=')
+                idx = idx + 1
+                closing[idx] = '='
             end
-            table.insert(closing, ']')
+            idx = idx + 1
+            closing[idx] = ']'
             closing = table.concat(closing)
             if self:peek() == '\n' then
                 self:take()
@@ -203,14 +229,17 @@ return function(self, disallow_short_form)
                     if t == '\n' then
                         self:take()
                     end
-                    table.insert(ret, '\n')
+                    i = i + 1
+                    ret[i] = '\n'
                 elseif t == '\n' then
                     if t == '\r' then
                         self:take()
                     end
-                    table.insert(ret, '\n')
+                    i = i + 1
+                    ret[i] = '\n'
                 else
-                    table.insert(ret, t)
+                    i = i + 1
+                    ret[i] = t
                 end
             end
         else

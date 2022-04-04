@@ -9,8 +9,10 @@ end
 local function get_runtime_paths()
     local delimiter = ','
     local ret = {}
+    local index = 0
     for path in vim.o.runtimepath:gmatch('([^,]*)' .. delimiter) do
-        table.insert(ret, path)
+        index = index + 1
+        ret[index] = path
     end
     return ret
 end

@@ -37,8 +37,10 @@ local symbols = {
 
 local t = {}
 do
+    local i = 0
     for k, _ in pairs(symbols) do
-        table.insert(t, k)
+        i = i + 1
+        t[i] = k
     end
 end
 

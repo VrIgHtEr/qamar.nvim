@@ -30,6 +30,7 @@ return function(self)
                 local body = block(self)
                 if body then
                     local conditions, bodies = { condition }, { body }
+                    local cidx, bidx = 1, 1
                     while true do
                         tok = self:peek()
                         if not tok or tok.type ~= token.kw_elseif then
@@ -43,8 +44,10 @@ return function(self)
                                 body = block(self)
                                 if body then
                                     self:commit()
-                                    table.insert(conditions, condition)
-                                    table.insert(bodies, body)
+                                    cidx = cidx + 1
+                                    conditions[cidx] = condition
+                                    bidx = bidx + 1
+                                    bodies[bidx] = body
                                 else
                                     self:undo()
                                     break
@@ -65,7 +68,8 @@ return function(self)
                         body = block(self)
                         if body then
                             self:commit()
-                            table.insert(bodies, body)
+                            bidx = bidx + 1
+                            bodies[bidx] = body
                         else
                             self:undo()
                         end
