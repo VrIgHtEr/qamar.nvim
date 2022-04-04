@@ -49,7 +49,7 @@ local function parse_everything()
                 print '-----------------------------------------------------------------------------------'
                 print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                 local txt = util.read_file(filename)
-                coroutine.yield()
+                --        coroutine.yield()
                 if txt then
                     local p = create_parser(txt)
                     local success, tree = pcall(p.chunk, p)

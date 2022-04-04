@@ -283,73 +283,45 @@ M.combinators = {
     end,
 }
 
-M.ALPHA = M.combinators.alt(
-    '_',
-    'a',
-    'b',
-    'c',
-    'd',
-    'e',
-    'f',
-    'g',
-    'h',
-    'i',
-    'j',
-    'k',
-    'l',
-    'm',
-    'n',
-    'o',
-    'p',
-    'q',
-    'r',
-    's',
-    't',
-    'u',
-    'v',
-    'w',
-    'x',
-    'y',
-    'z',
-    'A',
-    'B',
-    'C',
-    'D',
-    'E',
-    'F',
-    'G',
-    'H',
-    'I',
-    'J',
-    'K',
-    'L',
-    'M',
-    'N',
-    'O',
-    'P',
-    'Q',
-    'R',
-    'S',
-    'T',
-    'U',
-    'V',
-    'W',
-    'X',
-    'Y',
-    'Z'
-)
+M.ALPHA = function(self)
+    local tok = self:peek()
+    if tok then
+        local byte = string.byte(tok)
+        if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte == 95 then
+            self:take()
+            return tok
+        end
+    end
+end
 
 function M:alpha()
     M.ALPHA(self)
 end
 
-M.NUMERIC = M.combinators.alt('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')
+M.NUMERIC = function(self)
+    local tok = self:peek()
+    if tok then
+        local byte = string.byte(tok)
+        if byte >= 48 and byte <= 57 then
+            self:take()
+            return tok
+        end
+    end
+end
 
+M.ALPHANUMERIC = function(self)
+    local tok = self:peek()
+    if tok then
+        local byte = string.byte(tok)
+        if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte >= 48 and byte <= 57 or byte == 95 then
+            self:take()
+            return tok
+        end
+    end
+end
 function M:numeric()
     return M.NUMERIC(self)
 end
-
-M.ALPHANUMERIC = M.combinators.alt(M.ALPHA, M.NUMERIC)
 
 function M:alphanumeric()
     return M.ALPHANUMERIC(self)
