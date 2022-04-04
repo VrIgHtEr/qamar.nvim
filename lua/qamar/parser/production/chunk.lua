@@ -1,5 +1,6 @@
 return function(self)
     if self:peek() then
+        self.cache = {}
         local ret = self:block()
         local peek = self.la[self.la.size()] or nil
         if ret then
