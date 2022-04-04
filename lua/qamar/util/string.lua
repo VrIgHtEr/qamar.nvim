@@ -273,26 +273,21 @@ local function escape_char(char)
 end
 
 function string:escape()
+    local S = nil
     if string.is_utf8(self) and not string.find(self, '\r') then
-        local count = string.count(self, '\n')
-        for _ in string.gmatch(self, '\n') do
-            count = count + 1
+        local term_parts = { ']', ']' }
+        local idx = 2
+        while string.find(self, table.concat(term_parts)) do
+            table.insert(term_parts, idx, '=')
+            idx = idx + 1
         end
-        if count >= verbatim_newline_count then
-            local term_parts = { ']', ']' }
-            local idx = 2
-            while string.find(self, table.concat(term_parts)) do
-                table.insert(term_parts, idx, '=')
-                idx = idx + 1
-            end
-            local close_term = table.concat(term_parts)
-            term_parts[1], term_parts[#term_parts] = '[', '['
-            local open_term = table.concat(term_parts)
-            if string.sub(self, 1, 1) == '\n' then
-                open_term = open_term .. '\n'
-            end
-            return open_term .. self .. close_term
+        local close_term = table.concat(term_parts)
+        term_parts[1], term_parts[#term_parts] = '[', '['
+        local open_term = table.concat(term_parts)
+        if string.sub(self, 1, 1) == '\n' then
+            open_term = open_term .. '\n'
         end
+        S = open_term .. self .. close_term
     end
     local ret, idx = {}, 0
     for data, utf8 in string.utf8(self) do
@@ -306,27 +301,28 @@ function string:escape()
             end
         end
     end
-    local single, double = 0, 0
+    local a, b = 0, 0
     for _, x in ipairs(ret) do
         if x == "'" then
-            single = single + 1
+            a = a + 1
         elseif x == '"' then
-            double = double + 1
+            b = b + 1
         end
     end
-    if double >= single then
-        single, double = "'", "\\'"
+    if b >= a then
+        a, b = "'", "\\'"
     else
-        single, double = '"', '\\"'
+        a, b = '"', '\\"'
     end
     for i, x in ipairs(ret) do
-        if x == single then
-            ret[i] = double
+        if x == a then
+            ret[i] = b
         end
     end
     idx = idx + 1
-    ret[idx] = single
-    return single .. table.concat(ret)
+    ret[idx] = a
+    local S2 = a .. table.concat(ret)
+    return S and string.len(S) < string.len(S2) and S or S2
 end
 
 return string

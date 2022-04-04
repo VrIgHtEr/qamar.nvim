@@ -22,7 +22,7 @@ end
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 --odir = '/mnt/c/luaparse'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter'
+local idir = vim.fn.stdpath 'data' .. '/site/pack'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'
@@ -43,6 +43,7 @@ local function parse_everything()
     local co = coroutine.create(function()
         dbg.stats = {}
         local counter = 0
+        local tlen = 0
         for _, filename in ipairs(files) do
             if true or filename:match '^.*/test.lua' then
                 print '-----------------------------------------------------------------------------------'
@@ -83,7 +84,9 @@ local function parse_everything()
                                 end,
                             }))
                             ]]
-                            print(tree)
+                            local s = tostring(tree)
+                            tlen = tlen + string.len(s)
+                            print(s)
                         end
                     else
                         ofile:write(filename .. '\n')
@@ -96,6 +99,8 @@ local function parse_everything()
             end
         end
 
+        ofile:write('total length: ' .. tlen .. '\n')
+        ofile:flush()
         local total = 0
         for _, v in pairs(dbg.stats) do
             total = total + v
