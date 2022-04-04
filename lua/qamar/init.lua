@@ -66,6 +66,7 @@ local function parse_everything()
                             local outdir = vim.fn.fnamemodify(outpath, ':p:h')
                             os.execute("mkdir -p '" .. outdir .. "'")
                             util.write_file(outpath, str)
+                            --[[
                             print(vim.inspect(tree, {
                                 process = function(item, path)
                                     local x = path[#path]
@@ -80,6 +81,8 @@ local function parse_everything()
                                     end
                                 end,
                             }))
+                            ]]
+                            print(tree)
                         end
                     else
                         ofile:write(filename .. '\n')

@@ -42,12 +42,12 @@ function string:codepoints()
         end
         assert(c >= 194 and c <= 244, 'invalid byte in utf-8 sequence: ' .. tostring(c))
         local ret = { c }
-        local idx = 1
+        local i = 1
         c = nxt()
         assert(c, 'unexpected eof in utf-8 string')
         assert(c >= 128 and c <= 191, 'expected multibyte sequence: ' .. tostring(c))
-        idx = idx + 1
-        ret[idx] = c
+        i = i + 1
+        ret[i] = c
         local count = 2
         while true do
             cache = nxt()
@@ -58,8 +58,8 @@ function string:codepoints()
             if count > 4 then
                 error 'multibyte sequence too long in utf-8 string'
             end
-            idx = idx + 1
-            ret[idx] = cache
+            i = i + 1
+            ret[i] = cache
         end
         return string.char(unpack(ret))
     end
@@ -92,13 +92,13 @@ function string:lines()
     local codepoints = string.filteredcodepoints(self)
     return function()
         local line = {}
-        local idx = 0
+        local i = 0
         for c in codepoints do
             if c == '\n' then
                 return table.concat(line)
             end
-            idx = idx + 1
-            line[idx] = c
+            i = i + 1
+            line[i] = c
         end
         if #line > 0 then
             return table.concat(line)
@@ -256,14 +256,14 @@ local function escape_char(char)
         local b = string.byte(char)
         if b < 32 or b >= 127 then
             local ret = { '\\' }
-            local idx = 1
+            local i = 0
             local str = tostring(b)
             for _ = string.len(str), 2 do
-                idx = idx + 1
-                ret[idx] = '0'
+                i = i + 1
+                ret[i] = '0'
             end
-            idx = idx + 1
-            ret[idx] = str
+            i = i + 1
+            ret[i] = str
             return table.concat(ret)
         else
             return char
@@ -280,8 +280,10 @@ function string:escape()
         end
         if count >= verbatim_newline_count then
             local term_parts = { ']', ']' }
+            local idx = 2
             while string.find(self, table.concat(term_parts)) do
-                table.insert(term_parts, #term_parts, '=')
+                table.insert(term_parts, idx, '=')
+                idx = idx + 1
             end
             local close_term = table.concat(term_parts)
             term_parts[1], term_parts[#term_parts] = '[', '['
@@ -293,7 +295,6 @@ function string:escape()
         end
     end
     local ret, idx = {}, 0
-    local index = 0
     for data, utf8 in string.utf8(self) do
         if utf8 then
             idx = idx + 1
@@ -323,8 +324,8 @@ function string:escape()
             ret[i] = double
         end
     end
-    index = index + 1
-    ret[index] = single
+    idx = idx + 1
+    ret[idx] = single
     return single .. table.concat(ret)
 end
 
