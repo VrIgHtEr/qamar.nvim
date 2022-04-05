@@ -83,9 +83,8 @@ local function parse_everything()
                                 end,
                             }))
                             ]]
-                            local s = tostring(tree)
-                            tlen = tlen + string.len(s)
-                            print(s)
+                            tlen = tlen + string.len(str)
+                            print(str)
                         end
                     else
                         ofile:write(filename .. '\n')
