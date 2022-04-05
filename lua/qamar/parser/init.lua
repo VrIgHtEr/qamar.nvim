@@ -1,5 +1,6 @@
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
+local concat = table.concat
 
 local parser = {}
 
@@ -22,27 +23,64 @@ local MT = {
             index = index + 1
             line[index] = vim.inspect(x.value)
             idx = idx + 1
-            ret[idx] = table.concat(line)
+            ret[idx] = concat(line)
         end
         if self.t.index == self.la.size() then
             idx = idx + 1
             ret[idx] = '==>'
         end
-        return table.concat(ret, '\n')
+        return concat(ret, '\n')
     end,
 }
 
+local st = require 'qamar.tokenizer.char_stream'
+local stpos = st.pos
+local stpeek = st.peek
+local sttake = st.take
+
+local function copy_transaction(self)
+    return { index = self.index, pos = self.pos }
+end
+
+local initialized = false
+
 function parser.new(stream)
-    local pos = stream:pos()
+    if not initialized then
+        initialized = true
+        parser.expression = require 'qamar.parser.production.expression'
+        parser.name = require 'qamar.parser.production.name'
+        parser.field_raw = require 'qamar.parser.production.field.raw'
+        parser.field_name = require 'qamar.parser.production.field.name'
+        parser.fieldlist = require 'qamar.parser.production.fieldlist'
+        parser.field = require 'qamar.parser.production.field'
+        parser.tableconstructor = require 'qamar.parser.production.tableconstructor'
+        parser.vararg = require 'qamar.parser.production.vararg'
+        parser.attrib = require 'qamar.parser.production.attrib'
+        parser.namelist = require 'qamar.parser.production.namelist'
+        parser.explist = require 'qamar.parser.production.explist'
+        parser.label = require 'qamar.parser.production.label'
+        parser.functiondef = require 'qamar.parser.production.functiondef'
+        parser.block = require 'qamar.parser.production.block'
+        parser.var = require 'qamar.parser.production.var'
+        parser.parlist = require 'qamar.parser.production.parlist'
+        parser.attnamelist = require 'qamar.parser.production.attnamelist'
+        parser.varlist = require 'qamar.parser.production.varlist'
+        parser.retstat = require 'qamar.parser.production.retstat'
+        parser.funcname = require 'qamar.parser.production.funcname'
+        parser.funcbody = require 'qamar.parser.production.funcbody'
+        parser.stat = require 'qamar.parser.production.stat'
+        parser.chunk = require 'qamar.parser.production.chunk'
+    end
+    local pos = stpos(stream)
     if pos.file_byte == 0 then
-        if stream:peek() == '#' and stream:peek(1) == '!' then
+        if stpeek(stream) == '#' and stpeek(stream, 1) == '!' then
             while true do
-                local t = stream:peek()
+                local t = stpeek(stream)
                 if not t then
                     break
                 end
-                stream:take()
-                if stream:pos().row > 1 then
+                sttake(stream)
+                if stpos(stream).row > 1 then
                     break
                 end
             end
@@ -57,28 +95,23 @@ function parser.new(stream)
         tc = 0,
         t = {
             index = 0,
-            pos = stream:pos(),
-            copy = function(self)
-                local r = {}
-                for k, v in pairs(self) do
-                    r[k] = v
-                end
-                return r
-            end,
+            pos = stpos(stream),
         },
     }, MT)
 end
 
-function parser:begin()
+local function begin(self)
     self.tc = self.tc + 1
-    self.ts[self.tc] = self.t:copy()
+    self.ts[self.tc] = copy_transaction(self.t)
 end
+parser.begin = begin
 
-function parser:undo()
+local function undo(self)
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
 end
+parser.undo = undo
 
-function parser:normalize()
+local function normalize(self)
     if self.tc == 0 then
         for _ = 1, self.t.index do
             self.la.pop_front()
@@ -86,13 +119,15 @@ function parser:normalize()
         self.t.index = 0
     end
 end
+parser.normalize = normalize
 
-function parser:commit()
+local function commit(self)
     self.ts[self.tc], self.tc = nil, self.tc - 1
-    self:normalize()
+    return normalize(self)
 end
+parser.commit = commit
 
-function parser:fill(amt)
+local function fill(self, amt)
     while self.la.size() < amt do
         local c = tokenizer(self.stream)
         if c then
@@ -105,18 +140,20 @@ function parser:fill(amt)
         end
     end
 end
+parser.fill = fill
 
-function parser:peek(skip)
+local function peek(self, skip)
     skip = skip == nil and 0 or skip
     local idx = self.t.index + skip + 1
-    self:fill(idx)
+    fill(self, idx)
     return self.la[idx] or false
 end
+parser.peek = peek
 
-function parser:take(amt)
+local function take(self, amt)
     amt = amt == nil and 1 or amt
     local idx = self.t.index + amt
-    self:fill(idx)
+    fill(self, idx)
     local ret = {}
     for i = 1, amt do
         local c = self.la[self.t.index + 1]
@@ -127,13 +164,14 @@ function parser:take(amt)
         self.t.pos = c.pos.right
         self.t.index = self.t.index + 1
     end
-    self:normalize()
+    normalize(self)
     return #ret > 1 and ret or (#ret == 1 and ret[1] or nil)
 end
+parser.take = take
 
 function parser:begintake(amt)
-    self:begin()
-    return self:take(amt)
+    begin(self)
+    return take(self, amt)
 end
 
 function parser:pos()
@@ -141,42 +179,18 @@ function parser:pos()
 end
 
 function parser:next_id()
-    local x = self:peek()
+    local x = peek(self)
     return x and x.id or self.tokenid
 end
 
 function parser:take_until(id)
     while true do
-        local x = self:peek()
+        local x = peek(self)
         if not x or x.id >= id then
             return
         end
-        self:take()
+        take(self)
     end
 end
-
-parser.expression = require 'qamar.parser.production.expression'
-parser.name = require 'qamar.parser.production.name'
-parser.field_raw = require 'qamar.parser.production.field.raw'
-parser.field_name = require 'qamar.parser.production.field.name'
-parser.fieldlist = require 'qamar.parser.production.fieldlist'
-parser.field = require 'qamar.parser.production.field'
-parser.tableconstructor = require 'qamar.parser.production.tableconstructor'
-parser.vararg = require 'qamar.parser.production.vararg'
-parser.attrib = require 'qamar.parser.production.attrib'
-parser.namelist = require 'qamar.parser.production.namelist'
-parser.explist = require 'qamar.parser.production.explist'
-parser.label = require 'qamar.parser.production.label'
-parser.functiondef = require 'qamar.parser.production.functiondef'
-parser.block = require 'qamar.parser.production.block'
-parser.var = require 'qamar.parser.production.var'
-parser.parlist = require 'qamar.parser.production.parlist'
-parser.attnamelist = require 'qamar.parser.production.attnamelist'
-parser.varlist = require 'qamar.parser.production.varlist'
-parser.retstat = require 'qamar.parser.production.retstat'
-parser.funcname = require 'qamar.parser.production.funcname'
-parser.funcbody = require 'qamar.parser.production.funcbody'
-parser.stat = require 'qamar.parser.production.stat'
-parser.chunk = require 'qamar.parser.production.chunk'
 
 return parser

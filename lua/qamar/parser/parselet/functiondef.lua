@@ -7,9 +7,10 @@ local MT = {
         return tconcat { 'function', self.value }
     end,
 }
+local funcbody = require 'qamar.parser.production.funcbody'
 
 return function(self, parser, tok)
-    local body = parser:funcbody()
+    local body = funcbody(parser)
     if body then
         return setmetatable({
             value = body,

@@ -22,6 +22,15 @@ local MT = {
 local tableconstructor = require 'qamar.parser.parselet.tableconstructor'
 local atom = require 'qamar.parser.parselet.atom'
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local explist
+explist = function(self)
+    explist = require 'qamar.parser.production.explist'
+    return explist(self)
+end
+
 return function(self, parser, left, tok)
     if
         left.type == node.name
@@ -32,14 +41,14 @@ return function(self, parser, left, tok)
     then
         local sname, arglist, right = false, nil, nil
         if tok.type == token.lparen then
-            local args = parser:explist()
+            local args = explist(parser)
                 or setmetatable({}, {
                     __tostring = function()
                         return ''
                     end,
                 })
-            if parser:peek() then
-                local rparen = parser:take()
+            if peek(parser) then
+                local rparen = take(parser)
                 if rparen.type == token.rparen then
                     arglist = args
                     right = rparen.pos.right
@@ -66,23 +75,23 @@ return function(self, parser, left, tok)
                 right = arg.pos.right
             end
         elseif tok.type == token.colon then
-            if parser:peek() then
-                local name = parser:take()
+            if peek(parser) then
+                local name = take(parser)
                 if name.type == token.name then
                     sname = name.value
 
-                    local next = parser:peek()
+                    local next = peek(parser)
                     if next then
-                        parser:take()
+                        take(parser)
                         if next.type == token.lparen then
-                            local args = parser:explist()
+                            local args = explist(parser)
                                 or setmetatable({}, {
                                     __tostring = function()
                                         return ''
                                     end,
                                 })
-                            if parser:peek() then
-                                local rparen = parser:take()
+                            if peek(parser) then
+                                local rparen = take(parser)
                                 if rparen.type == token.rparen then
                                     arglist = args
                                     right = rparen.pos.right

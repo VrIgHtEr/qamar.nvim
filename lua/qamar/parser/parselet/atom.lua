@@ -14,6 +14,8 @@ local function default__tostring(self)
     return self.value
 end
 
+local sescape = string.escape
+
 local __tostring = {
     [node.name] = default__tostring,
     [node.number] = default__tostring,
@@ -22,7 +24,7 @@ local __tostring = {
     [node.val_true] = default__tostring,
     [node.vararg] = default__tostring,
     [node.string] = function(self)
-        return string.escape(self.value)
+        return sescape(self.value)
     end,
 }
 

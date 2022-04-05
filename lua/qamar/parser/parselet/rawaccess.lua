@@ -7,6 +7,18 @@ local MT = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local begin = p.begin
+local undo = p.undo
+local commit = p.commit
+local expression
+expression = function(self)
+    expression = require 'qamar.parser.production.expression'
+    return expression(self)
+end
+
 return function(self, parser, left, tok)
     if
         left.type == node.name
@@ -16,19 +28,19 @@ return function(self, parser, left, tok)
         or left.type == node.subexpression
     then
         local l = left.pos.left
-        parser:begin()
-        local exp = parser:expression()
+        begin(parser)
+        local exp = expression(parser)
         if not exp then
-            parser:undo()
+            undo(parser)
             return nil
         end
-        tok = parser:peek()
+        tok = peek(parser)
         if not tok or tok.type ~= token.rbracket then
-            parser:undo()
+            undo(parser)
             return nil
         end
-        parser:take()
-        parser:commit()
+        take(parser)
+        commit(parser)
         return setmetatable({
             table = left,
             key = exp,

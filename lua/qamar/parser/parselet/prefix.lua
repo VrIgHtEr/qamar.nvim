@@ -38,6 +38,12 @@ local MT = {
     end,
 }
 
+local expression
+expression = function(self)
+    expression = require 'qamar.parser.production.expression'
+    return expression(self)
+end
+
 return function(self, parser, tok)
     local operand = parser:expression(self.precedence - (self.right_associative and 1 or 0))
     if not operand then

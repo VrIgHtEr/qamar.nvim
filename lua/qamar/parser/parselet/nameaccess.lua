@@ -7,6 +7,10 @@ local MT = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+
 return function(self, parser, left, tok)
     if
         left.type == node.name
@@ -16,9 +20,9 @@ return function(self, parser, left, tok)
         or left.type == node.subexpression
     then
         local l = left.pos.left
-        tok = parser:peek()
+        tok = peek(parser)
         if tok and tok.type == token.name then
-            parser:take()
+            take(parser)
             local ret = setmetatable({
                 table = left,
                 key = tok,
