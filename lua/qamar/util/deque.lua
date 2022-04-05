@@ -1,3 +1,5 @@
+local setmetatable = setmetatable
+
 return function()
     local parity, head, tail, capacity, version, buf = false, 0, 0, 1, 0, {}
     local function size()
