@@ -26,28 +26,36 @@ local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
 
+local tkw_if = token.kw_if
+local tkw_then = token.kw_then
+local tkw_elseif = token.kw_elseif
+local tkw_else = token.kw_else
+local tkw_end = token.kw_end
+local setmetatable = setmetatable
+local nstat_if = n.stat_if
+
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.kw_if then
+    if tok and tok.type == tkw_if then
         local kw_if = begintake(self)
         local condition = expression(self)
         if condition then
             tok = take(self)
-            if tok and tok.type == token.kw_then then
+            if tok and tok.type == tkw_then then
                 local body = block(self)
                 if body then
                     local conditions, bodies = { condition }, { body }
                     local cidx, bidx = 1, 1
                     while true do
                         tok = peek(self)
-                        if not tok or tok.type ~= token.kw_elseif then
+                        if not tok or tok.type ~= tkw_elseif then
                             break
                         end
                         begintake(self)
                         condition = expression(self)
                         if condition then
                             tok = take(self)
-                            if tok and tok.type == token.kw_then then
+                            if tok and tok.type == tkw_then then
                                 body = block(self)
                                 if body then
                                     commit(self)
@@ -70,7 +78,7 @@ return function(self)
                     end
 
                     tok = peek(self)
-                    if tok and tok.type == token.kw_else then
+                    if tok and tok.type == tkw_else then
                         begintake(self)
                         body = block(self)
                         if body then
@@ -83,12 +91,12 @@ return function(self)
                     end
 
                     tok = take(self)
-                    if tok and tok.type == token.kw_end then
+                    if tok and tok.type == tkw_end then
                         commit(self)
                         return setmetatable({
                             conditions = conditions,
                             bodies = bodies,
-                            type = n.stat_if,
+                            type = nstat_if,
                             pos = { left = kw_if.pos.left, right = bodies[#bodies].pos.right },
                         }, mt)
                     end

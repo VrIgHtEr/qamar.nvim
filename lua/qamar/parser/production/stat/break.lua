@@ -10,11 +10,14 @@ local mt = {
 local p = require 'qamar.parser'
 local peek = p.peek
 local take = p.take
+local tkw_break = token.kw_break
+local nstat_break = n.stat_break
+local setmetatable = setmetatable
 
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.kw_break then
+    if tok and tok.type == tkw_break then
         take(self)
-        return setmetatable({ type = n.stat_break, pos = tok.pos }, mt)
+        return setmetatable({ type = nstat_break, pos = tok.pos }, mt)
     end
 end

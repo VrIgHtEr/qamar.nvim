@@ -24,24 +24,31 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tkw_for = token.kw_for
+local tassignment = token.assignment
+local tcomma = token.comma
+local tkw_do = token.kw_do
+local tkw_end = token.kw_end
+local setmetatable = setmetatable
+local nstat_for_num = n.stat_for_num
 
 return function(self)
     local kw_for = peek(self)
-    if kw_for and kw_for.type == token.kw_for then
+    if kw_for and kw_for.type == tkw_for then
         begintake(self)
         local varname = name(self)
         if varname then
             local tok = take(self)
-            if tok and tok.type == token.assignment then
+            if tok and tok.type == tassignment then
                 local start = expression(self)
                 if start then
                     tok = take(self)
-                    if tok and tok.type == token.comma then
+                    if tok and tok.type == tcomma then
                         local finish = expression(self)
                         if finish then
                             local increment = nil
                             tok = peek(self)
-                            if tok and tok.type == token.comma then
+                            if tok and tok.type == tcomma then
                                 begintake(self)
                                 increment = expression(self)
                                 if increment then
@@ -51,10 +58,10 @@ return function(self)
                                 end
                             end
                             tok = take(self)
-                            if tok and tok.type == token.kw_do then
+                            if tok and tok.type == tkw_do then
                                 local body = block(self)
                                 tok = take(self)
-                                if tok and tok.type == token.kw_end then
+                                if tok and tok.type == tkw_end then
                                     commit(self)
                                     return setmetatable({
                                         name = varname,
@@ -62,7 +69,7 @@ return function(self)
                                         finish = finish,
                                         increment = increment,
                                         body = body,
-                                        type = n.stat_for_num,
+                                        type = nstat_for_num,
                                         pos = { left = kw_for.pos.left, right = tok.pos.right },
                                     }, mt)
                                 end

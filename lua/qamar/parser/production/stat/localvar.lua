@@ -21,17 +21,21 @@ local peek = p.peek
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tkw_local = token.kw_local
+local setmetatable = setmetatable
+local nstat_localvar = n.stat_localvar
+local tassignment = token.assignment
 
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.kw_local then
+    if tok and tok.type == tkw_local then
         begintake(self)
         local names = attnamelist(self)
         if names then
-            local ret = setmetatable({ names = names, type = n.stat_localvar, pos = { left = tok.pos.left } }, mt)
+            local ret = setmetatable({ names = names, type = nstat_localvar, pos = { left = tok.pos.left } }, mt)
             commit(self)
             tok = peek(self)
-            if tok and tok.type == token.assignment then
+            if tok and tok.type == tassignment then
                 begintake(self)
                 ret.values = explist(self)
                 if ret.values then

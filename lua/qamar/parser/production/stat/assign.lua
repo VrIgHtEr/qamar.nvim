@@ -15,12 +15,15 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begin = p.begin
+local tassignment = token.assignment
+local nstat_assign = n.stat_assign
+local setmetatable = setmetatable
 
 return function(self)
     local target = varlist(self)
     if target then
         local tok = take(self)
-        if tok and tok.type == token.assignment then
+        if tok and tok.type == tassignment then
             begin(self)
             local value = explist(self)
             if value then
@@ -28,7 +31,7 @@ return function(self)
                 return setmetatable({
                     target = target,
                     value = value,
-                    type = n.stat_assign,
+                    type = nstat_assign,
                     pos = { left = target.pos.left, right = value.pos.right },
                 }, mt)
             end

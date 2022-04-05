@@ -16,20 +16,24 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tkw_local = token.kw_local
+local tkw_function = token.kw_function
+local setmetatable = setmetatable
+local nstat_localfunc = n.stat_localfunc
 
 return function(self)
     local kw_local = peek(self)
-    if kw_local and kw_local.type == token.kw_local then
+    if kw_local and kw_local.type == tkw_local then
         begintake(self)
         local kw_function = take(self)
-        if kw_function and kw_function.type == token.kw_function then
+        if kw_function and kw_function.type == tkw_function then
             local funcname = name(self)
             if funcname then
                 local body = funcbody(self)
                 if body then
                     commit(self)
                     return setmetatable(
-                        { name = funcname, body = body, type = n.stat_localfunc, pos = { left = kw_local.pos.left, right = body.pos.right } },
+                        { name = funcname, body = body, type = nstat_localfunc, pos = { left = kw_local.pos.left, right = body.pos.right } },
                         mt
                     )
                 end

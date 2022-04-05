@@ -17,24 +17,29 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tkw_while = token.kw_while
+local tkw_do = token.kw_do
+local tkw_end = token.kw_end
+local setmetatable = setmetatable
+local nstat_while = n.stat_while
 
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.kw_while then
+    if tok and tok.type == tkw_while then
         local kw_while = begintake(self)
         local condition = expression(self)
         if condition then
             tok = take(self)
-            if tok and tok.type == token.kw_do then
+            if tok and tok.type == tkw_do then
                 local body = block(self)
                 if body then
                     tok = take(self)
-                    if tok and tok.type == token.kw_end then
+                    if tok and tok.type == tkw_end then
                         commit(self)
                         return setmetatable({
                             condition = condition,
                             body = body,
-                            type = n.stat_while,
+                            type = nstat_while,
                             pos = { left = kw_while.pos.left, right = tok.pos.right },
                         }, mt)
                     end
