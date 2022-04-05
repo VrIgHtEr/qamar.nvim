@@ -8,6 +8,7 @@ local find = string.find
 local gmatch = string.gmatch
 local concat = table.concat
 local insert = table.insert
+local ipairs = ipairs
 
 --- Iterate over characters of a string
 ---@param self string
