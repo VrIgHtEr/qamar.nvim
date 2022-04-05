@@ -7,6 +7,10 @@ local MT = {
     end,
 }
 
+local setmetatable = setmetatable
+local trparen = token.rparen
+local nsubexpression = node.subexpression
+
 local p = require 'qamar.parser'
 local peek = p.peek
 local take = p.take
@@ -28,7 +32,7 @@ return function(self, parser, tok)
         return nil
     end
     tok = peek(parser)
-    if not tok or tok.type ~= token.rparen then
+    if not tok or tok.type ~= trparen then
         undo(parser)
         return nil
     end
@@ -36,7 +40,7 @@ return function(self, parser, tok)
     commit(parser)
     return setmetatable({
         value = exp,
-        type = node.subexpression,
+        type = nsubexpression,
         precedence = self.precedence,
         right_associative = self.right_associative,
         pos = { left = left, right = tok.pos.right },

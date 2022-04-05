@@ -1,5 +1,6 @@
 local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
+local setmetatable = setmetatable
 
 local token_node_mapping = {
     [token.kw_not] = node.lnot,
@@ -45,7 +46,7 @@ expression = function(self)
 end
 
 return function(self, parser, tok)
-    local operand = parser:expression(self.precedence - (self.right_associative and 1 or 0))
+    local operand = expression(parser, self.precedence - (self.right_associative and 1 or 0))
     if not operand then
         return nil
     end

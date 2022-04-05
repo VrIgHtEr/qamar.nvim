@@ -1,5 +1,21 @@
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
+local setmetatable = setmetatable
+
+local tlparen = token.lparen
+local trparen = token.rparen
+local tlbrace = token.lbrace
+local tname = token.name
+local tstring = token.string
+local tcolon = token.colon
+local ntableconstructor = node.tableconstructor
+local nstring = node.string
+local nname = node.name
+local ntable_nameaccess = node.table_nameaccess
+local ntable_rawaccess = node.table_rawaccess
+local nfunctioncall = node.functioncall
+local nsubexpression = node.subexpression
+local tostring = tostring
 
 local MT = {
     __tostring = function(self)
@@ -7,7 +23,7 @@ local MT = {
         if self.self then
             tinsert(ret, ':', self.self)
         end
-        local paren = #self.args ~= 1 or (self.args[1].type ~= node.tableconstructor and self.args[1].type ~= node.string)
+        local paren = #self.args ~= 1 or (self.args[1].type ~= ntableconstructor and self.args[1].type ~= nstring)
         if paren then
             tinsert(ret, '(')
         end
@@ -31,90 +47,70 @@ explist = function(self)
     return explist(self)
 end
 
+local mtempty = {
+    __tostring = function()
+        return ''
+    end,
+}
+
+local mtnonempty = {
+    __tostring = function(x)
+        return tostring(x[1])
+    end,
+}
+
 return function(self, parser, left, tok)
-    if
-        left.type == node.name
-        or left.type == node.table_nameaccess
-        or left.type == node.table_rawaccess
-        or left.type == node.functioncall
-        or left.type == node.subexpression
-    then
+    if left.type == nname or left.type == ntable_nameaccess or left.type == ntable_rawaccess or left.type == nfunctioncall or left.type == nsubexpression then
         local sname, arglist, right = false, nil, nil
-        if tok.type == token.lparen then
-            local args = explist(parser)
-                or setmetatable({}, {
-                    __tostring = function()
-                        return ''
-                    end,
-                })
+        if tok.type == tlparen then
+            local args = explist(parser) or setmetatable({}, mtempty)
             if peek(parser) then
                 local rparen = take(parser)
-                if rparen.type == token.rparen then
+                if rparen.type == trparen then
                     arglist = args
                     right = rparen.pos.right
                 end
             end
-        elseif tok.type == token.lbrace then
+        elseif tok.type == tlbrace then
             local arg = tableconstructor(self, parser, tok)
             if arg then
-                arglist = setmetatable({ arg }, {
-                    __tostring = function(x)
-                        return tostring(x[1])
-                    end,
-                })
+                arglist = setmetatable({ arg }, mtnonempty)
                 right = arg.pos.right
             end
-        elseif tok.type == token.string then
+        elseif tok.type == tstring then
             local arg = atom(self, parser, tok)
             if arg then
-                arglist = setmetatable({ arg }, {
-                    __tostring = function(x)
-                        return tostring(x[1])
-                    end,
-                })
+                arglist = setmetatable({ arg }, mtnonempty)
                 right = arg.pos.right
             end
-        elseif tok.type == token.colon then
+        elseif tok.type == tcolon then
             if peek(parser) then
                 local name = take(parser)
-                if name.type == token.name then
+                if name.type == tname then
                     sname = name.value
 
                     local next = peek(parser)
                     if next then
                         take(parser)
-                        if next.type == token.lparen then
-                            local args = explist(parser)
-                                or setmetatable({}, {
-                                    __tostring = function()
-                                        return ''
-                                    end,
-                                })
+                        if next.type == tlparen then
+                            local args = explist(parser) or setmetatable({}, mtempty)
                             if peek(parser) then
                                 local rparen = take(parser)
-                                if rparen.type == token.rparen then
+                                if rparen.type == trparen then
                                     arglist = args
                                     right = rparen.pos.right
                                 end
                             end
-                        elseif next.type == token.lbrace then
+                        elseif next.type == tlbrace then
                             local arg = tableconstructor(self, parser, next)
                             if arg then
-                                arglist = setmetatable({ arg }, {
-                                    __tostring = function(x)
-                                        return tostring(x[1])
-                                    end,
-                                })
+                                arglist = setmetatable({ arg }, mtnonempty)
                                 right = arg.pos.right
                             end
-                        elseif next.type == token.string then
+                        elseif next.type == tstring then
                             local arg = atom(self, parser, next)
                             if arg then
-                                arglist = setmetatable({ arg }, {
-                                    __tostring = function(x)
-                                        return tostring(x[1])
-                                    end,
-                                })
+                                arglist = setmetatable({ arg }, mtnonempty)
                                 right = arg.pos.right
                             end
                         end
@@ -124,7 +120,7 @@ return function(self, parser, left, tok)
         end
         if arglist then
             return setmetatable({
-                type = node.functioncall,
+                type = nfunctioncall,
                 left = left,
                 args = arglist,
                 self = sname,

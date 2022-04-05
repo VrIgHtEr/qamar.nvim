@@ -1,4 +1,5 @@
 local token, node, string = require 'qamar.tokenizer.types', require 'qamar.parser.types', require 'qamar.util.string'
+local setmetatable = setmetatable
 
 local token_node_mapping = {
     [token.name] = node.name,

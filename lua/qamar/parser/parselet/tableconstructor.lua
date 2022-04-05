@@ -1,6 +1,9 @@
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
+local setmetatable = setmetatable
+local trbrace = token.rbrace
+local ntableconstructor = node.tableconstructor
 local p = require 'qamar.parser'
 local peek = p.peek
 local take = p.take
@@ -24,10 +27,10 @@ return function(self, parser, tok)
     })
     if peek(parser) then
         local rbrace = take(parser)
-        if rbrace.type == token.rbrace then
+        if rbrace.type == trbrace then
             return setmetatable({
                 value = fieldlist,
-                type = node.tableconstructor,
+                type = ntableconstructor,
                 precedence = self.precedence,
                 right_associative = self.right_associative,
                 pos = { left = tok.pos.left, right = rbrace.pos.right },

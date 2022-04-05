@@ -7,6 +7,13 @@ local MT = {
     end,
 }
 
+local setmetatable = setmetatable
+local nname = node.name
+local ntable_nameaccess = node.table_nameaccess
+local ntable_rawaccess = node.table_rawaccess
+local nfunctioncall = node.functioncall
+local nsubexpression = node.subexpression
+local trbracket = token.rbracket
 local p = require 'qamar.parser'
 local peek = p.peek
 local take = p.take
@@ -20,13 +27,7 @@ expression = function(self)
 end
 
 return function(self, parser, left, tok)
-    if
-        left.type == node.name
-        or left.type == node.table_nameaccess
-        or left.type == node.table_rawaccess
-        or left.type == node.functioncall
-        or left.type == node.subexpression
-    then
+    if left.type == nname or left.type == ntable_nameaccess or left.type == ntable_rawaccess or left.type == nfunctioncall or left.type == nsubexpression then
         local l = left.pos.left
         begin(parser)
         local exp = expression(parser)
@@ -35,7 +36,7 @@ return function(self, parser, left, tok)
             return nil
         end
         tok = peek(parser)
-        if not tok or tok.type ~= token.rbracket then
+        if not tok or tok.type ~= trbracket then
             undo(parser)
             return nil
         end
@@ -44,7 +45,7 @@ return function(self, parser, left, tok)
         return setmetatable({
             table = left,
             key = exp,
-            type = node.table_rawaccess,
+            type = ntable_rawaccess,
             precedence = self.precedence,
             right_associative = self.right_associative,
             pos = { left = l, right = tok.pos.right },
