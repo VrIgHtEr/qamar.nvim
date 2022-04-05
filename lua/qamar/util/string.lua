@@ -1,4 +1,13 @@
 local string = setmetatable({}, { __index = string })
+local sub = string.sub
+local char = string.char
+local ascii = string.byte
+local match = string.match
+local len = string.len
+local find = string.find
+local gmatch = string.gmatch
+local concat = table.concat
+local insert = table.insert
 
 --- Iterate over characters of a string
 ---@param self string
@@ -8,7 +17,7 @@ function string:chars()
     return function()
         if i < max then
             i = i + 1
-            return self:sub(i, i)
+            return sub(self, i, i)
         end
     end
 end
@@ -16,21 +25,22 @@ end
 ---Iterate over bytes of a string
 ---@param self string
 ---@return function Iterator
-function string:bytes()
+local function bytes(self)
     local i, max = 0, #self
     return function()
         if i < max then
             i = i + 1
-            return self:byte(i)
+            return ascii(self, i)
         end
     end
 end
+string.bytes = bytes
 
 ---Iterate over UTF8 codepoints in a string
 ---@param self string
 ---@return function Iterator
-function string:codepoints()
-    local nxt, cache = string.bytes(self)
+local function codepoints(self)
+    local nxt, cache = bytes(self)
     return function()
         local c = cache or nxt()
         cache = nil
@@ -38,7 +48,7 @@ function string:codepoints()
             return
         end
         if c <= 127 then
-            return string.char(c)
+            return char(c)
         end
         assert(c >= 194 and c <= 244, 'invalid byte in utf-8 sequence: ' .. tostring(c))
         local ret = { c }
@@ -61,15 +71,16 @@ function string:codepoints()
             i = i + 1
             ret[i] = cache
         end
-        return string.char(unpack(ret))
+        return char(unpack(ret))
     end
 end
+string.codepoints = codepoints
 
 ---Iterate over UTF8 codepoints in a string, while converting windows (\r\n) or mac (\r) newlines to linux format (\n)
 ---@param self string
 ---@return function Iterator
-function string:filteredcodepoints()
-    local codepoint, cache = string.codepoints(self)
+local function filteredcodepoints(self)
+    local codepoint, cache = codepoints(self)
     return function()
         local cp = cache or codepoint()
         cache = nil
@@ -84,24 +95,25 @@ function string:filteredcodepoints()
         end
     end
 end
+string.filteredcodepoints = filteredcodepoints
 
 ---Returns an iterator that returns individual lines in a string, handling any format of newline
 ---@param self string
 ---@return function Iterator
 function string:lines()
-    local codepoints = string.filteredcodepoints(self)
+    local points = filteredcodepoints(self)
     return function()
         local line = {}
         local i = 0
-        for c in codepoints do
+        for c in points do
             if c == '\n' then
-                return table.concat(line)
+                return concat(line)
             end
             i = i + 1
             line[i] = c
         end
         if #line > 0 then
-            return table.concat(line)
+            return concat(line)
         end
     end
 end
@@ -110,8 +122,8 @@ end
 ---@param self string
 ---@return string
 function string:trim()
-    local from = self:match '^%s*()'
-    return from > #self and '' or self:match('.*%S', from)
+    local from = match(self, '^%s*()')
+    return from > len(self) and '' or match(self, '.*%S', from)
 end
 
 ---Returns the Levenshtein distance between two strings
@@ -119,7 +131,7 @@ end
 ---@param B string
 ---@return number
 function string:distance(B)
-    local la, lb, x = self:len(), B:len(), {}
+    local la, lb, x = len(self), len(B), {}
     if la == 0 then
         return lb
     end
@@ -133,9 +145,9 @@ function string:distance(B)
         x[i] = i
     end
     for r = 1, la do
-        local t, l, v = r - 1, r, self:sub(r, r)
+        local t, l, v = r - 1, r, sub(self, r, r)
         for c = 1, lb do
-            if v ~= B:sub(c, c) then
+            if v ~= sub(B, c, c) then
                 if x[c] < t then
                     t = x[c]
                 end
@@ -153,8 +165,8 @@ end
 ---returns an iterator that returns valid utf-8 codepoints in a string but also returns and flags invalid data by returning true as a second parameter
 ---@param self string
 ---@return function
-function string:utf8()
-    local index, max, nextvalid, nextindex = 0, string.len(self)
+local function utf8(self)
+    local index, max, nextvalid, nextindex = 0, len(self)
 
     ---@param left number
     ---@return string|nil
@@ -162,7 +174,7 @@ function string:utf8()
     ---@return number|nil
     local function find_codepoint(left)
         if left <= max then
-            local c = string.byte(self, left, left)
+            local c = ascii(self, left, left)
             local cont_bytes
             if c < 128 then
                 cont_bytes = 0
@@ -177,9 +189,9 @@ function string:utf8()
             end
             local right = left + cont_bytes
             if right <= max then
-                local ret = string.sub(self, left, right)
+                local ret = sub(self, left, right)
                 for i = 2, cont_bytes + 1 do
-                    c = string.byte(ret, i, i)
+                    c = ascii(ret, i, i)
                     if c < 0x80 or c > 0xbf then
                         return find_codepoint(left + 1)
                     end
@@ -203,101 +215,102 @@ function string:utf8()
             index = index + 1
             local codepoint, left, right = find_codepoint(index)
             if not codepoint then
-                local ret = string.sub(self, index, max)
+                local ret = sub(self, index, max)
                 index = max
                 return ret, false
             end
             if left > index then
                 nextvalid, nextindex = codepoint, right
-                return string.sub(self, index, left - 1), false
+                return sub(self, index, left - 1), false
             end
             index = right
             return codepoint, true
         end
     end
 end
+string.utf8 = utf8
 
-function string:is_utf8()
-    for _, x in string.utf8(self) do
+local function is_utf8(self)
+    for _, x in utf8(self) do
         if not x then
             return false
         end
     end
     return true
 end
+string.is_utf8 = is_utf8
 
 function string:count(patt)
     local count = 0
-    for _ in string.gmatch(self, patt) do
+    for _ in gmatch(self, patt) do
         count = count + 1
     end
     return count
 end
 
-local verbatim_newline_count = 3
-local function escape_char(char)
-    if char == '\\' then
+local function escape_char(c)
+    if c == '\\' then
         return '\\\\'
-    elseif char == '\v' then
+    elseif c == '\v' then
         return '\\v'
-    elseif char == '\t' then
+    elseif c == '\t' then
         return '\\t'
-    elseif char == '\r' then
+    elseif c == '\r' then
         return '\\r'
-    elseif char == '\n' then
+    elseif c == '\n' then
         return '\\n'
-    elseif char == '\f' then
+    elseif c == '\f' then
         return '\\f'
-    elseif char == '\b' then
+    elseif c == '\b' then
         return '\\b'
-    elseif char == '\a' then
+    elseif c == '\a' then
         return '\\a'
     else
-        local b = string.byte(char)
+        local b = ascii(c)
         if b < 32 or b >= 127 then
             local ret = { '\\' }
             local i = 0
             local str = tostring(b)
-            for _ = string.len(str), 2 do
+            for _ = len(str), 2 do
                 i = i + 1
                 ret[i] = '0'
             end
             i = i + 1
             ret[i] = str
-            return table.concat(ret)
+            return concat(ret)
         else
-            return char
+            return c
         end
     end
-    return char
+    return c
 end
 
 function string:escape()
     local S = nil
-    if string.is_utf8(self) and not string.find(self, '\r') then
+    if is_utf8(self) and not find(self, '\r') then
         local term_parts = { ']', ']' }
         local idx = 2
-        while string.find(self, table.concat(term_parts)) do
-            table.insert(term_parts, idx, '=')
+        while find(self, concat(term_parts)) do
+            insert(term_parts, idx, '=')
             idx = idx + 1
         end
-        local close_term = table.concat(term_parts)
+        local close_term = concat(term_parts)
         term_parts[1], term_parts[#term_parts] = '[', '['
-        local open_term = table.concat(term_parts)
-        if string.sub(self, 1, 1) == '\n' then
+        local open_term = concat(term_parts)
+        if sub(self, 1, 1) == '\n' then
             open_term = open_term .. '\n'
         end
         S = open_term .. self .. close_term
     end
     local ret, idx = {}, 0
-    for data, utf8 in string.utf8(self) do
-        if utf8 then
+    for data, u in utf8(self) do
+        if u then
             idx = idx + 1
             ret[idx] = escape_char(data)
         else
-            for i = 1, string.len(data) do
+            for i = 1, len(data) do
                 idx = idx + 1
-                ret[idx] = escape_char(string.sub(data, i, i))
+                ret[idx] = escape_char(sub(data, i, i))
             end
         end
     end
@@ -321,8 +334,8 @@ function string:escape()
     end
     idx = idx + 1
     ret[idx] = a
-    local S2 = a .. table.concat(ret)
-    return S and string.len(S) < string.len(S2) and S or S2
+    local S2 = a .. concat(ret)
+    return S and len(S) < len(S2) and S or S2
 end
 
 return string
