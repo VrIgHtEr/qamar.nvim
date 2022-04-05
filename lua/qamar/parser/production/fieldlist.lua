@@ -16,30 +16,37 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begin = p.begin
+
 return function(self)
     local f = field(self)
     if f then
         local pos = { left = f.pos.left, right = f.pos.right }
         local ret, idx = setmetatable({ f, type = n.fieldlist, pos = pos }, mt), 2
         while true do
-            local tok = self:peek()
+            local tok = peek(self)
             if tok and (tok.type == token.comma or tok.type == token.semicolon) then
-                self:begin()
-                self:take()
+                begin(self)
+                take(self)
                 f = field(self)
                 if not f then
-                    self:undo()
+                    undo(self)
                     break
                 end
                 ret[idx], idx = f, idx + 1
-                self:commit()
+                commit(self)
             else
                 break
             end
         end
-        local tok = self:peek()
+        local tok = peek(self)
         if tok and (tok.type == token.comma or tok.type == token.semicolon) then
-            self:take()
+            take(self)
         end
         return ret
     end

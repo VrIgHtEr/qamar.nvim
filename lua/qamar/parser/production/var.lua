@@ -1,12 +1,17 @@
 local n = require 'qamar.parser.types'
 local expression = require 'qamar.parser.production.expression'
 
+local p = require 'qamar.parser'
+local commit = p.commit
+local undo = p.undo
+local begin = p.begin
+
 return function(self)
-    self:begin()
+    begin(self)
     local ret = expression(self)
     if ret and (ret.type == n.name or ret.type == n.table_nameaccess or ret.type == n.table_rawaccess) then
-        self:commit()
+        commit(self)
         return ret
     end
-    self:undo()
+    undo(self)
 end

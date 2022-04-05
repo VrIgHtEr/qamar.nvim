@@ -16,23 +16,29 @@ local mt = {
 local attnamelist = require 'qamar.parser.production.attnamelist'
 local explist = require 'qamar.parser.production.explist'
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and tok.type == token.kw_local then
-        self:begintake()
+        begintake(self)
         local names = attnamelist(self)
         if names then
             local ret = setmetatable({ names = names, type = n.stat_localvar, pos = { left = tok.pos.left } }, mt)
-            self:commit()
-            tok = self:peek()
+            commit(self)
+            tok = peek(self)
             if tok and tok.type == token.assignment then
-                self:begintake()
+                begintake(self)
                 ret.values = explist(self)
                 if ret.values then
-                    self:commit()
+                    commit(self)
                     ret.pos.right = ret.values.pos.right
                 else
-                    self:undo()
+                    undo(self)
                     ret.pos.right = names.pos.right
                 end
             else
@@ -40,6 +46,6 @@ return function(self)
             end
             return ret
         end
-        self:undo()
+        undo(self)
     end
 end

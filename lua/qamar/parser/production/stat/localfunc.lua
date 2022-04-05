@@ -10,17 +10,24 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local kw_local = self:peek()
+    local kw_local = peek(self)
     if kw_local and kw_local.type == token.kw_local then
-        self:begintake()
-        local kw_function = self:take()
+        begintake(self)
+        local kw_function = take(self)
         if kw_function and kw_function.type == token.kw_function then
             local funcname = name(self)
             if funcname then
                 local body = funcbody(self)
                 if body then
-                    self:commit()
+                    commit(self)
                     return setmetatable(
                         { name = funcname, body = body, type = n.stat_localfunc, pos = { left = kw_local.pos.left, right = body.pos.right } },
                         mt
@@ -28,6 +35,6 @@ return function(self)
                 end
             end
         end
-        self:undo()
+        undo(self)
     end
 end

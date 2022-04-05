@@ -17,22 +17,29 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local lparen = self:peek()
+    local lparen = peek(self)
     if lparen and lparen.type == token.lparen then
-        self:begintake()
+        begintake(self)
         local pars = parlist(self)
-        local tok = self:take()
+        local tok = take(self)
         if tok and tok.type == token.rparen then
             local body = block(self)
             if body then
-                tok = self:take()
+                tok = take(self)
                 if tok and tok.type == token.kw_end then
-                    self:commit()
+                    commit(self)
                     return setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
                 end
             end
         end
-        self:undo()
+        undo(self)
     end
 end

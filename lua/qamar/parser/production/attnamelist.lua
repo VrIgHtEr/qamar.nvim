@@ -22,6 +22,13 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local begin = p.begin
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+
 return function(self)
     local n = name(self)
     if n then
@@ -38,16 +45,16 @@ return function(self)
         }, mt)
         local idx = 0
         while true do
-            local t = self:peek()
+            local t = peek(self)
             if not t or t.type ~= token.comma then
                 break
             end
-            self:begin()
-            self:take()
+            begin(self)
+            take(self)
             n = name(self)
             if n then
                 a = attribute(self)
-                self:commit()
+                commit(self)
                 idx = idx + 1
                 ret[idx] = {
                     name = n,
@@ -56,7 +63,7 @@ return function(self)
                     pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
                 }
             else
-                self:undo()
+                undo(self)
                 break
             end
         end

@@ -19,6 +19,12 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local begintake = p.begintake
+local commit = p.commit
+local undo = p.undo
+
 return function(self)
     local v = vararg(self)
     if v then
@@ -31,16 +37,16 @@ return function(self)
             for i, x in ipairs(v) do
                 ret[i] = x
             end
-            v = self:peek()
+            v = peek(self)
             if v and v.type == token.comma then
-                self:begintake()
+                begintake(self)
                 v = vararg(self)
                 if v then
-                    self:commit()
+                    commit(self)
                     idx = idx + 1
                     ret[idx] = v
                 else
-                    self:undo()
+                    undo(self)
                 end
             end
             ret.pos.right = ret[#ret].pos.right

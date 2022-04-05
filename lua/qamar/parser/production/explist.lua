@@ -18,25 +18,32 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begin = p.begin
+
 return function(self)
     local v = expression(self)
     if v then
         local ret = setmetatable({ v, type = n.explist, pos = { left = v.pos.left } }, mt)
         local idx = 0
         while true do
-            local t = self:peek()
+            local t = peek(self)
             if not t or t.type ~= token.comma then
                 break
             end
-            self:begin()
-            self:take()
+            begin(self)
+            take(self)
             v = expression(self)
             if v then
-                self:commit()
+                commit(self)
                 idx = idx + 1
                 ret[idx] = v
             else
-                self:undo()
+                undo(self)
                 break
             end
         end

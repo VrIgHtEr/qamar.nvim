@@ -6,10 +6,15 @@ local mt = {
         return '...'
     end,
 }
+
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+
 return function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and tok.type == token.tripledot then
-        self:take()
+        take(self)
         return setmetatable({ type = n.vararg, pos = tok.pos }, mt)
     end
 end

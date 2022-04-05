@@ -19,65 +19,72 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and tok.type == token.kw_if then
-        local kw_if = self:begintake()
+        local kw_if = begintake(self)
         local condition = expression(self)
         if condition then
-            tok = self:take()
+            tok = take(self)
             if tok and tok.type == token.kw_then then
                 local body = block(self)
                 if body then
                     local conditions, bodies = { condition }, { body }
                     local cidx, bidx = 1, 1
                     while true do
-                        tok = self:peek()
+                        tok = peek(self)
                         if not tok or tok.type ~= token.kw_elseif then
                             break
                         end
-                        self:begintake()
+                        begintake(self)
                         condition = expression(self)
                         if condition then
-                            tok = self:take()
+                            tok = take(self)
                             if tok and tok.type == token.kw_then then
                                 body = block(self)
                                 if body then
-                                    self:commit()
+                                    commit(self)
                                     cidx = cidx + 1
                                     conditions[cidx] = condition
                                     bidx = bidx + 1
                                     bodies[bidx] = body
                                 else
-                                    self:undo()
+                                    undo(self)
                                     break
                                 end
                             else
-                                self:undo()
+                                undo(self)
                                 break
                             end
                         else
-                            self:undo()
+                            undo(self)
                             break
                         end
                     end
 
-                    tok = self:peek()
+                    tok = peek(self)
                     if tok and tok.type == token.kw_else then
-                        self:begintake()
+                        begintake(self)
                         body = block(self)
                         if body then
-                            self:commit()
+                            commit(self)
                             bidx = bidx + 1
                             bodies[bidx] = body
                         else
-                            self:undo()
+                            undo(self)
                         end
                     end
 
-                    tok = self:take()
+                    tok = take(self)
                     if tok and tok.type == token.kw_end then
-                        self:commit()
+                        commit(self)
                         return setmetatable({
                             conditions = conditions,
                             bodies = bodies,
@@ -88,6 +95,6 @@ return function(self)
                 end
             end
         end
-        self:undo()
+        undo(self)
     end
 end

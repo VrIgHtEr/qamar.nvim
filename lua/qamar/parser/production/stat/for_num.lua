@@ -18,37 +18,44 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local kw_for = self:peek()
+    local kw_for = peek(self)
     if kw_for and kw_for.type == token.kw_for then
-        self:begintake()
+        begintake(self)
         local varname = name(self)
         if varname then
-            local tok = self:take()
+            local tok = take(self)
             if tok and tok.type == token.assignment then
                 local start = expression(self)
                 if start then
-                    tok = self:take()
+                    tok = take(self)
                     if tok and tok.type == token.comma then
                         local finish = expression(self)
                         if finish then
                             local increment = nil
-                            tok = self:peek()
+                            tok = peek(self)
                             if tok and tok.type == token.comma then
-                                self:begintake()
+                                begintake(self)
                                 increment = expression(self)
                                 if increment then
-                                    self:commit()
+                                    commit(self)
                                 else
-                                    self:undo()
+                                    undo(self)
                                 end
                             end
-                            tok = self:take()
+                            tok = take(self)
                             if tok and tok.type == token.kw_do then
                                 local body = block(self)
-                                tok = self:take()
+                                tok = take(self)
                                 if tok and tok.type == token.kw_end then
-                                    self:commit()
+                                    commit(self)
                                     return setmetatable({
                                         name = varname,
                                         start = start,
@@ -65,6 +72,6 @@ return function(self)
                 end
             end
         end
-        self:undo()
+        undo(self)
     end
 end

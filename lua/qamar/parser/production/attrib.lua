@@ -7,25 +7,32 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local less = self:peek()
+    local less = peek(self)
     if not less or less.type ~= token.less then
         return
     end
-    self:begintake()
+    begintake(self)
 
-    local name = self:take()
+    local name = take(self)
     if not name or name.type ~= token.name then
-        self:undo()
+        undo(self)
         return
     end
 
-    local greater = self:take()
+    local greater = take(self)
     if not greater or greater.type ~= token.greater then
-        self:undo()
+        undo(self)
         return
     end
 
-    self:commit()
+    commit(self)
     return setmetatable({ name = name.value, type = n.attrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt)
 end

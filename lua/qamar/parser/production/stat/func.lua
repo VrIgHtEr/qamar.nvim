@@ -5,15 +5,21 @@ local tconcat = require('qamar.util.table').tconcat
 local name = require 'qamar.parser.production.funcname'
 local funcbody = require 'qamar.parser.production.funcbody'
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local kw_function = self:peek()
+    local kw_function = peek(self)
     if kw_function and kw_function.type == token.kw_function then
-        self:begintake()
+        begintake(self)
         local funcname = name(self)
         if funcname then
             local body = funcbody(self)
             if body then
-                self:commit()
+                commit(self)
                 return setmetatable({ name = funcname, body = body, type = n.stat_func, pos = { left = kw_function.pos.left, right = body.pos.right } }, {
                     __tostring = function(s)
                         return tconcat { 'function', s.name, s.body }
@@ -21,6 +27,6 @@ return function(self)
                 })
             end
         end
-        self:undo()
+        undo(self)
     end
 end

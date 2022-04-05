@@ -2,15 +2,21 @@ local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local expression = require 'qamar.parser.production.expression'
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local commit = p.commit
+local undo = p.undo
+local begin = p.begin
+
 return function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and tok.type == token.lbrace then
-        self:begin()
+        begin(self)
         local ret = expression(self)
         if ret and ret.type == n.tableconstructor then
-            self:commit()
+            commit(self)
             return ret
         end
-        self:undo()
+        undo(self)
     end
 end

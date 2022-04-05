@@ -9,15 +9,22 @@ local mt = {
 }
 local varlist = require 'qamar.parser.production.varlist'
 local explist = require 'qamar.parser.production.explist'
+
+local p = require 'qamar.parser'
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begin = p.begin
+
 return function(self)
     local target = varlist(self)
     if target then
-        local tok = self:take()
+        local tok = take(self)
         if tok and tok.type == token.assignment then
-            self:begin()
+            begin(self)
             local value = explist(self)
             if value then
-                self:commit()
+                commit(self)
                 return setmetatable({
                     target = target,
                     value = value,
@@ -25,7 +32,7 @@ return function(self)
                     pos = { left = target.pos.left, right = value.pos.right },
                 }, mt)
             end
-            self:undo()
+            undo(self)
         end
     end
 end

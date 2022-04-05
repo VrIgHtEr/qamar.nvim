@@ -10,15 +10,21 @@ local mt = {
     end,
 }
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local kw_goto = self:peek()
+    local kw_goto = peek(self)
     if kw_goto and kw_goto.type == token.kw_goto then
-        self:begintake()
+        begintake(self)
         local label = name(self)
         if label then
-            self:commit()
+            commit(self)
             return setmetatable({ type = n.stat_goto, label = label, pos = { left = kw_goto.pos.left, right = label.pos.right } }, mt)
         end
-        self:undo()
+        undo(self)
     end
 end

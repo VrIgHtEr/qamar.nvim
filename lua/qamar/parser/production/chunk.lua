@@ -1,17 +1,21 @@
+local p = require 'qamar.parser'
+local peek = p.peek
+local block = p.block
+
 return function(self)
-    if self:peek() then
+    if peek(self) then
         self.cache = {}
-        local ret = self:block()
-        local peek = self.la[self.la.size()] or nil
+        local ret = block(self)
+        local nxt = self.la[self.la.size()] or nil
         if ret then
-            if peek then
-                error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+            if nxt then
+                error('UNMATCHED TOKEN: ' .. tostring(nxt) .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
             end
             return ret
-        elseif peek then
-            error('UNMATCHED TOKEN: ' .. tostring(peek) .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+        elseif nxt then
+            error('UNMATCHED TOKEN: ' .. tostring(nxt) .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
         else
-            error('PARSE_FAILURE' .. ' at line ' .. peek.pos.left.row .. ', col ' .. peek.pos.left.col)
+            error('PARSE_FAILURE' .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
         end
     else
         return setmetatable({}, {

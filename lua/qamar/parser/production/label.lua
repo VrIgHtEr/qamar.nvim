@@ -9,25 +9,32 @@ local mt = {
 
 local name = require 'qamar.parser.production.name'
 
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local left = self:peek()
+    local left = peek(self)
     if not left or left.type ~= token.doublecolon then
         return
     end
-    self:begintake()
+    begintake(self)
 
     local nam = name(self)
     if not nam then
-        self:undo()
+        undo(self)
         return
     end
 
-    local right = self:take()
+    local right = take(self)
     if not right or right.type ~= token.doublecolon then
-        self:undo()
+        undo(self)
         return
     end
 
-    self:commit()
+    commit(self)
     return setmetatable({ name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt)
 end

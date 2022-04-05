@@ -10,19 +10,27 @@ local mt = {
 
 local expression = require 'qamar.parser.production.expression'
 local block = require 'qamar.parser.production.block'
+
+local p = require 'qamar.parser'
+local peek = p.peek
+local take = p.take
+local commit = p.commit
+local undo = p.undo
+local begintake = p.begintake
+
 return function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and tok.type == token.kw_while then
-        local kw_while = self:begintake()
+        local kw_while = begintake(self)
         local condition = expression(self)
         if condition then
-            tok = self:take()
+            tok = take(self)
             if tok and tok.type == token.kw_do then
                 local body = block(self)
                 if body then
-                    tok = self:take()
+                    tok = take(self)
                     if tok and tok.type == token.kw_end then
-                        self:commit()
+                        commit(self)
                         return setmetatable({
                             condition = condition,
                             body = body,
@@ -33,6 +41,6 @@ return function(self)
                 end
             end
         end
-        self:undo()
+        undo(self)
     end
 end
