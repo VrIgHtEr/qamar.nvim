@@ -35,6 +35,10 @@ local symbols = {
     ['...'] = token.tripledot,
 }
 
+local pairs, ipairs = pairs, ipairs
+local tsort = table.sort
+local slen = string.len
+
 local t = {}
 do
     local i = 0
@@ -42,8 +46,8 @@ do
         i = i + 1
         t[i] = k
     end
-    table.sort(t, function(a, b)
-        local al, bl = a:len(), b:len()
+    tsort(t, function(a, b)
+        local al, bl = slen(a), slen(b)
         if al ~= bl then
             return al > bl
         end
@@ -51,9 +55,18 @@ do
     end)
 end
 
+local s = require 'qamar.tokenizer.char_stream'
+local begin = s.begin
+local skipws = s.skipws
+local spos = s.pos
+local resume_skip_ws = s.resume_skip_ws
+local undo = s.undo
+local commit = s.commit
+local try_consume_string = s.try_consume_string
+
 local function parser(self)
     for _, x in ipairs(t) do
-        if self:try_consume_string(x) then
+        if try_consume_string(self, x) then
             return x
         end
     end
@@ -65,21 +78,21 @@ local MT = {
     end,
 }
 return function(self)
-    self:begin()
-    self:skipws()
-    local pos = self:pos()
+    begin(self)
+    skipws(self)
+    local pos = spos(self)
     local ret = parser(self)
     if ret then
-        self:commit()
-        self:resume_skip_ws()
+        commit(self)
+        resume_skip_ws(self)
         return setmetatable({
             value = ret,
             type = symbols[ret],
             pos = {
                 left = pos,
-                right = self:pos(),
+                right = spos(self),
             },
         }, MT)
     end
-    self:undo()
+    undo(self)
 end

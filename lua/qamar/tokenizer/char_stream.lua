@@ -1,6 +1,9 @@
 local string, deque = require 'qamar.util.string', require 'qamar.util.deque'
 
 local function emptyfunc() end
+local concat = table.concat
+local slen = string.len
+local sutf8 = string.utf8
 
 local M = {}
 local MT = {
@@ -14,13 +17,13 @@ local MT = {
             local c = self.la[i]
             line[2] = vim.inspect(c)
             idx = idx + 1
-            ret[idx] = table.concat(line)
+            ret[idx] = concat(line)
         end
         if self.t.index == self.la.size() then
             idx = idx + 1
             ret[idx] = '==>'
         end
-        return table.concat(ret, '\n')
+        return concat(ret, '\n')
     end,
 }
 
@@ -32,7 +35,6 @@ local function transaction_copy(self)
         col = self.col,
         byte = self.byte,
         file_byte = self.file_byte,
-        copy = transaction_copy,
     }
 end
 
@@ -65,21 +67,20 @@ function M.new(input)
             col = 1,
             byte = 0,
             file_byte = 0,
-            copy = transaction_copy,
         },
     }, MT)
 end
 
 function M:begin()
     self.tc = self.tc + 1
-    self.ts[self.tc] = self.t:copy()
+    self.ts[self.tc] = transaction_copy(self.t)
 end
 
 function M:undo()
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
 end
 
-function M:normalize()
+local function normalize(self)
     if self.tc == 0 then
         for _ = 1, self.t.index do
             self.la.pop_front()
@@ -87,13 +88,14 @@ function M:normalize()
         self.t.index = 0
     end
 end
+M.normalize = normalize
 
 function M:commit()
     self.ts[self.tc], self.tc = nil, self.tc - 1
-    self:normalize()
+    return normalize(self)
 end
 
-function M:fill(amt)
+local function fill(self, amt)
     while self.la.size() < amt do
         local c = self.input()
         if c then
@@ -104,25 +106,27 @@ function M:fill(amt)
         end
     end
 end
+M.fill = fill
 
-function M:peek(skip)
+local function peek(self, skip)
     skip = skip == nil and 0 or skip
     local idx = self.t.index + skip + 1
-    self:fill(idx)
+    fill(self, idx)
     return self.la[idx] or nil
 end
+M.peek = peek
 
-function M:take(amt)
+local function take(self, amt)
     amt = amt == nil and 1 or amt
     local idx = self.t.index + amt
-    self:fill(idx)
+    fill(self, idx)
     local ret = {}
     for i = 1, amt do
         local c = self.la[self.t.index + 1]
         if not c then
             break
         else
-            local off = c:len()
+            local off = slen(c)
             self.t.file_char, self.t.file_byte = self.t.file_char + 1, self.t.file_byte + off
             if c == '\n' then
                 self.t.row, self.t.col, self.t.byte = self.t.row + 1, 1, 0
@@ -133,9 +137,10 @@ function M:take(amt)
         end
         self.t.index = self.t.index + 1
     end
-    self:normalize()
-    return #ret > 0 and table.concat(ret) or nil
+    normalize(self)
+    return #ret > 0 and concat(ret) or nil
 end
+M.take = take
 
 function M:pos()
     return { file_char = self.t.file_char, row = self.t.row, col = self.t.col, file_byte = self.t.file_byte, byte = self.t.byte }
@@ -143,24 +148,24 @@ end
 
 function M:try_consume_string(s)
     local i = 0
-    for x in string.utf8(s) do
-        local c = self:peek(i)
+    for x in sutf8(s) do
+        local c = peek(self, i)
         if c ~= x then
             return
         end
         i = i + 1
     end
-    return self:take(i)
+    return take(self, i)
 end
 
 function M:skipws()
     if self.skip_ws_ctr == 0 then
         while true do
-            local c = self:peek()
+            local c = peek(self)
             if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
                 break
             end
-            self:take()
+            take(self)
         end
     end
 end
@@ -175,33 +180,35 @@ function M:resume_skip_ws()
     end
 end
 
+local ascii = string.byte
+
 M.ALPHA = function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok then
-        local byte = string.byte(tok)
+        local byte = ascii(tok)
         if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte == 95 then
-            self:take()
+            take(self)
             return tok
         end
     end
 end
 
 M.NUMERIC = function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok then
-        local byte = string.byte(tok)
+        local byte = ascii(tok)
         if byte >= 48 and byte <= 57 then
-            return self:take()
+            return take(self)
         end
     end
 end
 
 M.ALPHANUMERIC = function(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok then
-        local byte = string.byte(tok)
+        local byte = ascii(tok)
         if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte >= 48 and byte <= 57 or byte == 95 then
-            return self:take()
+            return take(self)
         end
     end
 end

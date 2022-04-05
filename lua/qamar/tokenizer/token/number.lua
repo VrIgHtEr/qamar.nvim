@@ -1,6 +1,21 @@
 local token = require 'qamar.tokenizer.types'
 local s = require 'qamar.tokenizer.char_stream'
 
+local begin = s.begin
+local skipws = s.skipws
+local suspend_skip_ws = s.suspend_skip_ws
+local spos = s.pos
+local resume_skip_ws = s.resume_skip_ws
+local undo = s.undo
+local commit = s.commit
+local numeric = s.numeric
+local peek = s.peek
+local take = s.take
+local try_consume_string = s.try_consume_string
+local sbyte = string.byte
+local slower = string.lower
+local concat = table.concat
+
 local MT = {
     __tostring = function(self)
         return self.value
@@ -8,59 +23,59 @@ local MT = {
 }
 
 local function hex_start_parser(self)
-    return self:try_consume_string '0x' or self:try_consume_string '0X'
+    return try_consume_string(self, '0x') or try_consume_string(self, '0X')
 end
 
 local function hex_digit_parser(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok then
-        local b = tok:byte()
+        local b = sbyte(tok)
         if b >= 48 and b <= 57 or b >= 97 and b <= 102 or b >= 65 and b <= 70 then
-            return self:take()
+            return take(self)
         end
     end
 end
 
 local function hex_exponent_parser(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and (tok == 'p' or tok == 'P') then
-        return self:take()
+        return take(self)
     end
 end
 
 local function decimal_exponent_parser(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and (tok == 'e' or tok == 'E') then
-        return self:take()
+        return take(self)
     end
 end
 
 local function sign_parser(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and (tok == '-' or tok == '+') then
-        return self:take()
+        return take(self)
     end
 end
 
 return function(self)
-    self:begin()
-    self:skipws()
-    self:suspend_skip_ws()
+    begin(self)
+    skipws(self)
+    suspend_skip_ws(self)
     local function fail()
-        self:resume_skip_ws()
-        self:undo()
+        resume_skip_ws(self)
+        undo(self)
     end
-    local pos = self:pos()
+    local pos = spos(self)
     local val = hex_start_parser(self)
     local ret = {}
     local idx = 0
     local digitparser, exponentparser
     if val then
         idx = idx + 1
-        ret[idx] = val:lower()
+        ret[idx] = slower(val)
         digitparser, exponentparser = hex_digit_parser, hex_exponent_parser
     else
-        digitparser, exponentparser = s.NUMERIC, decimal_exponent_parser
+        digitparser, exponentparser = numeric, decimal_exponent_parser
     end
 
     val = digitparser(self)
@@ -69,11 +84,11 @@ return function(self)
     end
     while val ~= nil do
         idx = idx + 1
-        ret[idx] = val:lower()
+        ret[idx] = slower(val)
         val = digitparser(self)
     end
 
-    val = self:try_consume_string '.'
+    val = try_consume_string(self, '.')
     if val then
         idx = idx + 1
         ret[idx] = val
@@ -83,7 +98,7 @@ return function(self)
         end
         while val ~= nil do
             idx = idx + 1
-            ret[idx] = val:lower()
+            ret[idx] = slower(val)
             val = digitparser(self)
         end
     end
@@ -93,25 +108,25 @@ return function(self)
         idx = idx + 1
         ret[idx] = val
         local sign = sign_parser(self)
-        val = self:numeric()
+        val = numeric(self)
         if sign and not val then
             return fail()
         end
         while val ~= nil do
             idx = idx + 1
-            ret[idx] = val:lower()
+            ret[idx] = slower(val)
             val = digitparser(self)
         end
     end
 
-    self:resume_skip_ws()
-    self:commit()
+    resume_skip_ws(self)
+    commit(self)
     return setmetatable({
-        value = table.concat(ret),
+        value = concat(ret),
         type = token.number,
         pos = {
             left = pos,
-            right = self:pos(),
+            right = spos(self),
         },
     }, MT)
 end

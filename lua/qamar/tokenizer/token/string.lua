@@ -1,19 +1,41 @@
 local token = require 'qamar.tokenizer.types'
 local string = require 'qamar.util.string'
 
+local stream = require 'qamar.tokenizer.char_stream'
+local begin = stream.begin
+local skipws = stream.skipws
+local suspend_skip_ws = stream.suspend_skip_ws
+local spos = stream.pos
+local try_consume_string = stream.try_consume_string
+local resume_skip_ws = stream.resume_skip_ws
+local undo = stream.undo
+local commit = stream.commit
+local peek = stream.peek
+local take = stream.take
+
+local sbyte = string.byte
+local slen = string.len
+local schar = string.char
+local ssub = string.sub
+local sescape = string.escape
+local sfind = string.find
+
+local concat = table.concat
+local ipairs = ipairs
+
 local function tohexdigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
-        return string.byte(c) - 48
+        return sbyte(c) - 48
     elseif c == 'a' or c == 'b' or c == 'c' or c == 'd' or c == 'e' or c == 'f' then
-        return string.byte(c) - 87
+        return sbyte(c) - 87
     elseif c == 'a' or c == 'b' or c == 'c' or c == 'd' or c == 'e' or c == 'f' then
-        return string.byte(c) - 55
+        return sbyte(c) - 55
     end
 end
 
 local function todecimaldigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
-        return string.byte(c) - 48
+        return sbyte(c) - 48
     end
 end
 
@@ -24,15 +46,15 @@ local function utf8_encode(hex)
         for i, x in ipairs(hex) do
             binstr[i] = hex_to_binary_table[x + 1]
         end
-        binstr = table.concat(binstr)
-        local len, idx = string.len(binstr), binstr:find '1'
+        binstr = concat(binstr)
+        local len, idx = slen(binstr), sfind(binstr, '1')
         if not idx then
-            return string.char(0)
+            return schar(0)
         elseif len ~= 32 or idx ~= 1 then
             local bits = len + 1 - idx
-            binstr = string.sub(binstr, bits)
+            binstr = ssub(binstr, bits)
             if bits <= 7 then
-                return string.char(tonumber(bits, 2))
+                return schar(tonumber(bits, 2))
             else
                 local cont_bytes, rem, max
                 if bits <= 6 * 1 + 5 then
@@ -57,15 +79,15 @@ local function utf8_encode(hex)
                     s = '1' .. s
                 end
                 s = '0' .. s
-                s = s .. string.sub(binstr, 1, rem)
+                s = s .. ssub(binstr, 1, rem)
                 index = index + 1
-                ret[index] = string.char(tonumber(s, 2))
-                binstr = string.sub(binstr, rem + 1)
+                ret[index] = schar(tonumber(s, 2))
+                binstr = ssub(binstr, rem + 1)
                 for x = 1, cont_bytes * 6 - 1, 6 do
                     index = index + 1
-                    ret[index] = string.char(tonumber('10' .. string.sub(binstr, x, x + 5), 2))
+                    ret[index] = schar(tonumber('10' .. ssub(binstr, x, x + 5), 2))
                 end
-                return table.concat(ret)
+                return concat(ret)
             end
         end
     end
@@ -73,27 +95,27 @@ end
 
 local MT = {
     __tostring = function(self)
-        return string.escape(self.value)
+        return sescape(self.value)
     end,
 }
 
 local function terminator_parser(self)
-    local tok = self:peek()
+    local tok = peek(self)
     if tok and (tok == "'" or tok == '"') then
-        return self:take()
+        return take(self)
     end
 end
 
 local function long_form_parser(self)
-    local start = self:peek()
+    local start = peek(self)
     if start and start == '[' then
-        self:begin()
-        self:take()
+        begin(self)
+        take(self)
         local ret = { '[' }
         local idx = 1
         local n
         while true do
-            n = self:take()
+            n = take(self)
             if n ~= '=' then
                 break
             end
@@ -101,23 +123,23 @@ local function long_form_parser(self)
             ret[idx] = '='
         end
         if n == '[' then
-            self:commit()
+            commit(self)
             idx = idx + 1
             ret[idx] = '['
-            return table.concat(ret)
+            return concat(ret)
         end
-        self:undo()
+        undo(self)
     end
 end
 
 return function(self, disallow_short_form)
-    self:begin()
-    self:skipws()
-    local pos = self:pos()
-    self:suspend_skip_ws()
+    begin(self)
+    skipws(self)
+    local pos = spos(self)
+    suspend_skip_ws(self)
     local function fail()
-        self:resume_skip_ws()
-        self:undo()
+        resume_skip_ws(self)
+        undo(self)
     end
     local ret = {}
     local i = 0
@@ -127,11 +149,11 @@ return function(self, disallow_short_form)
             return fail()
         end
         while true do
-            local c = self:take()
+            local c = take(self)
             if c == t then
                 break
             elseif c == '\\' then
-                c = self:take()
+                c = take(self)
                 if c == 'a' then
                     i = i + 1
                     ret[i] = '\a'
@@ -166,31 +188,31 @@ return function(self, disallow_short_form)
                     i = i + 1
                     ret[i] = '\n'
                 elseif c == 'z' then
-                    self:skipws()
+                    skipws(self)
                 elseif c == 'x' then
-                    local c1 = tohexdigit(self:take())
-                    local c2 = tohexdigit(self:take())
+                    local c1 = tohexdigit(take(self))
+                    local c2 = tohexdigit(take(self))
                     if not c1 or not c2 then
                         return fail()
                     end
                     i = i + 1
-                    ret[i] = string.char(c1 * 16 + c2)
+                    ret[i] = schar(c1 * 16 + c2)
                 elseif c == 'u' then
-                    if self:take() ~= '{' then
+                    if take(self) ~= '{' then
                         return fail()
                     end
                     local digits = {}
                     local idx = 0
                     while #digits < 8 do
-                        local nextdigit = tohexdigit(self:peek())
+                        local nextdigit = tohexdigit(peek(self))
                         if not nextdigit then
                             break
                         end
-                        self:take()
+                        take(self)
                         idx = idx + 1
                         digits[idx] = nextdigit
                     end
-                    if self:take() ~= '}' then
+                    if take(self) ~= '}' then
                         return fail()
                     end
                     local s = utf8_encode(digits)
@@ -203,11 +225,11 @@ return function(self, disallow_short_form)
                     local digits = { todecimaldigit(c) }
                     local idx = 1
                     while #digits < 3 do
-                        local nextdigit = todecimaldigit(self:peek())
+                        local nextdigit = todecimaldigit(peek(self))
                         if not nextdigit then
                             break
                         end
-                        self:take()
+                        take(self)
                         idx = idx + 1
                         digits[idx] = nextdigit
                     end
@@ -219,7 +241,7 @@ return function(self, disallow_short_form)
                         return fail()
                     end
                     i = i + 1
-                    ret[i] = string.char(num)
+                    ret[i] = schar(num)
                 else
                     return fail()
                 end
@@ -235,34 +257,34 @@ return function(self, disallow_short_form)
         if t then
             local closing = { ']' }
             local idx = 1
-            for _ = 1, t:len() - 2 do
+            for _ = 1, slen(t) - 2 do
                 idx = idx + 1
                 closing[idx] = '='
             end
             idx = idx + 1
             closing[idx] = ']'
-            closing = table.concat(closing)
-            if self:peek() == '\n' then
-                self:take()
+            closing = concat(closing)
+            if peek(self) == '\n' then
+                take(self)
             end
             while true do
-                local closed = self:try_consume_string(closing)
+                local closed = try_consume_string(self, closing)
                 if closed then
                     break
                 end
-                t = self:take()
+                t = take(self)
                 if not t then
                     return fail()
                 elseif t == '\r' then
-                    t = self:peek()
+                    t = peek(self)
                     if t == '\n' then
-                        self:take()
+                        take(self)
                     end
                     i = i + 1
                     ret[i] = '\n'
                 elseif t == '\n' then
                     if t == '\r' then
-                        self:take()
+                        take(self)
                     end
                     i = i + 1
                     ret[i] = '\n'
@@ -275,15 +297,15 @@ return function(self, disallow_short_form)
             return fail()
         end
     end
-    self:commit()
-    self:resume_skip_ws()
-    ret = table.concat(ret)
+    commit(self)
+    resume_skip_ws(self)
+    ret = concat(ret)
     return setmetatable({
         value = ret,
         type = token.string,
         pos = {
             left = pos,
-            right = self:pos(),
+            right = spos(self),
         },
     }, MT)
 end
