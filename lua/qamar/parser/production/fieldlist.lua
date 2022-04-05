@@ -2,6 +2,11 @@ local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local field = require 'qamar.parser.production.field'
+local ipairs = ipairs
+local setmetatable = setmetatable
+local nfieldlist = n.fieldlist
+local tcomma = token.comma
+local tsemicolon = token.semicolon
 
 local mt = {
     __tostring = function(self)
@@ -27,10 +32,10 @@ return function(self)
     local f = field(self)
     if f then
         local pos = { left = f.pos.left, right = f.pos.right }
-        local ret, idx = setmetatable({ f, type = n.fieldlist, pos = pos }, mt), 2
+        local ret, idx = setmetatable({ f, type = nfieldlist, pos = pos }, mt), 1
         while true do
             local tok = peek(self)
-            if tok and (tok.type == token.comma or tok.type == token.semicolon) then
+            if tok and (tok.type == tcomma or tok.type == tsemicolon) then
                 begin(self)
                 take(self)
                 f = field(self)
@@ -38,14 +43,15 @@ return function(self)
                     undo(self)
                     break
                 end
-                ret[idx], idx = f, idx + 1
+                idx = idx + 1
+                ret[idx] = f
                 commit(self)
             else
                 break
             end
         end
         local tok = peek(self)
-        if tok and (tok.type == token.comma or tok.type == token.semicolon) then
+        if tok and (tok.type == tcomma or tok.type == tsemicolon) then
             take(self)
         end
         return ret

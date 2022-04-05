@@ -7,13 +7,15 @@ local peek = p.peek
 local commit = p.commit
 local undo = p.undo
 local begin = p.begin
+local tlbrace = token.lbrace
+local ntableconstructor = n.tableconstructor
 
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.lbrace then
+    if tok and tok.type == tlbrace then
         begin(self)
         local ret = expression(self)
-        if ret and ret.type == n.tableconstructor then
+        if ret and ret.type == ntableconstructor then
             commit(self)
             return ret
         end

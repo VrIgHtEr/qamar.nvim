@@ -15,10 +15,13 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tdoublecolon = token.doublecolon
+local setmetatable = setmetatable
+local nlabel = n.label
 
 return function(self)
     local left = peek(self)
-    if not left or left.type ~= token.doublecolon then
+    if not left or left.type ~= tdoublecolon then
         return
     end
     begintake(self)
@@ -30,11 +33,11 @@ return function(self)
     end
 
     local right = take(self)
-    if not right or right.type ~= token.doublecolon then
+    if not right or right.type ~= tdoublecolon then
         undo(self)
         return
     end
 
     commit(self)
-    return setmetatable({ name = nam.value, type = n.label, pos = { left = left.pos.left, right = right.pos.right } }, mt)
+    return setmetatable({ name = nam.value, type = nlabel, pos = { left = left.pos.left, right = right.pos.right } }, mt)
 end

@@ -13,26 +13,31 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tless = token.less
+local tname = token.name
+local tgreater = token.greater
+local setmetatable = setmetatable
+local nattrib = n.attrib
 
 return function(self)
     local less = peek(self)
-    if not less or less.type ~= token.less then
+    if not less or less.type ~= tless then
         return
     end
     begintake(self)
 
     local name = take(self)
-    if not name or name.type ~= token.name then
+    if not name or name.type ~= tname then
         undo(self)
         return
     end
 
     local greater = take(self)
-    if not greater or greater.type ~= token.greater then
+    if not greater or greater.type ~= tgreater then
         undo(self)
         return
     end
 
     commit(self)
-    return setmetatable({ name = name.value, type = n.attrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt)
+    return setmetatable({ name = name.value, type = nattrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt)
 end

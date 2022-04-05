@@ -6,6 +6,7 @@ local tinsert = require('qamar.util.table').tinsert
 local name = require 'qamar.parser.production.name'
 local attribute = require 'qamar.parser.production.attrib'
 
+local ipairs = ipairs
 local mt = {
     __tostring = function(self)
         local ret = {}
@@ -28,6 +29,10 @@ local begin = p.begin
 local take = p.take
 local commit = p.commit
 local undo = p.undo
+local setmetatable = setmetatable
+local nattname = node.attname
+local nattnamelist = node.attnamelist
+local tcomma = token.comma
 
 return function(self)
     local n = name(self)
@@ -37,16 +42,16 @@ return function(self)
             {
                 name = n,
                 attrib = a,
-                type = node.attname,
+                type = nattname,
                 pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
             },
-            type = node.attnamelist,
+            type = nattnamelist,
             pos = { left = n.pos.left },
         }, mt)
-        local idx = 0
+        local idx = 1
         while true do
             local t = peek(self)
-            if not t or t.type ~= token.comma then
+            if not t or t.type ~= tcomma then
                 break
             end
             begin(self)
@@ -59,7 +64,7 @@ return function(self)
                 ret[idx] = {
                     name = n,
                     attrib = a,
-                    type = node.attname,
+                    type = nattname,
                     pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
                 }
             else
@@ -68,7 +73,7 @@ return function(self)
             end
         end
 
-        local last = ret[#ret]
+        local last = ret[idx]
         ret.pos.right = (last.attrib and last.attrib or last.name).pos.right
         return ret
     end

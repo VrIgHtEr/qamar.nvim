@@ -27,15 +27,19 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 local begintake = p.begintake
+local setmetatable = setmetatable
+local nfuncname = n.funcname
+local tdot = token.dot
+local tcolon = token.colon
 
 return function(self)
     local v = name(self)
     if v then
-        local ret = setmetatable({ v, type = n.funcname, pos = { left = v.pos.left } }, mt)
+        local ret = setmetatable({ v, type = nfuncname, pos = { left = v.pos.left } }, mt)
         local idx = 0
         while true do
             local t = peek(self)
-            if not t or t.type ~= token.dot then
+            if not t or t.type ~= tdot then
                 break
             end
             begin(self)
@@ -52,7 +56,7 @@ return function(self)
         end
 
         local tok = peek(self)
-        if tok and tok.type == token.colon then
+        if tok and tok.type == tcolon then
             begintake(self)
             v = name(self)
             if v then

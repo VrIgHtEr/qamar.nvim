@@ -18,14 +18,18 @@ local mt = {
 local p = require 'qamar.parser'
 local peek = p.peek
 local take = p.take
+local tkw_return = token.kw_return
+local setmetatable = setmetatable
+local nretstat = n.retstat
+local tsemicolon = token.semicolon
 
 return function(self)
     local retkw = peek(self)
-    if retkw and retkw.type == token.kw_return then
+    if retkw and retkw.type == tkw_return then
         take(self)
-        local ret = setmetatable({ explist = explist(self), type = n.retstat, pos = { left = retkw.pos.left } }, mt)
+        local ret = setmetatable({ explist = explist(self), type = nretstat, pos = { left = retkw.pos.left } }, mt)
         local tok = peek(self)
-        if tok and tok.type == token.semicolon then
+        if tok and tok.type == tsemicolon then
             take(self)
             ret.pos.right = tok.pos.right
         else

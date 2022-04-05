@@ -23,20 +23,25 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
+local tlparen = token.lparen
+local trparen = token.rparen
+local tkw_end = token.kw_end
+local setmetatable = setmetatable
+local nfuncbody = n.funcbody
 
 return function(self)
     local lparen = peek(self)
-    if lparen and lparen.type == token.lparen then
+    if lparen and lparen.type == tlparen then
         begintake(self)
         local pars = parlist(self)
         local tok = take(self)
-        if tok and tok.type == token.rparen then
+        if tok and tok.type == trparen then
             local body = block(self)
             if body then
                 tok = take(self)
-                if tok and tok.type == token.kw_end then
+                if tok and tok.type == tkw_end then
                     commit(self)
-                    return setmetatable({ parameters = pars, body = body, type = n.funcbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
+                    return setmetatable({ parameters = pars, body = body, type = nfuncbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
                 end
             end
         end

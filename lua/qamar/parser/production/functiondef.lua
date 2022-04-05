@@ -7,13 +7,15 @@ local peek = p.peek
 local commit = p.commit
 local undo = p.undo
 local begin = p.begin
+local tkw_function = token.kw_function
+local nfunctiondef = n.functiondef
 
 return function(self)
     local tok = peek(self)
-    if tok and tok.type == token.kw_function then
+    if tok and tok.type == tkw_function then
         begin(self)
         local ret = expression(self)
-        if ret and ret.type == n.functiondef then
+        if ret and ret.type == nfunctiondef then
             commit(self)
             return ret
         end

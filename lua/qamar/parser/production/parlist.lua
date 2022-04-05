@@ -5,6 +5,10 @@ local tinsert = require('qamar.util.table').tinsert
 
 local namelist = require 'qamar.parser.production.namelist'
 local vararg = require 'qamar.parser.production.vararg'
+local ipairs = ipairs
+local setmetatable = setmetatable
+local nparlist = n.parlist
+local tcomma = token.comma
 
 local mt = {
     __tostring = function(self)
@@ -28,17 +32,18 @@ local undo = p.undo
 return function(self)
     local v = vararg(self)
     if v then
-        return setmetatable({ v, type = n.parlist, pos = v.pos }, mt)
+        return setmetatable({ v, type = nparlist, pos = v.pos }, mt)
     else
         v = namelist(self)
         if v then
-            local ret = setmetatable({ type = n.parlist, pos = { left = v.pos.left } }, mt)
+            local ret = setmetatable({ type = nparlist, pos = { left = v.pos.left } }, mt)
             local idx = 0
-            for i, x in ipairs(v) do
-                ret[i] = x
+            for _, x in ipairs(v) do
+                idx = idx + 1
+                ret[idx] = x
             end
             v = peek(self)
-            if v and v.type == token.comma then
+            if v and v.type == tcomma then
                 begintake(self)
                 v = vararg(self)
                 if v then
@@ -49,7 +54,7 @@ return function(self)
                     undo(self)
                 end
             end
-            ret.pos.right = ret[#ret].pos.right
+            ret.pos.right = ret[idx].pos.right
             return ret
         end
     end

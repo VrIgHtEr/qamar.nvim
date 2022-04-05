@@ -23,9 +23,11 @@ rst = function(self)
     rst = require 'qamar.parser.production.retstat'
     return rst(self)
 end
+local setmetatable = setmetatable
+local nblock = n.block
 
 return function(self)
-    local ret = setmetatable({ type = n.block, pos = {} }, mt)
+    local ret = setmetatable({ type = nblock, pos = {} }, mt)
     local idx = 0
     while true do
         local stat = st(self)

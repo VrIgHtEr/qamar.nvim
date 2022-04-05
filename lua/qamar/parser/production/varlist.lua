@@ -4,6 +4,10 @@ local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
 local var = require 'qamar.parser.production.var'
+local ipairs = ipairs
+local setmetatable = setmetatable
+local nvarlist = n.varlist
+local tcomma = token.comma
 
 local mt = {
     __tostring = function(self)
@@ -28,11 +32,11 @@ local begin = p.begin
 return function(self)
     local v = var(self)
     if v then
-        local ret = setmetatable({ v, type = n.varlist, pos = { left = v.pos.left } }, mt)
-        local idx = 0
+        local ret = setmetatable({ v, type = nvarlist, pos = { left = v.pos.left } }, mt)
+        local idx = 1
         while true do
             local t = peek(self)
-            if not t or t.type ~= token.comma then
+            if not t or t.type ~= tcomma then
                 break
             end
             begin(self)
@@ -48,7 +52,7 @@ return function(self)
             end
         end
 
-        ret.pos.right = ret[#ret].pos.right
+        ret.pos.right = ret[idx].pos.right
         return ret
     end
 end
