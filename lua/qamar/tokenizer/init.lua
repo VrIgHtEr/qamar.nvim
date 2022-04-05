@@ -7,10 +7,19 @@ local tokenizers = {
     require 'qamar.tokenizer.token.symbol',
 }
 local token = require 'qamar.tokenizer.types'
+local s = require 'qamar.tokenizer.char_stream'
+local spos = s.pos
+local ipairs = ipairs
+local concat = table.concat
+local peek = s.peek
+local begin = s.begin
+local take = s.take
+local undo = s.undo
+local skipws = s.skipws
 
 return function(self)
     ::restart::
-    if self:peek() then
+    if peek(self) then
         for _, x in ipairs(tokenizers) do
             local ret = x(self)
             if ret then
@@ -20,19 +29,19 @@ return function(self)
                 return ret
             end
         end
-        self:skipws()
-        if self:peek() then
+        skipws(self)
+        if peek(self) then
             local preview = {}
-            self:begin()
+            begin(self)
             for i = 1, 30 do
-                local t = self:take()
+                local t = take(self)
                 if not t then
                     break
                 end
                 preview[i] = t
             end
-            self:undo()
-            error('invalid token on line ' .. self:pos().row .. ', col ' .. self:pos().col .. ' ' .. vim.inspect(table.concat(preview)))
+            undo(self)
+            error('invalid token on line ' .. spos(self).row .. ', col ' .. spos(self).col .. ' ' .. vim.inspect(concat(preview)))
         end
     end
 end
