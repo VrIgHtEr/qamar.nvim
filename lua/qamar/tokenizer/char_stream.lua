@@ -175,114 +175,6 @@ function M:resume_skip_ws()
     end
 end
 
-M.combinators = {
-    alt = function(...)
-        local args = { ... }
-        return function(self)
-            local ret, right = nil, nil
-            for _, x in ipairs(args) do
-                self:begin()
-                self:skipws()
-                local T = type(x)
-                if T == 'string' then
-                    T = self:try_consume_string(x)
-                elseif T == 'function' then
-                    T = x(self)
-                else
-                    T = nil
-                end
-                if T ~= nil then
-                    if not right or self.t.file_char > right then
-                        ret, right = T, self.t.file_char
-                    end
-                end
-                self:undo()
-            end
-            if ret then
-                while self.t.file_char < right do
-                    self:take()
-                end
-                return ret
-            end
-        end
-    end,
-
-    opt = function(x)
-        return function(self)
-            local T = type(x)
-            self:skipws()
-            if not self:peek() then
-                return {}
-            end
-            if T == 'string' then
-                T = self:try_consume_string(x)
-            elseif T == 'function' then
-                T = x(self)
-            else
-                return nil
-            end
-            if T == nil then
-                return {}
-            end
-        end
-    end,
-
-    zom = function(x)
-        return function(self)
-            local ret = {}
-            local idx = 0
-            local T = type(x)
-            while self:peek() do
-                self:skipws()
-                local v
-                if T == 'string' then
-                    v = self:try_consume_string(x)
-                elseif T == 'function' then
-                    v = x(self)
-                else
-                    v = nil
-                end
-                if v == nil then
-                    return ret
-                end
-                idx = idx + 1
-                ret[idx] = v
-            end
-            if not self:peek() then
-                return ret
-            end
-        end
-    end,
-
-    seq = function(...)
-        local args = { ... }
-        return function(self)
-            local ret = {}
-            local idx = 0
-            self:begin()
-            for _, x in ipairs(args) do
-                self:skipws()
-                local T = type(x)
-                if T == 'function' then
-                    T = x(self)
-                elseif T == 'string' then
-                    T = self:try_consume_string(x)
-                else
-                    T = nil
-                end
-                if T == nil then
-                    self:undo()
-                    return nil
-                end
-                idx = idx + 1
-                ret[idx] = T
-            end
-            self:commit()
-            return ret
-        end
-    end,
-}
-
 M.ALPHA = function(self)
     local tok = self:peek()
     if tok then
@@ -294,17 +186,12 @@ M.ALPHA = function(self)
     end
 end
 
-function M:alpha()
-    M.ALPHA(self)
-end
-
 M.NUMERIC = function(self)
     local tok = self:peek()
     if tok then
         local byte = string.byte(tok)
         if byte >= 48 and byte <= 57 then
-            self:take()
-            return tok
+            return self:take()
         end
     end
 end
@@ -314,17 +201,12 @@ M.ALPHANUMERIC = function(self)
     if tok then
         local byte = string.byte(tok)
         if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte >= 48 and byte <= 57 or byte == 95 then
-            self:take()
-            return tok
+            return self:take()
         end
     end
 end
-function M:numeric()
-    return M.NUMERIC(self)
-end
-
-function M:alphanumeric()
-    return M.ALPHANUMERIC(self)
-end
+M.alpha = M.ALPHA
+M.numeric = M.NUMERIC
+M.alphanumeric = M.ALPHANUMERIC
 
 return M

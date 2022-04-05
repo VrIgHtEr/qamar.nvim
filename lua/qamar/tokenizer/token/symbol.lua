@@ -42,9 +42,23 @@ do
         i = i + 1
         t[i] = k
     end
+    table.sort(t, function(a, b)
+        local al, bl = a:len(), b:len()
+        if al ~= bl then
+            return al > bl
+        end
+        return a < b
+    end)
 end
 
-local parser = require('qamar.tokenizer.char_stream').combinators.alt(unpack(t))
+local function parser(self)
+    for _, x in ipairs(t) do
+        if self:try_consume_string(x) then
+            return x
+        end
+    end
+end
+
 local MT = {
     __tostring = function(self)
         return self.value

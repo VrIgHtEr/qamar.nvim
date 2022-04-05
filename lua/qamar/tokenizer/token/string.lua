@@ -77,9 +77,38 @@ local MT = {
     end,
 }
 
-local ch = require 'qamar.tokenizer.char_stream'
-local terminator_parser = ch.combinators.alt("'", '"')
-local long_form_parser = ch.combinators.seq('[', ch.combinators.zom '=', '[')
+local function terminator_parser(self)
+    local tok = self:peek()
+    if tok and (tok == "'" or tok == '"') then
+        return self:take()
+    end
+end
+
+local function long_form_parser(self)
+    local start = self:peek()
+    if start and start == '[' then
+        self:begin()
+        self:take()
+        local ret = { '[' }
+        local idx = 1
+        local n
+        while true do
+            n = self:take()
+            if n ~= '=' then
+                break
+            end
+            idx = idx + 1
+            ret[idx] = '='
+        end
+        if n == '[' then
+            self:commit()
+            idx = idx + 1
+            ret[idx] = '['
+            return table.concat(ret)
+        end
+        self:undo()
+    end
+end
 
 return function(self, disallow_short_form)
     self:begin()
@@ -206,7 +235,7 @@ return function(self, disallow_short_form)
         if t then
             local closing = { ']' }
             local idx = 1
-            for _ = 1, #t[2] do
+            for _ = 1, t:len() - 2 do
                 idx = idx + 1
                 closing[idx] = '='
             end
