@@ -8,7 +8,13 @@ local MT = {
     end,
 }
 
-local parser = require('qamar.tokenizer.char_stream').combinators.alt(unpack(keywords))
+local function parser(self)
+    for _, x in ipairs(keywords) do
+        if self:try_consume_string(x) then
+            return x
+        end
+    end
+end
 
 return function(self)
     self:begin()

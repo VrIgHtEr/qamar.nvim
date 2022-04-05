@@ -38,8 +38,6 @@ local function parse_everything()
     ofile:flush()
     cfg.print '\n'
 
-    local types = require 'qamar.parser.types'
-
     local co = coroutine.create(function()
         dbg.stats = {}
         local counter = 0
@@ -69,6 +67,7 @@ local function parse_everything()
                             os.execute("mkdir -p '" .. outdir .. "'")
                             util.write_file(outpath, str)
                             --[[
+                            local types = require 'qamar.parser.types'
                             print(vim.inspect(tree, {
                                 process = function(item, path)
                                     local x = path[#path]

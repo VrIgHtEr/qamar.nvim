@@ -22,6 +22,13 @@ local ret = {
     'until',
     'while',
 }
+table.sort(ret, function(a, b)
+    local al, bl = a:len(), b:len()
+    if al ~= bl then
+        return al > bl
+    end
+    return a < b
+end)
 for i, x in ipairs(ret) do
     ret[x] = i
 end
