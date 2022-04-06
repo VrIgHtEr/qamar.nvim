@@ -1,5 +1,10 @@
 local token, precedence = require 'qamar.tokenizer.types', require 'qamar.parser.precedence'
 
+---@class parselet
+---@field precedence number
+---@field right_associative boolean
+---@field parse function
+
 return {
     infix = {
         [token.kw_or] = { precedence = precedence.lor, parse = require 'qamar.parser.parselet.infix' },

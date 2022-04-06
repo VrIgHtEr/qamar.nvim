@@ -1,3 +1,10 @@
+---@class node_functioncall:node
+---@field left node
+---@field args node
+---@field self string
+---@field precedence number
+---@field right_associative boolean
+
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
 local setmetatable = setmetatable
@@ -16,8 +23,12 @@ local ntable_rawaccess = node.table_rawaccess
 local nfunctioncall = node.functioncall
 local nsubexpression = node.subexpression
 local tostring = tostring
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local MT = {
+    ---@param self node_functioncall
+    ---@return string
     __tostring = function(self)
         local ret = { self.left }
         if self.self then
@@ -59,6 +70,12 @@ local mtnonempty = {
     end,
 }
 
+---parselet to consume a function call
+---@param self parselet
+---@param parser parser
+---@param left node
+---@param tok token
+---@return node_functioncall|nil
 return function(self, parser, left, tok)
     if left.type == nname or left.type == ntable_nameaccess or left.type == ntable_rawaccess or left.type == nfunctioncall or left.type == nsubexpression then
         local sname, arglist, right = false, nil, nil
@@ -119,15 +136,13 @@ return function(self, parser, left, tok)
             end
         end
         if arglist then
-            return setmetatable({
-                type = nfunctioncall,
-                left = left,
-                args = arglist,
-                self = sname,
-                precedence = self.precedence,
-                right_associative = self.right_associative,
-                pos = { left = left.pos.left, right = right },
-            }, MT)
+            local ret = N(nfunctioncall, range(left.pos.left, right), MT)
+            ret.left = left
+            ret.args = arglist
+            ret.self = sname
+            ret.precedence = self.precedence
+            ret.right_associative = self.right_associative
+            return ret
         end
     end
 end

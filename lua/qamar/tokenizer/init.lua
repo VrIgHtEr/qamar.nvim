@@ -18,6 +18,9 @@ local undo = s.undo
 local skipws = s.skipws
 local tcomment = token.comment
 
+---tries to parse the next lua token
+---@param self char_stream
+---@return token|nil
 return function(self)
     ::restart::
     if peek(self) then

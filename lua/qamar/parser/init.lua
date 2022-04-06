@@ -20,6 +20,8 @@ local parser = {}
 local MT = {
     __metatable = function() end,
     __index = parser,
+    ---@param self parser
+    ---@return string
     __tostring = function(self)
         local ret = {}
         local idx = 0

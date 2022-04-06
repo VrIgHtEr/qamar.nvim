@@ -1,5 +1,10 @@
+---@class node_atom:node
+---@field value string
+---@field precedence number
+---@field right_associative boolean
+
 local token, node, string = require 'qamar.tokenizer.types', require 'qamar.parser.types', require 'qamar.util.string'
-local setmetatable = setmetatable
+local N = require 'qamar.parser.node'
 
 local token_node_mapping = {
     [token.name] = node.name,
@@ -11,6 +16,8 @@ local token_node_mapping = {
     [token.string] = node.string,
 }
 
+---@param self node_atom
+---@return string
 local function default__tostring(self)
     return self.value
 end
@@ -24,23 +31,30 @@ local __tostring = {
     [node.val_false] = default__tostring,
     [node.val_true] = default__tostring,
     [node.vararg] = default__tostring,
+    ---@param self node_atom
+    ---@return string
     [node.string] = function(self)
         return sescape(self.value)
     end,
 }
 
 local MT = {
+    ---@param self node_atom
+    ---@return string
     __tostring = function(self)
         return __tostring[self.type](self)
     end,
 }
 
+---parselet to consume an expression atom
+---@param self parselet
+---@param _ parser
+---@param tok token
+---@return node_atom
 return function(self, _, tok)
-    return setmetatable({
-        value = tok.value,
-        type = token_node_mapping[tok.type],
-        precedence = self.precedence,
-        right_associative = self.right_associative,
-        pos = tok.pos,
-    }, MT)
+    local ret = N(token_node_mapping[tok.type], tok.pos, MT)
+    ret.value = tok.value
+    ret.precedence = self.precedence
+    ret.right_associative = self.right_associative
+    return ret
 end
