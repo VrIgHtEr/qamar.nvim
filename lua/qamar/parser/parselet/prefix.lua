@@ -1,6 +1,10 @@
+---@class node_prefix:node_expression
+---@field operand node_expression
+
 local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
-local setmetatable = setmetatable
+local N = require 'qamar.parser.node_expression'
+local range = require 'qamar.util.range'
 
 local token_node_mapping = {
     [token.kw_not] = node.lnot,
@@ -10,6 +14,8 @@ local token_node_mapping = {
 }
 
 local MT = {
+    ---@param self node_prefix
+    ---@return string
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = { node[self.type] }
@@ -45,16 +51,17 @@ expression = function(self)
     return expression(self)
 end
 
+---parselet that consumes a prefix expression
+---@param self parselet
+---@param parser parser
+---@param tok token
+---@return node_prefix|nil
 return function(self, parser, tok)
     local operand = expression(parser, self.precedence - (self.right_associative and 1 or 0))
     if not operand then
         return nil
     end
-    return setmetatable({
-        type = token_node_mapping[tok.type],
-        operand = operand,
-        precedence = self.precedence,
-        right_associative = self.right_associative,
-        pos = { left = tok.pos.left, right = operand.pos.right },
-    }, MT)
+    local ret = N(token_node_mapping[tok.type], range(tok.pos.left, operand.pos.right), self.precedence, self.right_associative, MT)
+    ret.operand = operand
+    return ret
 end

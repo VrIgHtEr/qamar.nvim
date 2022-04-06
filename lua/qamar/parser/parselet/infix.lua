@@ -1,5 +1,10 @@
+---@class node_infix:node_expression
+---@field left node_expression
+---@field right node_expression
+
+local N = require 'qamar.parser.node_expression'
+local range = require 'qamar.util.range'
 local config, token, node = require 'qamar.config', require 'qamar.tokenizer.types', require 'qamar.parser.types'
-local setmetatable = setmetatable
 
 local token_node_mapping = {
     [token.kw_or] = node.lor,
@@ -28,6 +33,8 @@ local token_node_mapping = {
 local tconcat = require('qamar.util.table').tconcat
 
 local MT = {
+    ---@param self node_infix
+    ---@return string
     __tostring = function(self)
         if config.expression_display_mode == config.expression_display_modes.infix then
             local ret = {}
@@ -71,17 +78,19 @@ expression = function(self)
     return expression(self)
 end
 
+---parselet to consume an infix expression
+---@param self parselet
+---@param parser parser
+---@param left node_expression
+---@param tok token
+---@return node_infix|nil
 return function(self, parser, left, tok)
     local right = expression(parser, self.precedence - (self.right_associative and 1 or 0))
     if not right then
         return nil
     end
-    return setmetatable({
-        type = token_node_mapping[tok.type],
-        left = left,
-        right = right,
-        precedence = self.precedence,
-        right_associative = self.right_associative,
-        pos = { left = left.pos.left, right = right.pos.right },
-    }, MT)
+    local ret = N(token_node_mapping[tok.type], range(left.pos.left, right.pos.right), self.precedence, self.right_associative, MT)
+    ret.left = left
+    ret.right = right
+    return ret
 end

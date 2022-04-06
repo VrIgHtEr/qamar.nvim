@@ -1,13 +1,20 @@
+---@class node_table_rawaccess:node_expression
+---@field table node_expression
+---@field key node_expression
+
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
+local N = require 'qamar.parser.node_expression'
+local range = require 'qamar.util.range'
 
 local MT = {
+    ---@param self node_table_rawaccess
+    ---@return string
     __tostring = function(self)
         return tconcat { self.table, '[', self.key, ']' }
     end,
 }
 
-local setmetatable = setmetatable
 local nname = node.name
 local ntable_nameaccess = node.table_nameaccess
 local ntable_rawaccess = node.table_rawaccess
@@ -42,13 +49,9 @@ return function(self, parser, left, tok)
         end
         take(parser)
         commit(parser)
-        return setmetatable({
-            table = left,
-            key = exp,
-            type = ntable_rawaccess,
-            precedence = self.precedence,
-            right_associative = self.right_associative,
-            pos = { left = l, right = tok.pos.right },
-        }, MT)
+        local ret = N(ntable_rawaccess, range(l, tok.pos.right), self.precedence, self.right_associative, MT)
+        ret.table = left
+        ret.key = exp
+        return ret
     end
 end

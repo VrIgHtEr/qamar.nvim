@@ -1,9 +1,7 @@
----@class node_functiondef:node
----@field value node
----@field precedence number
----@field right_associative boolean
+---@class node_functiondef:node_expression
+---@field value node_expression
 
-local N = require 'qamar.parser.node'
+local N = require 'qamar.parser.node_expression'
 local node = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local range = require 'qamar.util.range'
@@ -26,10 +24,8 @@ local funcbody = require 'qamar.parser.production.funcbody'
 return function(self, parser, tok)
     local body = funcbody(parser)
     if body then
-        local ret = N(nfunctiondef, range(tok.pos.left, body.pos.right), MT)
+        local ret = N(nfunctiondef, range(tok.pos.left, body.pos.right), self.precedence, self.right_associative, MT)
         ret.value = body
-        ret.precedence = self.precedence
-        ret.right_associative = self.right_associative
         return ret
     end
 end

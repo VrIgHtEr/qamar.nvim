@@ -1,10 +1,8 @@
----@class node_atom:node
+---@class node_atom:node_expression
 ---@field value string
----@field precedence number
----@field right_associative boolean
 
 local token, node, string = require 'qamar.tokenizer.types', require 'qamar.parser.types', require 'qamar.util.string'
-local N = require 'qamar.parser.node'
+local N = require 'qamar.parser.node_expression'
 
 local token_node_mapping = {
     [token.name] = node.name,
@@ -52,9 +50,7 @@ local MT = {
 ---@param tok token
 ---@return node_atom
 return function(self, _, tok)
-    local ret = N(token_node_mapping[tok.type], tok.pos, MT)
+    local ret = N(token_node_mapping[tok.type], tok.pos, self.precedence, self.right_associative, MT)
     ret.value = tok.value
-    ret.precedence = self.precedence
-    ret.right_associative = self.right_associative
     return ret
 end

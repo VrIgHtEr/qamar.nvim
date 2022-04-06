@@ -1,13 +1,19 @@
+---@class node_subexpression:node_expression
+---@field value node_expression
+
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
+local N = require 'qamar.parser.node_expression'
+local range = require 'qamar.util.range'
 
 local MT = {
+    ---@param self node_subexpression
+    ---@return string
     __tostring = function(self)
         return tconcat { '(', self.value, ')' }
     end,
 }
 
-local setmetatable = setmetatable
 local trparen = token.rparen
 local nsubexpression = node.subexpression
 
@@ -23,6 +29,11 @@ expression = function(self)
     return expression(self)
 end
 
+---parselet that consumes a subexpression
+---@param self parselet
+---@param parser parser
+---@param tok token
+---@return node_subexpression|nil
 return function(self, parser, tok)
     local left = tok.pos.left
     begin(parser)
@@ -38,11 +49,7 @@ return function(self, parser, tok)
     end
     take(parser)
     commit(parser)
-    return setmetatable({
-        value = exp,
-        type = nsubexpression,
-        precedence = self.precedence,
-        right_associative = self.right_associative,
-        pos = { left = left, right = tok.pos.right },
-    }, MT)
+    local ret = N(nsubexpression, range(left, tok.pos.right), self.precedence, self.right_associative, MT)
+    ret.value = exp
+    return ret
 end

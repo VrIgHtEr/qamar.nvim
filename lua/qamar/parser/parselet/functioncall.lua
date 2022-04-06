@@ -1,9 +1,7 @@
----@class node_functioncall:node
+---@class node_functioncall:node_expression
 ---@field left node
 ---@field args node
 ---@field self string
----@field precedence number
----@field right_associative boolean
 
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
 local tconcat, tinsert = require('qamar.util.table').tconcat, require('qamar.util.table').tinsert
@@ -23,7 +21,7 @@ local ntable_rawaccess = node.table_rawaccess
 local nfunctioncall = node.functioncall
 local nsubexpression = node.subexpression
 local tostring = tostring
-local N = require 'qamar.parser.node'
+local N = require 'qamar.parser.node_expression'
 local range = require 'qamar.util.range'
 
 local MT = {
@@ -73,7 +71,7 @@ local mtnonempty = {
 ---parselet to consume a function call
 ---@param self parselet
 ---@param parser parser
----@param left node
+---@param left node_expression
 ---@param tok token
 ---@return node_functioncall|nil
 return function(self, parser, left, tok)
@@ -136,12 +134,10 @@ return function(self, parser, left, tok)
             end
         end
         if arglist then
-            local ret = N(nfunctioncall, range(left.pos.left, right), MT)
+            local ret = N(nfunctioncall, range(left.pos.left, right), self.precedence, self.right_associative, MT)
             ret.left = left
             ret.args = arglist
             ret.self = sname
-            ret.precedence = self.precedence
-            ret.right_associative = self.right_associative
             return ret
         end
     end
