@@ -1,6 +1,6 @@
 local p = require 'qamar.parser'
 local peek = p.peek
-local block = p.block
+local block = require 'qamar.parser.production.block'
 local setmetatable = setmetatable
 
 return function(self)

@@ -1,5 +1,3 @@
----@module'qamar.util.range'
-
 local setmetatable = setmetatable
 
 ---@class node

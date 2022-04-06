@@ -44,34 +44,14 @@ local function copy_transaction(self)
 end
 
 local initialized = false
+function parser:chunk()
+    if not initialized then
+        parser.chunk, initialized = require 'qamar.parser.production.chunk', true
+    end
+    return parser.chunk(self)
+end
 
 function parser.new(stream)
-    if not initialized then
-        initialized = true
-        parser.expression = require 'qamar.parser.production.expression'
-        parser.name = require 'qamar.parser.production.name'
-        parser.field_raw = require 'qamar.parser.production.field.raw'
-        parser.field_name = require 'qamar.parser.production.field.name'
-        parser.fieldlist = require 'qamar.parser.production.fieldlist'
-        parser.field = require 'qamar.parser.production.field'
-        parser.tableconstructor = require 'qamar.parser.production.tableconstructor'
-        parser.vararg = require 'qamar.parser.production.vararg'
-        parser.attrib = require 'qamar.parser.production.attrib'
-        parser.namelist = require 'qamar.parser.production.namelist'
-        parser.explist = require 'qamar.parser.production.explist'
-        parser.label = require 'qamar.parser.production.label'
-        parser.functiondef = require 'qamar.parser.production.functiondef'
-        parser.block = require 'qamar.parser.production.block'
-        parser.var = require 'qamar.parser.production.var'
-        parser.parlist = require 'qamar.parser.production.parlist'
-        parser.attnamelist = require 'qamar.parser.production.attnamelist'
-        parser.varlist = require 'qamar.parser.production.varlist'
-        parser.retstat = require 'qamar.parser.production.retstat'
-        parser.funcname = require 'qamar.parser.production.funcname'
-        parser.funcbody = require 'qamar.parser.production.funcbody'
-        parser.stat = require 'qamar.parser.production.stat'
-        parser.chunk = require 'qamar.parser.production.chunk'
-    end
     local pos = stpos(stream)
     if pos.file_byte == 0 then
         if stpeek(stream) == '#' and stpeek(stream, 1) == '!' then
