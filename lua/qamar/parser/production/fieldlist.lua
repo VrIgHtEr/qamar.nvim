@@ -53,6 +53,9 @@ return function(self)
         local tok = peek(self)
         if tok and (tok.type == tcomma or tok.type == tsemicolon) then
             take(self)
+            pos.right = tok.pos.right
+        else
+            pos.right = ret[idx].pos.right
         end
         return ret
     end

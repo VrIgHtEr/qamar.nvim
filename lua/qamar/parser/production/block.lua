@@ -1,6 +1,7 @@
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
+local ipairs = ipairs
 
 local mt = {
     __tostring = function(self)

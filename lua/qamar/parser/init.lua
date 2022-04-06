@@ -1,6 +1,7 @@
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
 local concat = table.concat
+local setmetatable = setmetatable
 
 local parser = {}
 

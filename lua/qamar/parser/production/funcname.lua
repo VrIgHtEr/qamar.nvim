@@ -4,6 +4,7 @@ local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
 local name = require 'qamar.parser.production.name'
+local ipairs = ipairs
 
 local mt = {
     __tostring = function(self)
