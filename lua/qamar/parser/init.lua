@@ -1,3 +1,20 @@
+---@class token_transaction
+---@field index number
+---@field pos position
+
+---@class tokenizer
+---@field stream char_stream
+---@field tokenid number
+---@field la deque
+--tokenid = 0,
+--la = deque(),
+--ts = {},
+--tc = 0,
+--t = {
+--    index = 0,
+--    pos = stpos(stream),
+--},
+
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
 local concat = table.concat
