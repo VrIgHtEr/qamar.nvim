@@ -13,14 +13,12 @@ local undo = stream.undo
 local commit = stream.commit
 local alphanumeric = stream.alphanumeric
 local ipairs = ipairs
-local setmetatable = setmetatable
+local range = require 'qamar.util.range'
+local T = require 'qamar.tokenizer.token'
 
-local MT = {
-    __tostring = function(self)
-        return self.value
-    end,
-}
-
+---tries to match and consume a lua keyword
+---@param self char_stream
+---@return string|nil
 local function parser(self)
     for _, x in ipairs(keywords) do
         if try_consume_string(self, x) then
@@ -29,6 +27,9 @@ local function parser(self)
     end
 end
 
+---tries to match and consume a lua keyword
+---@param self char_stream
+---@return token|nil
 return function(self)
     begin(self)
     skipws(self)
@@ -43,14 +44,7 @@ return function(self)
         if not next then
             commit(self)
             resume_skip_ws(self)
-            return setmetatable({
-                value = ret,
-                type = token['kw_' .. ret],
-                pos = {
-                    left = pos,
-                    right = spos(self),
-                },
-            }, MT)
+            return T(token['kw_' .. ret], ret, range(pos, spos(self)))
         end
     end
     undo(self)

@@ -13,7 +13,12 @@ local peek = stream.peek
 local take = stream.take
 local concat = table.concat
 local tcomment = token.comment
+local range = require 'qamar.util.range'
+local T = require 'qamar.tokenizer.token'
 
+---tries to match and consume a lua comment
+---@param self char_stream
+---@return token
 return function(self)
     begin(self)
     skipws(self)
@@ -45,12 +50,5 @@ return function(self)
     end
     commit(self)
     resume_skip_ws(self)
-    return {
-        value = concat(ret),
-        type = tcomment,
-        pos = {
-            left = pos,
-            right = spos(self),
-        },
-    }
+    return T(tcomment, concat(ret), range(pos, spos(self)))
 end

@@ -1,5 +1,14 @@
 local setmetatable = setmetatable
 
+---@class deque
+---@field size function()
+---@field push_back function(item)
+---@field push_front function(item)
+---@field pop_back function():any
+---@field pop_front function():any
+
+---creates a new deque
+---@return deque
 return function()
     local parity, head, tail, capacity, version, buf = false, 0, 0, 1, 0, {}
     local function size()
@@ -22,6 +31,7 @@ return function()
             end
         end,
     }
+    ---@type deque
     local ret = setmetatable({ size = size }, MT)
 
     local function iterator()

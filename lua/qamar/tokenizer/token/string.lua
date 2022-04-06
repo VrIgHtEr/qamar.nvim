@@ -23,8 +23,12 @@ local sfind = string.find
 local concat = table.concat
 local ipairs = ipairs
 local tstring = token.string
-local setmetatable = setmetatable
+local range = require 'qamar.util.range'
+local T = require 'qamar.tokenizer.token'
 
+---converts a hex character to its equivalent number value
+---@param c string
+---@return number|nil
 local function tohexdigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
         return sbyte(c) - 48
@@ -35,6 +39,9 @@ local function tohexdigit(c)
     end
 end
 
+---converts a decimal character to its equivalent number value
+---@param c string
+---@return number|nil
 local function todecimaldigit(c)
     if c == '0' or c == '1' or c == '2' or c == '3' or c == '4' or c == '5' or c == '6' or c == '7' or c == '8' or c == '9' then
         return sbyte(c) - 48
@@ -42,6 +49,10 @@ local function todecimaldigit(c)
 end
 
 local hex_to_binary_table = { '0000', '0001', '0010', '0011', '0100', '0101', '0110', '0111', '1000', '1001', '1010', '1011', '1100', '1101', '1110', '1111' }
+
+---parses a hex string into a unicode character as a string
+---@param hex string
+---@return string
 local function utf8_encode(hex)
     if #hex > 0 then
         local binstr = {}
@@ -96,11 +107,16 @@ local function utf8_encode(hex)
 end
 
 local MT = {
+    ---@param self token
+    ---@return any
     __tostring = function(self)
         return sescape(self.value)
     end,
 }
 
+---tries to consume "'" or '"'
+---@param self char_stream
+---@return string|nil
 local function terminator_parser(self)
     local tok = peek(self)
     if tok and (tok == "'" or tok == '"') then
@@ -108,6 +124,9 @@ local function terminator_parser(self)
     end
 end
 
+---tries to consume a lua verbatim opening terminator
+---@param self char_stream
+---@return string|nil
 local function long_form_parser(self)
     local start = peek(self)
     if start and start == '[' then
@@ -134,6 +153,11 @@ local function long_form_parser(self)
     end
 end
 
+---tries to consume a lua string
+---if disallow_short_form is not false then only a verbatim string is allowed
+---@param self char_stream
+---@param disallow_short_form boolean|nil
+---@return token|nil
 return function(self, disallow_short_form)
     begin(self)
     skipws(self)
@@ -301,13 +325,5 @@ return function(self, disallow_short_form)
     end
     commit(self)
     resume_skip_ws(self)
-    ret = concat(ret)
-    return setmetatable({
-        value = ret,
-        type = tstring,
-        pos = {
-            left = pos,
-            right = spos(self),
-        },
-    }, MT)
+    return T(tstring, concat(ret), range(pos, spos(self)), MT)
 end

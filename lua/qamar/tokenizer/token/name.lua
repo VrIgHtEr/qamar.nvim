@@ -12,14 +12,13 @@ local undo = s.undo
 local commit = s.commit
 local alphanumeric = s.alphanumeric
 local concat = table.concat
-local setmetatable = setmetatable
 local tname = token.name
+local range = require 'qamar.util.range'
+local T = require 'qamar.tokenizer.token'
 
-local MT = {
-    __tostring = function(self)
-        return self.value
-    end,
-}
+---tries to match and consume a lua name
+---@param self char_stream
+---@return token|nil
 return function(self)
     begin(self)
     skipws(self)
@@ -49,12 +48,5 @@ return function(self)
     end
     commit(self)
     resume_skip_ws(self)
-    return setmetatable({
-        value = ret,
-        type = tname,
-        pos = {
-            left = pos,
-            right = spos(self),
-        },
-    }, MT)
+    return T(tname, ret, range(pos, spos(self)))
 end

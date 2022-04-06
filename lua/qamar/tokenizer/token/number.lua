@@ -15,19 +15,20 @@ local try_consume_string = s.try_consume_string
 local sbyte = string.byte
 local slower = string.lower
 local concat = table.concat
-local setmetatable = setmetatable
 local tnumber = token.number
+local range = require 'qamar.util.range'
+local T = require 'qamar.tokenizer.token'
 
-local MT = {
-    __tostring = function(self)
-        return self.value
-    end,
-}
-
+---tries to consume either '0x' or '0X'
+---@param self char_stream
+---@return string|nil
 local function hex_start_parser(self)
     return try_consume_string(self, '0x') or try_consume_string(self, '0X')
 end
 
+---tries to consume a hex digit
+---@param self char_stream
+---@return string|nil
 local function hex_digit_parser(self)
     local tok = peek(self)
     if tok then
@@ -38,6 +39,9 @@ local function hex_digit_parser(self)
     end
 end
 
+---tries to consume either 'p' or 'P'
+---@param self char_stream
+---@return string|nil
 local function hex_exponent_parser(self)
     local tok = peek(self)
     if tok and (tok == 'p' or tok == 'P') then
@@ -45,6 +49,9 @@ local function hex_exponent_parser(self)
     end
 end
 
+---tries to consume either 'e' or 'E'
+---@param self char_stream
+---@return string|nil
 local function decimal_exponent_parser(self)
     local tok = peek(self)
     if tok and (tok == 'e' or tok == 'E') then
@@ -52,6 +59,9 @@ local function decimal_exponent_parser(self)
     end
 end
 
+---tries to consume either '-' or '+'
+---@param self char_stream
+---@return string|nil
 local function sign_parser(self)
     local tok = peek(self)
     if tok and (tok == '-' or tok == '+') then
@@ -59,6 +69,9 @@ local function sign_parser(self)
     end
 end
 
+---tries to consume a lua number
+---@param self char_stream
+---@return token|nil
 return function(self)
     begin(self)
     skipws(self)
@@ -123,12 +136,5 @@ return function(self)
 
     resume_skip_ws(self)
     commit(self)
-    return setmetatable({
-        value = concat(ret),
-        type = tnumber,
-        pos = {
-            left = pos,
-            right = spos(self),
-        },
-    }, MT)
+    return T(tnumber, concat(ret), range(pos, spos(self)))
 end
