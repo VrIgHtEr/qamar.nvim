@@ -1,19 +1,14 @@
----@class token_transaction
+---@class parser_transaction
 ---@field index number
 ---@field pos position
 
----@class tokenizer
+---@class parser
 ---@field stream char_stream
 ---@field tokenid number
 ---@field la deque
---tokenid = 0,
---la = deque(),
---ts = {},
---tc = 0,
---t = {
---    index = 0,
---    pos = stpos(stream),
---},
+---@field ts table
+---@field tc number
+---@field t parser_transaction
 
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
@@ -56,11 +51,17 @@ local stpos = st.pos
 local stpeek = st.peek
 local sttake = st.take
 
+---creates a copy of a token_transaction
+---@param self parser_transaction
+---@return parser_transaction
 local function copy_transaction(self)
     return { index = self.index, pos = self.pos }
 end
 
 local initialized = false
+
+---tries to parse a lua chunk
+---@return node
 function parser:chunk()
     if not initialized then
         parser.chunk, initialized = require 'qamar.parser.production.chunk', true
@@ -68,6 +69,9 @@ function parser:chunk()
     return parser.chunk(self)
 end
 
+---creates a new parser
+---@param stream char_stream
+---@return parser
 function parser.new(stream)
     local pos = stpos(stream)
     if pos.file_byte == 0 then
@@ -98,17 +102,23 @@ function parser.new(stream)
     }, MT)
 end
 
+---begins a new parser transaction. must be paired with a subsequent call to undo or normalize
+---@param self parser
 local function begin(self)
     self.tc = self.tc + 1
     self.ts[self.tc] = copy_transaction(self.t)
 end
 parser.begin = begin
 
+---undoes a parser transaction. must be paired with a preceding call to begin
+---@param self parser
 local function undo(self)
     self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
 end
 parser.undo = undo
 
+---discards any consumed cached tokens if there are no pending transactions
+---@param self parser
 local function normalize(self)
     if self.tc == 0 then
         for _ = 1, self.t.index do
@@ -119,12 +129,18 @@ local function normalize(self)
 end
 parser.normalize = normalize
 
+---commits a parser transaction. must be paired with a preceding call to begin
+---@param self parser
+---@return nil
 local function commit(self)
     self.ts[self.tc], self.tc = nil, self.tc - 1
     return normalize(self)
 end
 parser.commit = commit
 
+---fills the parser's token buffer to contain N items, unless the end of the stream has been reached
+---@param self any
+---@param amt number
 local function fill(self, amt)
     while self.la.size() < amt do
         local c = tokenizer(self.stream)
@@ -140,20 +156,30 @@ local function fill(self, amt)
 end
 parser.fill = fill
 
-local function peek(self, skip)
-    skip = skip == nil and 0 or skip
-    local idx = self.t.index + skip + 1
+---gets the Nth (zero based) token from the token cache
+---N defaults to 0
+---@param self parser
+---@param N number|nil
+---@return token
+local function peek(self, N)
+    N = N == nil and 0 or N
+    local idx = self.t.index + N + 1
     fill(self, idx)
-    return self.la[idx] or false
+    return self.la[idx] or nil
 end
 parser.peek = peek
 
-local function take(self, amt)
-    amt = amt == nil and 1 or amt
-    local idx = self.t.index + amt
+---consumes N tokens from the token cache.
+---N defaults to 1
+---@param self parser
+---@param N number|nil
+---@return token|table
+local function take(self, N)
+    N = N == nil and 1 or N
+    local idx = self.t.index + N
     fill(self, idx)
     local ret = {}
-    for i = 1, amt do
+    for i = 1, N do
         local c = self.la[self.t.index + 1]
         if not c then
             break
@@ -167,20 +193,29 @@ local function take(self, amt)
 end
 parser.take = take
 
+---begins a new parser transaction and consumes the next token
+---@param amt parser
+---@return token|nil
 function parser:begintake(amt)
     begin(self)
     return take(self, amt)
 end
 
+---gets the rightmost position in the token stream
+---@return position
 function parser:pos()
     return self.t.pos
 end
 
+---gets the next available token id
+---@return number
 function parser:next_id()
     local x = peek(self)
     return x and x.id or self.tokenid
 end
 
+---consumes tokens until one with the specified id or larger is encountered
+---@param id number
 function parser:take_until(id)
     while true do
         local x = peek(self)

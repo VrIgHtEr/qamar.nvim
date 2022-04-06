@@ -3,8 +3,9 @@ local setmetatable = setmetatable
 
 ---@class token
 ---@field value string
----@field type token_type
+---@field type number
 ---@field pos range
+---@field id number
 
 local token = {
     __metatable = nullfunc,
@@ -16,7 +17,7 @@ local token = {
 }
 
 ---creates a new token
----@param type token_type
+---@param type number
 ---@param value string
 ---@param pos range
 ---@param MT table|nil

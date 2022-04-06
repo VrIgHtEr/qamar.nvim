@@ -1,4 +1,3 @@
----@class token_type
 local types = {
     comment = 0,
     name = 0,
