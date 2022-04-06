@@ -13,6 +13,7 @@ local undo = stream.undo
 local commit = stream.commit
 local alphanumeric = stream.alphanumeric
 local ipairs = ipairs
+local setmetatable = setmetatable
 
 local MT = {
     __tostring = function(self)

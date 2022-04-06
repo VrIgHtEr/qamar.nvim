@@ -35,12 +35,11 @@ local symbols = {
     ['...'] = token.tripledot,
 }
 
-local pairs, ipairs = pairs, ipairs
-local tsort = table.sort
-local slen = string.len
-
 local t = {}
 do
+    local pairs = pairs
+    local slen = string.len
+    local tsort = table.sort
     local i = 0
     for k, _ in pairs(symbols) do
         i = i + 1
@@ -63,6 +62,8 @@ local resume_skip_ws = s.resume_skip_ws
 local undo = s.undo
 local commit = s.commit
 local try_consume_string = s.try_consume_string
+local ipairs = ipairs
+local setmetatable = setmetatable
 
 local function parser(self)
     for _, x in ipairs(t) do

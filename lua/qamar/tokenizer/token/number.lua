@@ -15,6 +15,8 @@ local try_consume_string = s.try_consume_string
 local sbyte = string.byte
 local slower = string.lower
 local concat = table.concat
+local setmetatable = setmetatable
+local tnumber = token.number
 
 local MT = {
     __tostring = function(self)
@@ -123,7 +125,7 @@ return function(self)
     commit(self)
     return setmetatable({
         value = concat(ret),
-        type = token.number,
+        type = tnumber,
         pos = {
             left = pos,
             right = spos(self),

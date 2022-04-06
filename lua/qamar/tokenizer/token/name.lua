@@ -1,6 +1,6 @@
 local token = require 'qamar.tokenizer.types'
 local s = require 'qamar.tokenizer.char_stream'
-local alpha = s.ALPHA
+local alpha = s.alpha
 local keywords = require 'qamar.tokenizer.token.keywords'
 
 local begin = s.begin
@@ -12,6 +12,8 @@ local undo = s.undo
 local commit = s.commit
 local alphanumeric = s.alphanumeric
 local concat = table.concat
+local setmetatable = setmetatable
+local tname = token.name
 
 local MT = {
     __tostring = function(self)
@@ -49,7 +51,7 @@ return function(self)
     resume_skip_ws(self)
     return setmetatable({
         value = ret,
-        type = token.name,
+        type = tname,
         pos = {
             left = pos,
             right = spos(self),

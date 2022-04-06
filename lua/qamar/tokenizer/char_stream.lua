@@ -4,6 +4,7 @@ local function emptyfunc() end
 local concat = table.concat
 local slen = string.len
 local sutf8 = string.utf8
+local setmetatable = setmetatable
 
 local M = {}
 local MT = {
@@ -182,7 +183,7 @@ end
 
 local ascii = string.byte
 
-M.ALPHA = function(self)
+M.alpha = function(self)
     local tok = peek(self)
     if tok then
         local byte = ascii(tok)
@@ -193,7 +194,7 @@ M.ALPHA = function(self)
     end
 end
 
-M.NUMERIC = function(self)
+M.numeric = function(self)
     local tok = peek(self)
     if tok then
         local byte = ascii(tok)
@@ -203,7 +204,7 @@ M.NUMERIC = function(self)
     end
 end
 
-M.ALPHANUMERIC = function(self)
+M.alphanumeric = function(self)
     local tok = peek(self)
     if tok then
         local byte = ascii(tok)
@@ -212,8 +213,5 @@ M.ALPHANUMERIC = function(self)
         end
     end
 end
-M.alpha = M.ALPHA
-M.numeric = M.NUMERIC
-M.alphanumeric = M.ALPHANUMERIC
 
 return M

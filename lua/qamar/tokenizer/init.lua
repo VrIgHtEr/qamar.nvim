@@ -16,6 +16,7 @@ local begin = s.begin
 local take = s.take
 local undo = s.undo
 local skipws = s.skipws
+local tcomment = token.comment
 
 return function(self)
     ::restart::
@@ -23,7 +24,7 @@ return function(self)
         for _, x in ipairs(tokenizers) do
             local ret = x(self)
             if ret then
-                if ret.type == token.comment then
+                if ret.type == tcomment then
                     goto restart
                 end
                 return ret

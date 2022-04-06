@@ -12,6 +12,7 @@ local commit = stream.commit
 local peek = stream.peek
 local take = stream.take
 local concat = table.concat
+local tcomment = token.comment
 
 return function(self)
     begin(self)
@@ -26,7 +27,7 @@ return function(self)
     end
     local ret = string_token(self, true)
     if ret then
-        ret.type = token.comment
+        ret.type = tcomment
         ret.pos.left = pos
         resume_skip_ws(self)
         commit(self)
@@ -46,7 +47,7 @@ return function(self)
     resume_skip_ws(self)
     return {
         value = concat(ret),
-        type = token.comment,
+        type = tcomment,
         pos = {
             left = pos,
             right = spos(self),
