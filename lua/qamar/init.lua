@@ -1,12 +1,6 @@
 local qamar = {}
 local util = require 'qamar.util'
-local utf8 = require('qamar.util.string').utf8
 local parser = require 'qamar.parser'
-local char_stream = require 'qamar.tokenizer.char_stream'
-
-local function create_parser(str)
-    return parser.new(char_stream.new(utf8(str)))
-end
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
@@ -22,15 +16,22 @@ end
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 --odir = '/mnt/c/luaparse'
-local idir = vim.fn.stdpath 'data' .. '/site/pack'
+local idir = vim.fn.stdpath 'data' --.. '/site/pack'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'
 
+local function shuffle(tbl)
+    for i = #tbl, 2, -1 do
+        local p = math.random(i)
+        tbl[i], tbl[p] = tbl[p], tbl[i]
+    end
+end
+
 local function parse_everything()
-    local starttime = os.clock()
     os.execute("rm -rf '" .. odir .. "'")
     local files = scandir(idir)
+    shuffle(files)
     os.execute("mkdir -p '" .. odir .. "'")
     cfg.set_path(logpath .. '/out')
     local ofile = assert(dbg.create_fifo(logpath .. '/err'))
@@ -38,6 +39,7 @@ local function parse_everything()
     ofile:flush()
     cfg.print '\n'
 
+    local starttime = os.clock()
     local co = coroutine.create(function()
         dbg.stats = {}
         local counter = 0
@@ -49,8 +51,7 @@ local function parse_everything()
                 local txt = util.read_file(filename)
                 coroutine.yield()
                 if txt then
-                    local p = create_parser(txt)
-                    local success, tree = pcall(p.chunk, p)
+                    local success, tree = pcall(parser.parse, txt)
                     if success and tree then
                         local ok, str
                         if cfg.debug_to_string then
@@ -96,7 +97,12 @@ local function parse_everything()
                     else
                         ofile:write(filename .. '\n')
                         if tree ~= nil then
-                            ofile:write(tostring(tree) .. '\n')
+                            local str = tostring(tree)
+                            local idx = str:find ': '
+                            if idx then
+                                str = str:sub(idx + 2)
+                            end
+                            ofile:write(str .. '\n')
                         end
                         ofile:flush()
                     end

@@ -61,21 +61,18 @@ local function copy_transaction(self)
     return { index = self.index, pos = self.pos }
 end
 
-local initialized = false
-
+local chunk
 ---tries to parse a lua chunk
 ---@return node
-function parser:chunk()
-    if not initialized then
-        parser.chunk, initialized = require 'qamar.parser.production.chunk', true
-    end
-    return parser.chunk(self)
+chunk = function(self)
+    chunk = require 'qamar.parser.production.chunk'
+    return chunk(self)
 end
 
 ---creates a new parser
 ---@param stream char_stream
----@return parser
-function parser.new(stream)
+---@return node_block
+local function parse_from_stream(stream)
     local pos = stpos(stream)
     if pos.file_byte == 0 then
         if stpeek(stream) == '#' and stpeek(stream, 1) == '!' then
@@ -92,7 +89,7 @@ function parser.new(stream)
         end
     end
 
-    return setmetatable({
+    return chunk(setmetatable({
         stream = stream,
         tokenid = 0,
         la = deque(),
@@ -102,7 +99,17 @@ function parser.new(stream)
             index = 0,
             pos = stpos(stream),
         },
-    }, MT)
+    }, MT))
+end
+
+local char_stream = require 'qamar.tokenizer.char_stream'
+local utf8 = require('qamar.util.string').utf8
+
+---parses a lua chunk
+---@param str string
+---@return node_block
+function parser.parse(str)
+    return parse_from_stream(char_stream.new(utf8(str)))
 end
 
 ---begins a new parser transaction. must be paired with a subsequent call to undo or normalize

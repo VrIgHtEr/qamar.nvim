@@ -45,7 +45,7 @@ return function(self)
                 preview[i] = t
             end
             undo(self)
-            error('invalid token on line ' .. spos(self).row .. ', col ' .. spos(self).col .. ' ' .. vim.inspect(concat(preview)))
+            error(tostring(spos(self)) .. ':INVALID_TOKEN: ' .. vim.inspect(concat(preview)))
         end
     end
 end

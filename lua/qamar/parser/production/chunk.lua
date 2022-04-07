@@ -22,13 +22,13 @@ return function(self)
         local nxt = self.la[self.la.size()] or nil
         if ret then
             if nxt then
-                error('UNMATCHED TOKEN: ' .. tostring(nxt) .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
+                error(tostring(nxt.pos.left) .. ':UNMATCHED_TOKEN: ' .. tostring(nxt))
             end
             return ret
         elseif nxt then
-            error('UNMATCHED TOKEN: ' .. tostring(nxt) .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
+            error(tostring(nxt.pos.left) .. ':UNMATCHED_TOKEN: ' .. tostring(nxt))
         else
-            error('PARSE_FAILURE' .. ' at line ' .. nxt.pos.left.row .. ', col ' .. nxt.pos.left.col)
+            error(tostring(nxt.pos.left) .. ':PARSE_FAILURE')
         end
     else
         return N(nblock, range(spos(self), spos(self)), empty_mt)
