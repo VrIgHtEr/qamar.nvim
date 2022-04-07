@@ -1,6 +1,12 @@
+---@class node_repeat:node
+---@field body node_block
+---@field condition node_expression
+
 local tconcat = require('qamar.util.table').tconcat
 
 local mt = {
+    ---@param self node_repeat
+    ---@return string
     __tostring = function(self)
         return tconcat { 'repeat', self.body, 'until', self.condition }
     end,
@@ -19,9 +25,13 @@ local undo = p.undo
 local begintake = p.begintake
 local tkw_repeat = token.kw_repeat
 local tkw_until = token.kw_until
-local setmetatable = setmetatable
 local nstat_repeat = n.stat_repeat
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua repeat statement
+---@param self parser
+---@return node_repeat|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_repeat then
@@ -34,12 +44,10 @@ return function(self)
                 local condition = expression(self)
                 if condition then
                     commit(self)
-                    return setmetatable({
-                        body = body,
-                        condition = condition,
-                        type = nstat_repeat,
-                        pos = { left = kw_repeat.pos.left, right = condition.pos.right },
-                    }, mt)
+                    local ret = N(nstat_repeat, range(kw_repeat.pos.left, condition.pos.right), mt)
+                    ret.body = body
+                    ret.condition = condition
+                    return ret
                 end
             end
         end

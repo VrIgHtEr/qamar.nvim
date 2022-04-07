@@ -1,8 +1,15 @@
+---@class node_for_iter:node
+---@field names node_namelist
+---@field iterators node_explist
+---@field body node_block
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
 local mt = {
+    ---@param self node_for_iter
+    ---@return string
     __tostring = function(self)
         return tconcat { 'for', self.names, 'in', self.iterators, 'do', self.body, 'end' }
     end,
@@ -22,9 +29,13 @@ local tkw_for = token.kw_for
 local tkw_in = token.kw_in
 local tkw_do = token.kw_do
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nstat_for_iter = n.stat_for_iter
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua iterator for loop
+---@param self parser
+---@return node_for_iter|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_for then
@@ -42,13 +53,11 @@ return function(self)
                             tok = take(self)
                             if tok and tok.type == tkw_end then
                                 commit(self)
-                                return setmetatable({
-                                    type = nstat_for_iter,
-                                    names = names,
-                                    iterators = iterators,
-                                    body = body,
-                                    pos = { left = kw_for.pos.left, right = tok.pos.right },
-                                }, mt)
+                                local ret = N(nstat_for_iter, range(kw_for.pos.left, tok.pos.right), mt)
+                                names = names
+                                iterators = iterators
+                                body = body
+                                return ret
                             end
                         end
                     end

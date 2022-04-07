@@ -1,3 +1,7 @@
+---@class node_if:node
+---@field conditions table
+---@field bodies table
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -6,6 +10,8 @@ local tinsert = require('qamar.util.table').tinsert
 local expression = require 'qamar.parser.production.expression'
 local block = require 'qamar.parser.production.block'
 local mt = {
+    ---@param self node_if
+    ---@return string
     __tostring = function(self)
         local ret = { 'if', self.conditions[1], 'then', self.bodies[1] }
         for i = 2, #self.conditions do
@@ -31,9 +37,13 @@ local tkw_then = token.kw_then
 local tkw_elseif = token.kw_elseif
 local tkw_else = token.kw_else
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nstat_if = n.stat_if
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua if statement
+---@param self parser
+---@return node_if|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_if then
@@ -93,12 +103,10 @@ return function(self)
                     tok = take(self)
                     if tok and tok.type == tkw_end then
                         commit(self)
-                        return setmetatable({
-                            conditions = conditions,
-                            bodies = bodies,
-                            type = nstat_if,
-                            pos = { left = kw_if.pos.left, right = bodies[#bodies].pos.right },
-                        }, mt)
+                        local ret = N(nstat_if, range(kw_if.pos.left, bodies[bidx].pos.right), mt)
+                        ret.conditions = conditions
+                        ret.bodies = bodies
+                        return ret
                     end
                 end
             end

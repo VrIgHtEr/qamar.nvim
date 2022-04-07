@@ -1,8 +1,15 @@
+---@class node_do:node
+---@field body node_block
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_do
+    ---@return string
     __tostring = function(self)
         return tconcat { 'do', self.body, 'end' }
     end,
@@ -18,9 +25,11 @@ local undo = p.undo
 local begintake = p.begintake
 local tkw_do = token.kw_do
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nstat_do = n.stat_do
 
+---try to consume a lue do...end statement
+---@param self parser
+---@return node_do|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_do then
@@ -30,11 +39,9 @@ return function(self)
             tok = take(self)
             if tok and tok.type == tkw_end then
                 commit(self)
-                return setmetatable({
-                    body = body,
-                    type = nstat_do,
-                    pos = { left = kw_do.pos.left, right = tok.pos.right },
-                }, mt)
+                local ret = N(nstat_do, range(kw_do.pos.left, tok.pos.right), mt)
+                ret.body = body
+                return ret
             end
         end
         undo(self)

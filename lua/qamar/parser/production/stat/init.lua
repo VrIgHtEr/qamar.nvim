@@ -14,6 +14,9 @@ local for_iter = require 'qamar.parser.production.stat.for_iter'
 local stat_do = require 'qamar.parser.production.stat.do'
 local stat_if = require 'qamar.parser.production.stat.if'
 
+---try to consume a lua statement
+---@param self parser
+---@return node_localvar|node_functioncall|node_assign|node_if|node_func|node_for_iter|node_for_num|node_do|node_break|node_while|node_goto|node_empty|node_repeat|node_label
 return function(self)
     return localvar(self)
         or functioncall(self)

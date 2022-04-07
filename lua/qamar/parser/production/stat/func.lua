@@ -1,3 +1,7 @@
+---@class node_func:node
+---@field name node_funcname
+---@field body node_funcbody
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -11,9 +15,21 @@ local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
 local tkw_function = token.kw_function
-local setmetatable = setmetatable
 local nstat_func = n.stat_func
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+local mt = {
+    ---@param s node_func
+    ---@return string
+    __tostring = function(s)
+        return tconcat { 'function', s.name, s.body }
+    end,
+}
+
+---try to consume a lua function statement
+---@param self parser
+---@return node_func|nil
 return function(self)
     local kw_function = peek(self)
     if kw_function and kw_function.type == tkw_function then
@@ -23,11 +39,10 @@ return function(self)
             local body = funcbody(self)
             if body then
                 commit(self)
-                return setmetatable({ name = funcname, body = body, type = nstat_func, pos = { left = kw_function.pos.left, right = body.pos.right } }, {
-                    __tostring = function(s)
-                        return tconcat { 'function', s.name, s.body }
-                    end,
-                })
+                local ret = N(nstat_func, range(kw_function.pos.left, body.pos.right), mt)
+                ret.name = funcname
+                ret.body = body
+                return ret
             end
         end
         undo(self)

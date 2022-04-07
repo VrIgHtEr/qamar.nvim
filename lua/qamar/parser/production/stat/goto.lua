@@ -1,3 +1,6 @@
+---@class node_goto:node
+---@field label node_name
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -5,6 +8,8 @@ local tconcat = require('qamar.util.table').tconcat
 local name = require 'qamar.parser.production.name'
 
 local mt = {
+    ---@param self node_goto
+    ---@return string
     __tostring = function(self)
         return tconcat { 'goto', self.label }
     end,
@@ -16,9 +21,13 @@ local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
 local tkw_goto = token.kw_goto
-local setmetatable = setmetatable
 local nstat_goto = n.stat_goto
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua goto statement
+---@param self parser
+---@return node_goto|nil
 return function(self)
     local kw_goto = peek(self)
     if kw_goto and kw_goto.type == tkw_goto then
@@ -26,7 +35,9 @@ return function(self)
         local label = name(self)
         if label then
             commit(self)
-            return setmetatable({ type = nstat_goto, label = label, pos = { left = kw_goto.pos.left, right = label.pos.right } }, mt)
+            local ret = N(nstat_goto, range(kw_goto.pos.left, label.pos.right), mt)
+            ret.label = label
+            return ret
         end
         undo(self)
     end

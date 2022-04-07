@@ -1,5 +1,8 @@
+---@class node_break:node
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
+local N = require 'qamar.parser.node'
 
 local mt = {
     __tostring = function()
@@ -12,12 +15,14 @@ local peek = p.peek
 local take = p.take
 local tkw_break = token.kw_break
 local nstat_break = n.stat_break
-local setmetatable = setmetatable
 
+---try to consume a lua break statement
+---@param self parser
+---@return node_break|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_break then
         take(self)
-        return setmetatable({ type = nstat_break, pos = tok.pos }, mt)
+        return N(nstat_break, tok.pos, mt)
     end
 end

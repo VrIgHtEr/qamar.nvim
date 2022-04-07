@@ -1,9 +1,15 @@
+---@class node_localvar:node
+---@field names node_attnamelist
+---@field values node_explist|nil
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
 local mt = {
+    ---@param self node_localvar
+    ---@return string
     __tostring = function(self)
         local ret = { 'local', self.names }
         if self.values then
@@ -22,17 +28,22 @@ local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
 local tkw_local = token.kw_local
-local setmetatable = setmetatable
 local nstat_localvar = n.stat_localvar
 local tassignment = token.assignment
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua local variable declaration
+---@param self parser
+---@return node_localvar|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_local then
         begintake(self)
         local names = attnamelist(self)
         if names then
-            local ret = setmetatable({ names = names, type = nstat_localvar, pos = { left = tok.pos.left } }, mt)
+            local pos = range(tok.pos.left)
+            local ret = N(nstat_localvar, pos, mt)
             commit(self)
             tok = peek(self)
             if tok and tok.type == tassignment then
@@ -40,13 +51,13 @@ return function(self)
                 ret.values = explist(self)
                 if ret.values then
                     commit(self)
-                    ret.pos.right = ret.values.pos.right
+                    pos.right = ret.values.pos.right
                 else
                     undo(self)
-                    ret.pos.right = names.pos.right
+                    pos.right = names.pos.right
                 end
             else
-                ret.pos.right = names.pos.right
+                pos.right = names.pos.right
             end
             return ret
         end

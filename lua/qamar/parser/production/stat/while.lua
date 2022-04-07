@@ -1,8 +1,14 @@
+---@class node_while:node
+---@field body node_block
+---@field condition node_expression
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
 local mt = {
+    ---@param self node_while
+    ---@return string
     __tostring = function(self)
         return tconcat { 'while', self.condition, 'do', self.body, 'end' }
     end,
@@ -20,9 +26,13 @@ local begintake = p.begintake
 local tkw_while = token.kw_while
 local tkw_do = token.kw_do
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nstat_while = n.stat_while
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua while statement
+---@param self parser
+---@return node_while|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tkw_while then
@@ -36,12 +46,10 @@ return function(self)
                     tok = take(self)
                     if tok and tok.type == tkw_end then
                         commit(self)
-                        return setmetatable({
-                            condition = condition,
-                            body = body,
-                            type = nstat_while,
-                            pos = { left = kw_while.pos.left, right = tok.pos.right },
-                        }, mt)
+                        local ret = N(nstat_while, range(kw_while.pos.left, tok.pos.right), mt)
+                        ret.condition = condition
+                        ret.body = body
+                        return ret
                     end
                 end
             end

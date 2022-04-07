@@ -1,3 +1,10 @@
+---@class node_for_num:node
+---@field name node_name
+---@field start node_expression
+---@field finish node_expression
+---@field increment node_expression|nil
+---@field body node_block
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -6,8 +13,12 @@ local tinsert = require('qamar.util.table').tinsert
 local name = require 'qamar.parser.production.name'
 local expression = require 'qamar.parser.production.expression'
 local block = require 'qamar.parser.production.block'
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param s node_for_num
+    ---@return string
     __tostring = function(s)
         local ret = { 'for', s.name, '=', s.start, ',', s.finish }
         if s.increment then
@@ -29,9 +40,11 @@ local tassignment = token.assignment
 local tcomma = token.comma
 local tkw_do = token.kw_do
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nstat_for_num = n.stat_for_num
 
+---try to consume a lua for loop
+---@param self parser
+---@return node_for_num|nil
 return function(self)
     local kw_for = peek(self)
     if kw_for and kw_for.type == tkw_for then
@@ -63,15 +76,13 @@ return function(self)
                                 tok = take(self)
                                 if tok and tok.type == tkw_end then
                                     commit(self)
-                                    return setmetatable({
-                                        name = varname,
-                                        start = start,
-                                        finish = finish,
-                                        increment = increment,
-                                        body = body,
-                                        type = nstat_for_num,
-                                        pos = { left = kw_for.pos.left, right = tok.pos.right },
-                                    }, mt)
+                                    local ret = N(nstat_for_num, range(kw_for.pos.left, tok.pos.right), mt)
+                                    ret.name = name
+                                    ret.start = start
+                                    ret.finish = finish
+                                    ret.increment = increment
+                                    ret.body = body
+                                    return ret
                                 end
                             end
                         end
