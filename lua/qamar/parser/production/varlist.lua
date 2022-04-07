@@ -36,7 +36,7 @@ local range = require 'qamar.util.range'
 
 ---try to consume a lua varlist
 ---@param self parser
----@return node_varlist | nil
+---@return node_varlist|nil
 return function(self)
     local v = var(self)
     if v then
