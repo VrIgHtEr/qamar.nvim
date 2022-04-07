@@ -6,6 +6,8 @@ local setmetatable = setmetatable
 ---@field push_front function(item)
 ---@field pop_back function():any
 ---@field pop_front function():any
+---@field peek_front function():any
+---@field peek_back function():any
 
 ---creates a new deque
 ---@return deque
@@ -116,6 +118,18 @@ return function()
             buf[head] = nil
             head, version = head - 1, version + 1
             return r
+        end
+    end
+
+    function ret.peek_front()
+        if parity or head ~= tail then
+            return buf[tail]
+        end
+    end
+
+    function ret.peek_back()
+        if parity or head ~= tail then
+            return buf[head]
         end
     end
 

@@ -49,6 +49,7 @@ return function(self, precedence)
             if not left then
                 if precedence == 0 then
                     self.cache[id] = { last = next_id(self), value = false }
+                    self.cache_mapping.push_front(id)
                 end
                 undo(self)
                 return
@@ -59,6 +60,7 @@ return function(self, precedence)
                     commit(self)
                     if precedence == 0 then
                         self.cache[id] = { last = next_id(), value = left }
+                        self.cache_mapping.push_front(id)
                     end
                     return left
                 end
@@ -67,6 +69,7 @@ return function(self, precedence)
                     commit(self)
                     if precedence == 0 then
                         self.cache[id] = { last = next_id(), value = left }
+                        self.cache_mapping.push_front(id)
                     end
                     return left
                 end
@@ -78,6 +81,7 @@ return function(self, precedence)
                     undo(self)
                     if precedence == 0 then
                         self.cache[id] = { last = next_id(self), value = left }
+                        self.cache_mapping.push_front(id)
                     end
                     return left
                 else
@@ -88,12 +92,15 @@ return function(self, precedence)
             commit(self)
             if precedence == 0 then
                 self.cache[id] = { last = next_id(self), value = left }
+                self.cache_mapping.push_front(id)
             end
             return left
         elseif precedence == 0 then
             self.cache[id] = { last = next_id(self), value = false }
+            self.cache_mapping.push_front(id)
         end
     elseif precedence == 0 then
         self.cache[id] = { last = next_id(self), value = false }
+        self.cache_mapping.push_front(id)
     end
 end

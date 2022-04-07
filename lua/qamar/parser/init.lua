@@ -10,13 +10,14 @@
 ---@field tc number
 ---@field t parser_transaction
 ---@field cache table
+---@field cache_mapping deque
+---@field on_flush function
+local parser = {}
 
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
 local concat = table.concat
 local setmetatable = setmetatable
-
-local parser = {}
 
 local MT = {
     __metatable = function() end,
@@ -112,21 +113,6 @@ function parser.parse(str)
     return parse_from_stream(char_stream.new(utf8(str)))
 end
 
----begins a new parser transaction. must be paired with a subsequent call to undo or normalize
----@param self parser
-local function begin(self)
-    self.tc = self.tc + 1
-    self.ts[self.tc] = copy_transaction(self.t)
-end
-parser.begin = begin
-
----undoes a parser transaction. must be paired with a preceding call to begin
----@param self parser
-local function undo(self)
-    self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
-end
-parser.undo = undo
-
 ---discards any consumed cached tokens if there are no pending transactions
 ---@param self parser
 local function normalize(self)
@@ -138,15 +124,6 @@ local function normalize(self)
     end
 end
 parser.normalize = normalize
-
----commits a parser transaction. must be paired with a preceding call to begin
----@param self parser
----@return nil
-local function commit(self)
-    self.ts[self.tc], self.tc = nil, self.tc - 1
-    return normalize(self)
-end
-parser.commit = commit
 
 ---fills the parser's token buffer to contain N items, unless the end of the stream has been reached
 ---@param self any
@@ -203,14 +180,6 @@ local function take(self, N)
 end
 parser.take = take
 
----begins a new parser transaction and consumes the next token
----@param amt parser
----@return token|nil
-function parser:begintake(amt)
-    begin(self)
-    return take(self, amt)
-end
-
 ---gets the rightmost position in the token stream
 ---@return position
 function parser:pos()
@@ -219,10 +188,11 @@ end
 
 ---gets the next available token id
 ---@return number
-function parser:next_id()
+local function next_id(self)
     local x = peek(self)
     return x and x.id or self.tokenid
 end
+parser.next_id = next_id
 
 ---consumes tokens until one with the specified id or larger is encountered
 ---@param id number
@@ -234,6 +204,40 @@ function parser:take_until(id)
         end
         take(self)
     end
+end
+
+---begins a new parser transaction. must be paired with a subsequent call to undo or normalize
+---@param self parser
+local function begin(self)
+    self.tc = self.tc + 1
+    self.ts[self.tc] = copy_transaction(self.t)
+end
+parser.begin = begin
+
+---undoes a parser transaction. must be paired with a preceding call to begin
+---@param self parser
+local function undo(self)
+    self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
+end
+parser.undo = undo
+
+---commits a parser transaction. must be paired with a preceding call to begin
+---@param self parser
+local function commit(self)
+    self.ts[self.tc], self.tc = nil, self.tc - 1
+    normalize(self)
+    if self.tc == 0 and self.on_flush then
+        self.on_flush(next_id(self))
+    end
+end
+parser.commit = commit
+
+---begins a new parser transaction and consumes the next token
+---@param amt parser
+---@return token|nil
+function parser:begintake(amt)
+    begin(self)
+    return take(self, amt)
 end
 
 return parser

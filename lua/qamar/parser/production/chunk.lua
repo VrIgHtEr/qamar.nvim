@@ -5,6 +5,7 @@ local N = require 'qamar.parser.node'
 local nblock = require('qamar.parser.types').block
 local range = require 'qamar.util.range'
 local spos = p.pos
+local deque = require 'qamar.util.deque'
 
 local empty_mt = {
     __tostring = function()
@@ -17,8 +18,24 @@ local empty_mt = {
 return function(self)
     if peek(self) then
         self.cache = {}
-        local ret = block(self)
+        local cache_mapping = deque()
+        self.cache_mapping = cache_mapping
+        self.on_flush = function(id)
+            while true do
+                local f = self.cache_mapping.peek_front()
+                if not f or f >= id then
+                    break
+                end
+                self.cache_mapping.pop_front()
+            end
+        end
+        local success, ret = pcall(block, self)
+        self.on_flush = nil
         self.cache = nil
+        self.cache_mapping = nil
+        if not success then
+            error(ret)
+        end
         local nxt = self.la[self.la.size()] or nil
         if ret then
             if nxt then
