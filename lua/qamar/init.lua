@@ -52,7 +52,12 @@ local function parse_everything()
                     local p = create_parser(txt)
                     local success, tree = pcall(p.chunk, p)
                     if success and tree then
-                        local ok, str = pcall(tostring, tree)
+                        local ok, str
+                        if cfg.debug_to_string then
+                            ok, str = pcall(tostring, tree)
+                        else
+                            ok, str = true, nil
+                        end
                         if not ok then
                             ofile:write('TOSTRING: ' .. filename .. '\n')
                             if str ~= nil then
@@ -61,12 +66,13 @@ local function parse_everything()
                             ofile:flush()
                         else
                             counter = counter + 1
-                            local outpath = filename:gsub('^/home/', odir .. '/')
-                            outpath = vim.fn.fnamemodify(outpath, ':p')
-                            local outdir = vim.fn.fnamemodify(outpath, ':p:h')
-                            os.execute("mkdir -p '" .. outdir .. "'")
-                            util.write_file(outpath, str)
-                            --[[
+                            if cfg.debug_to_string then
+                                local outpath = filename:gsub('^/home/', odir .. '/')
+                                outpath = vim.fn.fnamemodify(outpath, ':p')
+                                local outdir = vim.fn.fnamemodify(outpath, ':p:h')
+                                os.execute("mkdir -p '" .. outdir .. "'")
+                                util.write_file(outpath, str)
+                                --[[
                             local types = require 'qamar.parser.types'
                             print(vim.inspect(tree, {
                                 process = function(item, path)
@@ -83,8 +89,9 @@ local function parse_everything()
                                 end,
                             }))
                             ]]
-                            tlen = tlen + string.len(str)
-                            print(str)
+                                tlen = tlen + string.len(str)
+                                print(str)
+                            end
                         end
                     else
                         ofile:write(filename .. '\n')

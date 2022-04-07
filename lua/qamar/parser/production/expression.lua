@@ -28,6 +28,8 @@ return function(self, precedence)
         if item then
             take_until(self, item.last)
             return item.value
+        elseif item ~= nil then
+            return
         end
     end
     local tok = peek(self)
@@ -38,6 +40,9 @@ return function(self, precedence)
             take(self)
             local left = prefix:parse(self, tok)
             if not left then
+                if precedence == 0 then
+                    self.cache[id] = { last = next_id(self), value = false }
+                end
                 undo(self)
                 return
             end
@@ -78,6 +83,10 @@ return function(self, precedence)
                 self.cache[id] = { last = next_id(self), value = left }
             end
             return left
+        elseif precedence == 0 then
+            self.cache[id] = { last = next_id(self), value = false }
         end
+    elseif precedence == 0 then
+        self.cache[id] = { last = next_id(self), value = false }
     end
 end
