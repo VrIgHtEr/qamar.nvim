@@ -17,7 +17,8 @@ local empty_mt = {
 ---@return node_block
 return function(self)
     if peek(self) then
-        self.cache = {}
+        local cache = {}
+        self.cache = cache
         local cache_mapping = deque()
         self.cache_mapping = cache_mapping
         self.on_flush = function(id)
@@ -26,6 +27,7 @@ return function(self)
                 if not f or f >= id then
                     break
                 end
+                cache[f] = nil
                 self.cache_mapping.pop_front()
             end
         end
