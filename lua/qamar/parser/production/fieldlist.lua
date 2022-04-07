@@ -1,14 +1,19 @@
+---@class node_fieldlist:node
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local field = require 'qamar.parser.production.field'
 local ipairs = ipairs
-local setmetatable = setmetatable
 local nfieldlist = n.fieldlist
 local tcomma = token.comma
 local tsemicolon = token.semicolon
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_fieldlist
+    ---@return string
     __tostring = function(self)
         local ret, idx = {}, 1
         for i, x in ipairs(self) do
@@ -28,11 +33,16 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+---try to consume a lua field list
+---@param self parser
+---@return node_fieldlist|nil
 return function(self)
     local f = field(self)
     if f then
-        local pos = { left = f.pos.left, right = f.pos.right }
-        local ret, idx = setmetatable({ f, type = nfieldlist, pos = pos }, mt), 1
+        local pos = range(f.pos.left)
+        local ret = N(nfieldlist, pos, mt)
+        ret[1] = f
+        local idx = 1
         while true do
             local tok = peek(self)
             if tok and (tok.type == tcomma or tok.type == tsemicolon) then

@@ -1,3 +1,7 @@
+---@class node_field_raw:node
+---@field key node_expression
+---@field value node_expression
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -13,13 +17,20 @@ local tlbracket = token.lbracket
 local trbracket = token.rbracket
 local tassignment = token.assignment
 local nfield_raw = n.field_raw
-local setmetatable = setmetatable
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_field_raw
+    ---@return string
     __tostring = function(self)
         return tconcat { '[', self.key, ']', '=', self.value }
     end,
 }
+
+---try to consume a lua raw table access
+---@param self parser
+---@return node_field_raw|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tlbracket then
@@ -34,7 +45,10 @@ return function(self)
                     local value = expression(self)
                     if value then
                         commit(self)
-                        return setmetatable({ key = key, value = value, pos = { left = left, right = value.pos.right }, type = nfield_raw }, mt)
+                        local ret = N(nfield_raw, range(left, value.pos.right), mt)
+                        ret.key = key
+                        ret.value = value
+                        return ret
                     end
                 end
             end

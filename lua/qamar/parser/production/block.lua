@@ -1,7 +1,11 @@
+---@class node_block:node
+
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 local ipairs = ipairs
+local range = require 'qamar.util.range'
+local N = require 'qamar.parser.node'
 
 local mt = {
     __tostring = function(self)
@@ -24,11 +28,13 @@ rst = function(self)
     rst = require 'qamar.parser.production.retstat'
     return rst(self)
 end
-local setmetatable = setmetatable
 local nblock = n.block
 
+---consumes a lua block
+---@param self parser
+---@return node_block
 return function(self)
-    local ret = setmetatable({ type = nblock, pos = {} }, mt)
+    local ret = N(nblock, nil, mt)
     local idx = 0
     while true do
         local stat = st(self)
@@ -43,12 +49,7 @@ return function(self)
         idx = idx + 1
         ret[idx] = retstat
     end
-    if idx == 0 then
-        ret.pos.left = spos(self)
-        ret.pos.right = ret.pos.left
-    else
-        ret.pos.left = ret[1].pos.left
-        ret.pos.right = ret[idx].pos.right
-    end
+
+    ret.pos = idx == 0 and range(spos(self), spos(self)) or range(ret[1].pos.left, ret[idx].pos.right)
     return ret
 end

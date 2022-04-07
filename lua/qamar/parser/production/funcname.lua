@@ -1,12 +1,19 @@
+---@class node_funcname:node
+---@field objectaccess boolean|nil
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local name = require 'qamar.parser.production.name'
 local ipairs = ipairs
 
 local mt = {
+    ---@param self node_funcname
+    ---@return string
     __tostring = function(self)
         local ret = {}
         local max = #self
@@ -28,16 +35,20 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 local begintake = p.begintake
-local setmetatable = setmetatable
 local nfuncname = n.funcname
 local tdot = token.dot
 local tcolon = token.colon
 
+---try to consume a lua funcname
+---@param self parser
+---@return node_funcname
 return function(self)
     local v = name(self)
     if v then
-        local ret = setmetatable({ v, type = nfuncname, pos = { left = v.pos.left } }, mt)
-        local idx = 0
+        local pos = range(v.pos.left)
+        local ret = N(nfuncname, pos, mt)
+        ret[1] = v
+        local idx = 1
         while true do
             local t = peek(self)
             if not t or t.type ~= tdot then
@@ -70,7 +81,7 @@ return function(self)
             end
         end
 
-        ret.pos.right = ret[#ret].pos.right
+        pos.right = ret[idx].pos.right
         return ret
     end
 end

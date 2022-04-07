@@ -1,3 +1,7 @@
+---@class node_field_name:node
+---@field key string
+---@field value node_expression
+
 local tconcat = require('qamar.util.table').tconcat
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
@@ -12,14 +16,20 @@ local undo = p.undo
 local tname = token.name
 local tassignment = token.assignment
 local nfield_name = n.field_name
-local setmetatable = setmetatable
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_field_name
+    ---@return string
     __tostring = function(self)
         return tconcat { self.key, '=', self.value }
     end,
 }
 
+---try to consume a lua table field with a name
+---@param self parser
+---@return node_field_name|nil
 return function(self)
     local key = peek(self)
     if key and key.type == tname then
@@ -30,7 +40,9 @@ return function(self)
             local value = expression(self)
             if value then
                 commit(self)
-                local ret = setmetatable({ key = key.value, value = value, type = nfield_name, pos = { left = left, right = value.pos.right } }, mt)
+                local ret = N(nfield_name, range(left, value.pos.right), mt)
+                ret.key = key.value
+                ret.value = value
                 return ret
             end
         end

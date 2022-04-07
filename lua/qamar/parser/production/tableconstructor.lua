@@ -10,6 +10,9 @@ local begin = p.begin
 local tlbrace = token.lbrace
 local ntableconstructor = n.tableconstructor
 
+---try to consume a lua table constructor
+---@param self parser
+---@return node_table_constructor|nil
 return function(self)
     local tok = peek(self)
     if tok and tok.type == tlbrace then

@@ -1,3 +1,7 @@
+---@class node_funcbody:node
+---@field parameters node_parlist
+---@field body node_block
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -7,6 +11,8 @@ local parlist = require 'qamar.parser.production.parlist'
 local block = require 'qamar.parser.production.block'
 
 local mt = {
+    ---@param self node_funcbody
+    ---@return string
     __tostring = function(self)
         local ret = { '(' }
         if self.parameters then
@@ -26,9 +32,13 @@ local begintake = p.begintake
 local tlparen = token.lparen
 local trparen = token.rparen
 local tkw_end = token.kw_end
-local setmetatable = setmetatable
 local nfuncbody = n.funcbody
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua function body
+---@param self parser
+---@return node_funcbody|nil
 return function(self)
     local lparen = peek(self)
     if lparen and lparen.type == tlparen then
@@ -41,7 +51,10 @@ return function(self)
                 tok = take(self)
                 if tok and tok.type == tkw_end then
                     commit(self)
-                    return setmetatable({ parameters = pars, body = body, type = nfuncbody, pos = { left = lparen.pos.left, right = tok.pos.right } }, mt)
+                    local ret = N(nfuncbody, range(lparen.pos.left, tok.pos.right), mt)
+                    ret.parameters = pars
+                    ret.body = body
+                    return ret
                 end
             end
         end

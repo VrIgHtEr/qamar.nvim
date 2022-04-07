@@ -1,15 +1,20 @@
+---@class node_namelist:node
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local name = require 'qamar.parser.production.name'
 local ipairs = ipairs
-local setmetatable = setmetatable
 local nnamelist = n.namelist
 local tcomma = token.comma
 
 local mt = {
+    ---@param self node_namelist
+    ---@return string
     __tostring = function(self)
         local ret = {}
         for i, x in ipairs(self) do
@@ -29,10 +34,15 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+---try to consume a lua name list
+---@param self parser
+---@return node_namelist|nil
 return function(self)
     local v = name(self)
     if v then
-        local ret = setmetatable({ v, type = nnamelist, pos = { left = v.pos.left } }, mt)
+        local pos = range(v.pos.left)
+        local ret = N(nnamelist, pos, mt)
+        ret[1] = v
         local idx = 1
         while true do
             local t = peek(self)
@@ -51,8 +61,7 @@ return function(self)
                 break
             end
         end
-
-        ret.pos.right = ret[idx].pos.right
+        pos.right = ret[idx].pos.right
         return ret
     end
 end

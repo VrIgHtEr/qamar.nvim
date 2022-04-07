@@ -1,7 +1,14 @@
+---@class node_attrib:node
+---@field name string
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_attrib
+    ---@return string
     __tostring = function(self)
         return '<' .. self.name .. '>'
     end,
@@ -16,9 +23,11 @@ local begintake = p.begintake
 local tless = token.less
 local tname = token.name
 local tgreater = token.greater
-local setmetatable = setmetatable
 local nattrib = n.attrib
 
+---try to consume a lua variable attribute
+---@param self parser
+---@return node_attrib|nil
 return function(self)
     local less = peek(self)
     if not less or less.type ~= tless then
@@ -39,5 +48,7 @@ return function(self)
     end
 
     commit(self)
-    return setmetatable({ name = name.value, type = nattrib, pos = { left = less.pos.left, right = greater.pos.right } }, mt)
+    local ret = N(nattrib, range(less.pos.left, greater.pos.right), mt)
+    ret.name = name.value
+    return ret
 end

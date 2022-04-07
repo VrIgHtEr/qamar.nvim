@@ -1,3 +1,5 @@
+---@class node_varlist:node
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -5,11 +7,12 @@ local tinsert = require('qamar.util.table').tinsert
 
 local var = require 'qamar.parser.production.var'
 local ipairs = ipairs
-local setmetatable = setmetatable
 local nvarlist = n.varlist
 local tcomma = token.comma
 
 local mt = {
+    ---@param self node_varlist
+    ---@return string
     __tostring = function(self)
         local ret = {}
         for i, x in ipairs(self) do
@@ -28,11 +31,18 @@ local take = p.take
 local commit = p.commit
 local undo = p.undo
 local begin = p.begin
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua varlist
+---@param self parser
+---@return node_varlist | nil
 return function(self)
     local v = var(self)
     if v then
-        local ret = setmetatable({ v, type = nvarlist, pos = { left = v.pos.left } }, mt)
+        local pos = range(v.pos.left)
+        local ret = N(nvarlist, pos, mt)
+        ret[1] = v
         local idx = 1
         while true do
             local t = peek(self)
@@ -51,8 +61,7 @@ return function(self)
                 break
             end
         end
-
-        ret.pos.right = ret[idx].pos.right
+        pos.right = ret[idx].pos.right
         return ret
     end
 end

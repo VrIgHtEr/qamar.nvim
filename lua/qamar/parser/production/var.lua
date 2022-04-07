@@ -9,6 +9,9 @@ local nname = n.name
 local ntable_nameaccess = n.table_nameaccess
 local ntable_rawaccess = n.table_rawaccess
 
+---try to consume a lua variable
+---@param self parser
+---@return node_name|node_table_nameaccess|node_table_rawaccess
 return function(self)
     begin(self)
     local ret = expression(self)

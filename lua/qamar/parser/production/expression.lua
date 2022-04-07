@@ -9,6 +9,9 @@ local commit = p.commit
 local next_id = p.next_id
 local take_until = p.take_until
 
+---gets the precedence of the next available token
+---@param self parser
+---@return number
 local function get_precedence(self)
     local next = peek(self)
     if next then
@@ -20,6 +23,10 @@ local function get_precedence(self)
     return 0
 end
 
+---try to consume a lua expression
+---@param self parser
+---@param precedence number|nil
+---@return node_expression|nil
 return function(self, precedence)
     precedence = precedence or 0
     local id = next_id(self)

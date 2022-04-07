@@ -1,15 +1,20 @@
+---@class node_explist:node
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local expression = require 'qamar.parser.production.expression'
 local ipairs = ipairs
-local setmetatable = setmetatable
 local nexplist = n.explist
 local tcomma = token.comma
 
 local mt = {
+    ---@param self node_explist
+    ---@return string
     __tostring = function(self)
         local ret = {}
         for i, x in ipairs(self) do
@@ -29,10 +34,14 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+---try to consume an expression list
+---@param self parser
+---@return node_explist|nil
 return function(self)
     local v = expression(self)
     if v then
-        local ret = setmetatable({ v, type = nexplist, pos = { left = v.pos.left } }, mt)
+        local ret = N(nexplist, range(v.pos.left), mt)
+        ret[1] = v
         local idx = 1
         while true do
             local t = peek(self)

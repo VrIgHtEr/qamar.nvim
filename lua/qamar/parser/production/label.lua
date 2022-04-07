@@ -1,9 +1,16 @@
+---@class node_label:node
+---@field name string
+
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
 local mt = {
+    ---@param self node_label
+    ---@return string
     __tostring = function(self)
-        return '::' .. tostring(self.name) .. '::'
+        return '::' .. self.name .. '::'
     end,
 }
 
@@ -16,9 +23,11 @@ local commit = p.commit
 local undo = p.undo
 local begintake = p.begintake
 local tdoublecolon = token.doublecolon
-local setmetatable = setmetatable
 local nlabel = n.label
 
+---try to consume a lua label
+---@param self parser
+---@return node_label|nil
 return function(self)
     local left = peek(self)
     if not left or left.type ~= tdoublecolon then
@@ -39,5 +48,7 @@ return function(self)
     end
 
     commit(self)
-    return setmetatable({ name = nam.value, type = nlabel, pos = { left = left.pos.left, right = right.pos.right } }, mt)
+    local ret = N(nlabel, range(left.pos.left, right.pos.right), mt)
+    ret.name = nam.value
+    return ret
 end

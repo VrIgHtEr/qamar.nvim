@@ -9,6 +9,7 @@
 ---@field ts table
 ---@field tc number
 ---@field t parser_transaction
+---@field cache table
 
 local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'

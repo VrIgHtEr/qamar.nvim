@@ -1,3 +1,9 @@
+---@class node_attnamelist:node
+
+---@class node_attname:node
+---@field name node_name
+---@field attrib node_attrib
+
 local token = require 'qamar.tokenizer.types'
 local node = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
@@ -8,6 +14,8 @@ local attribute = require 'qamar.parser.production.attrib'
 
 local ipairs = ipairs
 local mt = {
+    ---@param self node_attnamelist
+    ---@return string
     __tostring = function(self)
         local ret = {}
         for i, x in ipairs(self) do
@@ -29,25 +37,23 @@ local begin = p.begin
 local take = p.take
 local commit = p.commit
 local undo = p.undo
-local setmetatable = setmetatable
 local nattname = node.attname
 local nattnamelist = node.attnamelist
 local tcomma = token.comma
+local N = require 'qamar.parser.node'
+local range = require 'qamar.util.range'
 
+---try to consume a lua name attribute list
+---@param self parser
+---@return node_attnamelist|nil
 return function(self)
     local n = name(self)
     if n then
         local a = attribute(self)
-        local ret = setmetatable({
-            {
-                name = n,
-                attrib = a,
-                type = nattname,
-                pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
-            },
-            type = nattnamelist,
-            pos = { left = n.pos.left },
-        }, mt)
+        local tmp = N(nattname, range(n.pos.left, (a and a.pos.right or n.pos.right)))
+        tmp.name, tmp.attrib = n, a
+        local ret = N(nattnamelist, range(n.pos.left), mt)
+        ret[1] = tmp
         local idx = 1
         while true do
             local t = peek(self)
@@ -61,12 +67,9 @@ return function(self)
                 a = attribute(self)
                 commit(self)
                 idx = idx + 1
-                ret[idx] = {
-                    name = n,
-                    attrib = a,
-                    type = nattname,
-                    pos = { left = n.pos.left, right = (a and a.pos.right or n.pos.right) },
-                }
+                local item = N(nattname, range(n.pos.left, (a and a.pos.right or n.pos.right)))
+                item.name, item.attrib = n, a
+                ret[idx] = item
             else
                 undo(self)
                 break
