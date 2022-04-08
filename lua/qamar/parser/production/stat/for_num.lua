@@ -77,7 +77,7 @@ return function(self)
                                 if tok and tok.type == tkw_end then
                                     commit(self)
                                     local ret = N(nstat_for_num, range(kw_for.pos.left, tok.pos.right), mt)
-                                    ret.name = name
+                                    ret.name = varname
                                     ret.start = start
                                     ret.finish = finish
                                     ret.increment = increment
