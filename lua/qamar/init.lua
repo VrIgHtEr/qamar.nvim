@@ -16,7 +16,7 @@ end
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 --odir = '/mnt/c/luaparse'
-local idir = vim.fn.stdpath 'data' --.. '/site/pack'
+local idir = vim.fn.stdpath 'data' .. '/site/pack'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'

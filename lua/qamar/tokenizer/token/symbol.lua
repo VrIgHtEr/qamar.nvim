@@ -58,7 +58,6 @@ local s = require 'qamar.tokenizer.char_stream'
 local begin = s.begin
 local skipws = s.skipws
 local spos = s.pos
-local resume_skip_ws = s.resume_skip_ws
 local undo = s.undo
 local commit = s.commit
 local try_consume_string = s.try_consume_string
@@ -87,7 +86,6 @@ return function(self)
     local ret = parser(self)
     if ret then
         commit(self)
-        resume_skip_ws(self)
         return T(symbols[ret], ret, range(pos, spos(self)))
     end
     undo(self)

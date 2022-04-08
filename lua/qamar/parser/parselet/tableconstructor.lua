@@ -1,4 +1,4 @@
----@class node_table_constructor
+---@class node_table_constructor:node
 ---@field value node
 
 local token, node = require 'qamar.tokenizer.types', require 'qamar.parser.types'
