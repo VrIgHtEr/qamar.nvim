@@ -1,6 +1,6 @@
 local qamar = {}
 local util = require 'qamar.util'
-local parser = require 'qamar.parser'
+local parser = require 'qamar.singlefile'
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen
@@ -91,7 +91,9 @@ local function parse_everything()
                                 local outdir = vim.fn.fnamemodify(outpath, ':p:h')
                                 os.execute("mkdir -p '" .. outdir .. "'")
                                 util.write_file(outpath, str)
-                                --print(tostring_tree(tree))
+                                if false then
+                                    print(tostring_tree(tree))
+                                end
                                 tlen = tlen + string.len(str)
                                 print(str)
                             end
