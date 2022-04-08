@@ -16,7 +16,7 @@ end
 local logpath = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
 local odir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim/parsed'
 --odir = '/mnt/c/luaparse'
-local idir = vim.fn.stdpath 'data' .. '/site/pack/vrighter/opt/qamar.nvim'
+local idir = vim.fn.stdpath 'data' .. '/site/pack'
 local cfg = require 'qamar.config'
 local print = cfg.print
 local dbg = require 'qdbg'
@@ -26,6 +26,24 @@ local function shuffle(tbl)
         local p = math.random(i)
         tbl[i], tbl[p] = tbl[p], tbl[i]
     end
+end
+
+local types = require 'qamar.parser.types'
+local function tostring_tree(tree)
+    return vim.inspect(tree, {
+        process = function(item, path)
+            local x = path[#path]
+            if x ~= 'precedence' and x ~= 'right_associative' and tostring(x) ~= 'inspect.METATABLE' then
+                if x == 'type' then
+                    return types[item] or item
+                end
+                if x == 'pos' then
+                    return item.left.row .. ':' .. item.left.col .. ' - ' .. item.right.row .. ':' .. item.right.col
+                end
+                return item
+            end
+        end,
+    })
 end
 
 local function parse_everything()
@@ -45,7 +63,7 @@ local function parse_everything()
         local counter = 0
         local tlen = 0
         for _, filename in ipairs(files) do
-            if filename:match '^.*/test.lua' then
+            if true or filename:match '^.*/test.lua' then
                 print '-----------------------------------------------------------------------------------'
                 print('PARSING FILE ' .. (counter + 1) .. ': ' .. filename)
                 local txt = util.read_file(filename)
@@ -73,21 +91,7 @@ local function parse_everything()
                                 local outdir = vim.fn.fnamemodify(outpath, ':p:h')
                                 os.execute("mkdir -p '" .. outdir .. "'")
                                 util.write_file(outpath, str)
-                                local types = require 'qamar.parser.types'
-                                print(vim.inspect(tree, {
-                                    process = function(item, path)
-                                        local x = path[#path]
-                                        if x ~= 'precedence' and x ~= 'right_associative' and tostring(x) ~= 'inspect.METATABLE' then
-                                            if x == 'type' then
-                                                return types[item] or item
-                                            end
-                                            if x == 'pos' then
-                                                return item.left.row .. ':' .. item.left.col .. ' - ' .. item.right.row .. ':' .. item.right.col
-                                            end
-                                            return item
-                                        end
-                                    end,
-                                }))
+                                --print(tostring_tree(tree))
                                 tlen = tlen + string.len(str)
                                 print(str)
                             end
