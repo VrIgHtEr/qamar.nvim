@@ -54,9 +54,9 @@ return function(self)
                             if tok and tok.type == tkw_end then
                                 commit(self)
                                 local ret = N(nstat_for_iter, range(kw_for.pos.left, tok.pos.right), mt)
-                                names = names
-                                iterators = iterators
-                                body = body
+                                ret.names = names
+                                ret.iterators = iterators
+                                ret.body = body
                                 return ret
                             end
                         end
