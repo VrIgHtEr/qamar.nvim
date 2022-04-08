@@ -4,7 +4,7 @@ local dbg = require 'qdbg'
 
 M.expression_display_modes = { prefix = 'prefix', infix = 'infix', postfix = 'postfix' }
 M.expression_display_mode = M.expression_display_modes.infix
-M.force_unload = false
+M.force_unload = true
 M.debug_to_string = false
 
 local file = nil
