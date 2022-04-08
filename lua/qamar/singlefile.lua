@@ -1,14 +1,1108 @@
-local char_stream = require 'qamar.tokenizer.char_stream'
-local token = require 'qamar.tokenizer.types'
-local n = require 'qamar.parser.types'
-local range = require 'qamar.util.range'
-local N = require 'qamar.parser.node'
-local E = require 'qamar.parser.node_expression'
-local T = require 'qamar.tokenizer.token'
-local utf8 = require('qamar.util.string').utf8
-local tconcat = require('qamar.util.table').tconcat
-local tinsert = require('qamar.util.table').tinsert
-local string = require 'qamar.util.string'
+local function nullfunc() end
+local char_stream
+local token
+local n
+local N
+local E
+local T
+local tconcat
+local tinsert
+local range
+local position
+local concat = table.concat
+local ipairs = ipairs
+local tostring = tostring
+local setmetatable = setmetatable
+local deque
+local qstring
+
+local sbyte = string.byte
+local slen = string.len
+local schar = string.char
+local ssub = string.sub
+local sfind = string.find
+local slower = string.lower
+local smatch = string.match
+local sgmatch = string.gmatch
+local insert = table.insert
+local sescape
+local sutf8
+local strim
+
+do
+    n = {
+        name = 'name',
+        lnot = 'not',
+        bnot = '~',
+        neg = '-',
+        lor = 'or',
+        land = 'and',
+        lt = '<',
+        gt = '>',
+        leq = '<=',
+        geq = '>=',
+        neq = '~=',
+        eq = '==',
+        bor = '|',
+        bxor = '~',
+        band = '&',
+        lshift = '<<',
+        rshift = '>>',
+        concat = '..',
+        add = '+',
+        sub = '-',
+        mul = '*',
+        div = '/',
+        fdiv = '//',
+        mod = '%',
+        exp = '^',
+        len = '#',
+        number = 'number',
+        fieldsep = 'fieldsep',
+        field_name = 'field_name',
+        field_raw = 'field_raw',
+        fieldlist = 'fieldlist',
+        tableconstructor = 'tableconstructor',
+        namelist = 'namelist',
+        parlist = 'parlist',
+        explist = 'explist',
+        attrib = 'attrib',
+        attname = 'attname',
+        attnamelist = 'attnamelist',
+        retstat = 'retstat',
+        label = 'label',
+        funcname = 'funcname',
+        subexpression = 'subexpression',
+        args = 'args',
+        block = 'block',
+        chunk = 'chunk',
+        funcbody = 'funcbody',
+        functiondef = 'functiondef',
+        val_nil = 'nil',
+        val_false = 'false',
+        val_true = 'true',
+        vararg = '...',
+        string = 'string',
+        stat_localvar = 'stat_localvar',
+        stat_label = 'label',
+        stat_break = 'break',
+        stat_goto = 'goto',
+        stat_localfunc = 'localfunc',
+        stat_func = 'func',
+        stat_for_num = 'for_num',
+        stat_for_iter = 'for_iter',
+        stat_if = 'if',
+        stat_repeat = 'repeat',
+        stat_while = 'while',
+        stat_do = 'do',
+        stat_empty = ';',
+        stat_assign = '=',
+        table_rawaccess = '[]',
+        table_nameaccess = '.',
+        varlist = 'varlist',
+        functioncall = 'functioncall',
+    }
+
+    do
+        local names, index = {}, 0
+        for k, v in pairs(n) do
+            index = index + 1
+            names[index], n[k] = v, index
+        end
+        for i, v in ipairs(names) do
+            n[i] = v
+        end
+    end
+end
+
+do
+    token = {
+        comment = 0,
+        name = 0,
+        string = 0,
+        number = 0,
+        kw_and = 0,
+        kw_false = 0,
+        kw_local = 0,
+        kw_then = 0,
+        kw_break = 0,
+        kw_for = 0,
+        kw_nil = 0,
+        kw_true = 0,
+        kw_do = 0,
+        kw_function = 0,
+        kw_not = 0,
+        kw_until = 0,
+        kw_else = 0,
+        kw_goto = 0,
+        kw_or = 0,
+        kw_while = 0,
+        kw_elseif = 0,
+        kw_if = 0,
+        kw_repeat = 0,
+        kw_end = 0,
+        kw_in = 0,
+        kw_return = 0,
+        plus = 0,
+        dash = 0,
+        asterisk = 0,
+        slash = 0,
+        percent = 0,
+        caret = 0,
+        hash = 0,
+        ampersand = 0,
+        tilde = 0,
+        pipe = 0,
+        lshift = 0,
+        rshift = 0,
+        doubleslash = 0,
+        equal = 0,
+        notequal = 0,
+        lessequal = 0,
+        greaterequal = 0,
+        less = 0,
+        greater = 0,
+        assignment = 0,
+        lparen = 0,
+        rparen = 0,
+        lbrace = 0,
+        rbrace = 0,
+        lbracket = 0,
+        rbracket = 0,
+        doublecolon = 0,
+        semicolon = 0,
+        colon = 0,
+        comma = 0,
+        dot = 0,
+        doubledot = 0,
+        tripledot = 0,
+    }
+    do
+        local names, index = {}, 0
+        for k in pairs(token) do
+            index = index + 1
+            names[index], token[k] = k, index
+        end
+        for i, v in ipairs(names) do
+            token[i] = v
+        end
+    end
+end
+
+do
+    ---@class node
+    ---@field pos range
+    ---@field type number
+    local node = {}
+
+    local MTMT = {
+        __index = node,
+    }
+    setmetatable(node, MTMT)
+
+    ---creates a new node object
+    ---@param type number
+    ---@param pos range
+    ---@param MT table|nil
+    ---@return node
+    N = function(type, pos, MT)
+        return setmetatable({ type = type, pos = pos }, MT and setmetatable(MT, MTMT) or node)
+    end
+end
+
+do
+    ---@class node_expression:node
+    ---@field precedence number
+    ---@field right_associative boolean
+    local node_expression = {}
+
+    local MTMT = {
+        __index = node_expression,
+    }
+    setmetatable(node_expression, MTMT)
+
+    ---creates a new node object
+    ---@param type number
+    ---@param pos range
+    ---@param MT table|nil
+    ---@return node_expression
+    E = function(type, pos, precedence, right_associative, MT)
+        local ret = N(type, pos, MT and setmetatable(MT, MTMT) or node_expression)
+        ret.precedence = precedence
+        ret.right_associative = right_associative
+        return ret
+    end
+end
+
+do
+    ---@class token
+    ---@field value string
+    ---@field type number
+    ---@field pos range
+    ---@field id number
+
+    local mt = {
+        __metatable = nullfunc,
+        ---@param self token
+        ---@return string
+        __tostring = function(self)
+            return self.value
+        end,
+    }
+
+    ---creates a new token
+    ---@param type number
+    ---@param value string
+    ---@param pos range
+    ---@param MT table|nil
+    ---@return token
+    T = function(type, value, pos, MT)
+        return setmetatable({
+            type = type,
+            value = value,
+            pos = pos,
+        }, MT or mt)
+    end
+end
+
+do
+    local function isalphanum(tok)
+        local byte = sbyte(tok)
+        return byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte >= 48 and byte <= 57 or byte == 95
+    end
+
+    tconcat = function(self)
+        local prevalpha = false
+        local ret = {}
+        local i = 0
+        for _, x in ipairs(self) do
+            x = strim(tostring(x))
+            if x ~= '' then
+                if prevalpha and isalphanum(ssub(x, 1, 1)) then
+                    i = i + 1
+                    ret[i] = ' '
+                end
+                i = i + 1
+                ret[i] = x
+                prevalpha = isalphanum(ssub(x, slen(x), slen(x)))
+            end
+        end
+        return concat(ret)
+    end
+
+    tinsert = function(tbl, ...)
+        local idx = #tbl
+        local args = { ... }
+        for i = 1, #args do
+            idx = idx + 1
+            tbl[idx] = args[i]
+        end
+        return tbl
+    end
+end
+
+do
+    qstring = setmetatable({}, { __index = string })
+
+    --- Iterate over characters of a string
+    ---@param self string
+    ---@return function Iterator
+    function qstring:chars()
+        local i, max = 0, #self
+        return function()
+            if i < max then
+                i = i + 1
+                return ssub(self, i, i)
+            end
+        end
+    end
+
+    ---Iterate over bytes of a string
+    ---@param self string
+    ---@return function Iterator
+    local function bytes(self)
+        local i, max = 0, #self
+        return function()
+            if i < max then
+                i = i + 1
+                return sbyte(self, i)
+            end
+        end
+    end
+    qstring.bytes = bytes
+
+    ---Iterate over UTF8 codepoints in a string
+    ---@param self string
+    ---@return function Iterator
+    local function codepoints(self)
+        local nxt, cache = bytes(self)
+        return function()
+            local c = cache or nxt()
+            cache = nil
+            if c == nil then
+                return
+            end
+            if c <= 127 then
+                return schar(c)
+            end
+            assert(c >= 194 and c <= 244, 'invalid byte in utf-8 sequence: ' .. tostring(c))
+            local ret = { c }
+            local i = 1
+            c = nxt()
+            assert(c, 'unexpected eof in utf-8 string')
+            assert(c >= 128 and c <= 191, 'expected multibyte sequence: ' .. tostring(c))
+            i = i + 1
+            ret[i] = c
+            local count = 2
+            while true do
+                cache = nxt()
+                if not cache or cache < 128 or cache > 191 then
+                    break
+                end
+                count = count + 1
+                if count > 4 then
+                    error 'multibyte sequence too long in utf-8 string'
+                end
+                i = i + 1
+                ret[i] = cache
+            end
+            return schar(unpack(ret))
+        end
+    end
+    qstring.codepoints = codepoints
+
+    ---Iterate over UTF8 codepoints in a string, while converting windows (\r\n) or mac (\r) newlines to linux format (\n)
+    ---@param self string
+    ---@return function Iterator
+    local function filteredcodepoints(self)
+        local codepoint, cache = codepoints(self)
+        return function()
+            local cp = cache or codepoint()
+            cache = nil
+            if cp == '\r' then
+                cache = codepoint()
+                if cache == '\n' then
+                    cache = nil
+                end
+                return '\n'
+            elseif cp then
+                return cp
+            end
+        end
+    end
+    qstring.filteredcodepoints = filteredcodepoints
+
+    ---Returns an iterator that returns individual lines in a string, handling any format of newline
+    ---@param self string
+    ---@return function Iterator
+    function qstring:lines()
+        local points = filteredcodepoints(self)
+        return function()
+            local line = {}
+            local i = 0
+            for c in points do
+                if c == '\n' then
+                    return concat(line)
+                end
+                i = i + 1
+                line[i] = c
+            end
+            if #line > 0 then
+                return concat(line)
+            end
+        end
+    end
+
+    ---Trims whitespace from either end of the string
+    ---@param self string
+    ---@return string
+    function qstring:trim()
+        local from = smatch(self, '^%s*()')
+        return from > slen(self) and '' or smatch(self, '.*%S', from)
+    end
+
+    ---Returns the Levenshtein distance between two strings
+    ---@param self string
+    ---@param B string
+    ---@return number
+    function qstring:distance(B)
+        local la, lb, x = slen(self), slen(B), {}
+        if la == 0 then
+            return lb
+        end
+        if lb == 0 then
+            return la
+        end
+        if la < lb then
+            self, la, B, lb = B, lb, self, la
+        end
+        for i = 1, lb do
+            x[i] = i
+        end
+        for r = 1, la do
+            local t, l, v = r - 1, r, ssub(self, r, r)
+            for c = 1, lb do
+                if v ~= ssub(B, c, c) then
+                    if x[c] < t then
+                        t = x[c]
+                    end
+                    if l < t then
+                        t = l
+                    end
+                    t = t + 1
+                end
+                x[c], l, t = t, t, x[c]
+            end
+        end
+        return x[lb]
+    end
+
+    ---returns an iterator that returns valid utf-8 codepoints in a string but also returns and flags invalid data by returning true as a second parameter
+    ---@param self string
+    ---@return function
+    local function utf8(self)
+        local index, max, nextvalid, nextindex = 0, slen(self)
+
+        ---@param left number
+        ---@return string|nil
+        ---@return number|nil
+        ---@return number|nil
+        local function find_codepoint(left)
+            if left <= max then
+                local c = sbyte(self, left, left)
+                local cont_bytes
+                if c < 128 then
+                    cont_bytes = 0
+                elseif c >= 0xc0 and c <= 0xdf then
+                    cont_bytes = 1
+                elseif c >= 0xe0 and c <= 0xef then
+                    cont_bytes = 2
+                elseif c >= 0xf0 and c <= 0xf7 then
+                    cont_bytes = 3
+                else
+                    return find_codepoint(left + 1)
+                end
+                local right = left + cont_bytes
+                if right <= max then
+                    local ret = ssub(self, left, right)
+                    for i = 2, cont_bytes + 1 do
+                        c = sbyte(ret, i, i)
+                        if c < 0x80 or c > 0xbf then
+                            return find_codepoint(left + 1)
+                        end
+                    end
+                    return ret, left, right
+                end
+            end
+        end
+
+        ---iterator returned by string:utf8
+        ---    is_utf8 == true:  data is a valid utf-8 codepoint
+        ---
+        ---    is_utf8 == false: data is a raw string up to the next valid utf-8 codepoint
+        ---@return string|nil data dsfdafsd
+        ---@return boolean is_utf8
+        return function()
+            if nextindex then
+                index, nextindex = nextindex, nil
+                return nextvalid, true
+            elseif index < max then
+                index = index + 1
+                local codepoint, left, right = find_codepoint(index)
+                if not codepoint then
+                    local ret = ssub(self, index, max)
+                    index = max
+                    return ret, false
+                end
+                if left > index then
+                    nextvalid, nextindex = codepoint, right
+                    return ssub(self, index, left - 1), false
+                end
+                index = right
+                return codepoint, true
+            end
+        end
+    end
+    qstring.utf8 = utf8
+
+    local function is_utf8(self)
+        for _, x in utf8(self) do
+            if not x then
+                return false
+            end
+        end
+        return true
+    end
+    qstring.is_utf8 = is_utf8
+
+    function qstring:count(patt)
+        local count = 0
+        for _ in sgmatch(self, patt) do
+            count = count + 1
+        end
+        return count
+    end
+
+    local function escape_char(c)
+        if c == '\\' then
+            return '\\\\'
+        elseif c == '\v' then
+            return '\\v'
+        elseif c == '\t' then
+            return '\\t'
+        elseif c == '\r' then
+            return '\\r'
+        elseif c == '\n' then
+            return '\\n'
+        elseif c == '\f' then
+            return '\\f'
+        elseif c == '\b' then
+            return '\\b'
+        elseif c == '\a' then
+            return '\\a'
+        else
+            local b = sbyte(c)
+            if b < 32 or b >= 127 then
+                local ret = { '\\' }
+                local i = 0
+                local str = tostring(b)
+                for _ = slen(str), 2 do
+                    i = i + 1
+                    ret[i] = '0'
+                end
+                i = i + 1
+                ret[i] = str
+                return concat(ret)
+            else
+                return c
+            end
+        end
+        return c
+    end
+
+    function qstring:escape()
+        local S = nil
+        if is_utf8(self) and not sfind(self, '\r') then
+            local term_parts = { ']', ']' }
+            local idx = 2
+            while sfind(self, concat(term_parts)) do
+                insert(term_parts, idx, '=')
+                idx = idx + 1
+            end
+            local close_term = concat(term_parts)
+            term_parts[1], term_parts[#term_parts] = '[', '['
+            local open_term = concat(term_parts)
+            if ssub(self, 1, 1) == '\n' then
+                open_term = open_term .. '\n'
+            end
+            S = open_term .. self .. close_term
+        end
+        local ret, idx = {}, 0
+        for data, u in utf8(self) do
+            if u then
+                idx = idx + 1
+                ret[idx] = escape_char(data)
+            else
+                for i = 1, slen(data) do
+                    idx = idx + 1
+                    ret[idx] = escape_char(ssub(data, i, i))
+                end
+            end
+        end
+        local a, b = 0, 0
+        for _, x in ipairs(ret) do
+            if x == "'" then
+                a = a + 1
+            elseif x == '"' then
+                b = b + 1
+            end
+        end
+        if b >= a then
+            a, b = "'", "\\'"
+        else
+            a, b = '"', '\\"'
+        end
+        for i, x in ipairs(ret) do
+            if x == a then
+                ret[i] = b
+            end
+        end
+        idx = idx + 1
+        ret[idx] = a
+        local S2 = a .. concat(ret)
+        return S and slen(S) < slen(S2) and S or S2
+    end
+
+    return qstring
+end
+
+sescape = qstring.escape
+sutf8 = qstring.utf8
+strim = qstring.trim
+
+do
+    ---@class position
+    ---@field row number
+    ---@field col number
+    ---@field byte number
+    ---@field file_char number
+    ---@field file_byte number
+    local mt = {
+        __metatable = nullfunc,
+        __tostring = function(self)
+            return self.row .. ':' .. self.col
+        end,
+    }
+
+    ---create a new position object
+    ---@param row number
+    ---@param col number
+    ---@param byte number
+    ---@param file_char number
+    ---@param file_byte number
+    ---@return position
+    position = function(row, col, byte, file_char, file_byte)
+        return setmetatable({
+            row = row,
+            col = col,
+            byte = byte,
+            file_char = file_char,
+            file_byte = file_byte,
+        }, mt)
+    end
+end
+
+do
+    ---@class range
+    ---@field left position
+    ---@field right position
+    local mt = {
+        __metatable = nullfunc,
+        __tostring = function(self)
+            return self.left .. ' - ' .. self.right
+        end,
+    }
+
+    ---create a new range object
+    ---@param left position
+    ---@param right position
+    ---@return range
+    range = function(left, right)
+        return setmetatable({
+            left = left,
+            right = right,
+        }, mt)
+    end
+end
+
+do
+    ---@class deque
+    ---@field size function()
+    ---@field push_back function(item)
+    ---@field push_front function(item)
+    ---@field pop_back function():any
+    ---@field pop_front function():any
+    ---@field peek_front function():any
+    ---@field peek_back function():any
+
+    ---creates a new deque
+    ---@return deque
+    deque = function()
+        local parity, head, tail, capacity, version, buf = false, 0, 0, 1, 0, {}
+        local function size()
+            if parity then
+                return capacity - (tail - head)
+            else
+                return head - tail
+            end
+        end
+
+        local MT = {
+            __metatable = function() end,
+            __index = function(_, key)
+                if type(key) == 'number' and key >= 1 and key <= size() then
+                    local i = tail + key
+                    if i > capacity then
+                        i = i - capacity
+                    end
+                    return buf[i]
+                end
+            end,
+        }
+        ---@type deque
+        local ret = setmetatable({ size = size }, MT)
+
+        local function iterator()
+            local h = head
+            local p = parity
+            local v = version
+
+            return function()
+                if v ~= version then
+                    error 'collection modified while being iterated'
+                end
+                if h == tail and not p then
+                    return nil
+                end
+                h = h + 1
+                local r = buf[h]
+                if h == capacity then
+                    p = not p
+                    h = 0
+                end
+                return r
+            end
+        end
+
+        local function grow()
+            local newbuf = {}
+            local i = 0
+            for x in iterator() do
+                i = i + 1
+                newbuf[i] = x
+            end
+            head = size()
+            buf = newbuf
+            capacity = capacity * 2
+            parity = false
+            tail = 0
+        end
+
+        function ret.push_back(item)
+            if parity and head == tail then
+                grow()
+            end
+            head = head + 1
+            buf[head] = item
+            if head == capacity then
+                parity, head = not parity, 0
+            end
+            version = version + 1
+        end
+
+        function ret.push_front(item)
+            if parity and head == tail then
+                grow()
+            end
+            if tail == 0 then
+                tail, parity = capacity, not parity
+            end
+            buf[tail] = item
+            tail = tail - 1
+            version = version + 1
+        end
+
+        function ret.pop_front()
+            if parity or head ~= tail then
+                tail = tail + 1
+                local r = buf[tail]
+                buf[tail] = nil
+                if tail == capacity then
+                    parity, tail = not parity, 0
+                end
+                version = version + 1
+                return r
+            end
+        end
+
+        function ret.pop_back()
+            if parity or head ~= tail then
+                if head == 0 then
+                    parity, head = not parity, capacity
+                end
+                local r = buf[head]
+                buf[head] = nil
+                head, version = head - 1, version + 1
+                return r
+            end
+        end
+
+        function ret.peek_front()
+            if parity or head ~= tail then
+                return buf[tail]
+            end
+        end
+
+        function ret.peek_back()
+            if parity or head ~= tail then
+                return buf[head]
+            end
+        end
+
+        return ret
+    end
+end
+
+do
+    ---@class char_transaction
+    ---@field index number
+    ---@field row number
+    ---@field col number
+    ---@field byte number
+    ---@field file_char number
+    ---@field file_byte number
+
+    ---@class char_stream
+    ---@field input function()
+    ---@field la deque
+    ---@field ts table
+    ---@field tc number
+    ---@field skip_ws_ctr number
+    ---@field t char_transaction
+
+    ---@type char_stream
+    char_stream = {}
+    local MT = {
+        __index = char_stream,
+        __metatable = nullfunc,
+        __tostring = function(self)
+            local ret = {}
+            local idx = 0
+            for i = 1, self.la.size() do
+                local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
+                local c = self.la[i]
+                line[2] = vim.inspect(c)
+                idx = idx + 1
+                ret[idx] = concat(line)
+            end
+            if self.t.index == self.la.size() then
+                idx = idx + 1
+                ret[idx] = '==>'
+            end
+            return concat(ret, '\n')
+        end,
+    }
+
+    ---creates a copy of a transaction
+    ---@param self char_transaction
+    ---@return char_transaction
+    local function transaction_copy(self)
+        return {
+            index = self.index,
+            file_char = self.file_char,
+            row = self.row,
+            col = self.col,
+            byte = self.byte,
+            file_byte = self.file_byte,
+        }
+    end
+
+    ---creates a new parser
+    ---@param input function():string|nil
+    ---@return char_stream|nil
+    ---@return string|nil
+    function char_stream.new(input)
+        if type(input) ~= 'function' then
+            return nil, 'expected a function as input'
+        end
+        do
+            local _input = input
+            input = function()
+                if _input then
+                    local ret = _input()
+                    if ret then
+                        return ret
+                    end
+                    _input = nil
+                end
+            end
+        end
+        return setmetatable({
+            input = input,
+            la = deque(),
+            ts = {},
+            tc = 0,
+            skip_ws_ctr = 0,
+            t = {
+                index = 0,
+                file_char = 0,
+                row = 1,
+                col = 1,
+                byte = 0,
+                file_byte = 0,
+            },
+        }, MT)
+    end
+
+    ---begins a new transaction, must be followed by a matching call to undo or commit
+    function char_stream:begin()
+        self.tc = self.tc + 1
+        self.ts[self.tc] = transaction_copy(self.t)
+    end
+
+    ---undoes a transaction. must be paired with a preceding call to begin
+    function char_stream:undo()
+        self.t, self.ts[self.tc], self.tc = self.ts[self.tc], nil, self.tc - 1
+    end
+
+    ---discards all consumed tokens if there are no pending transactions
+    ---@param self char_stream
+    local function normalize(self)
+        if self.tc == 0 then
+            for _ = 1, self.t.index do
+                self.la.pop_front()
+            end
+            self.t.index = 0
+        end
+    end
+    char_stream.normalize = normalize
+
+    ---commits a transaction. must be paired with a preceding call to begin
+    ---@return nil
+    function char_stream:commit()
+        self.ts[self.tc], self.tc = nil, self.tc - 1
+        return normalize(self)
+    end
+
+    ---ensures the internal buffer contains at least 'amt' items, unless the end of stream has been reached
+    ---@param self char_stream
+    ---@param amt number
+    local function fill(self, amt)
+        while self.la.size() < amt do
+            local c = self.input()
+            if c then
+                self.la.push_back(c)
+            elseif self.la.size() == 0 or self.la[self.la.size()] then
+                self.la.push_back(false)
+                break
+            end
+        end
+    end
+    char_stream.fill = fill
+
+    ---gets the Nth token (zero based) in the internal buffer.
+    ---N defaults to 0
+    ---@param self char_stream
+    ---@param amt number|nil
+    ---@return string|nil
+    local function peek(self, amt)
+        amt = amt == nil and 0 or amt
+        local idx = self.t.index + amt + 1
+        fill(self, idx)
+        return self.la[idx] or nil
+    end
+    char_stream.peek = peek
+
+    ---consumes N characters from the stream
+    ---@param self char_stream
+    ---@param amt number
+    ---@return string|nil
+    local function take(self, amt)
+        amt = amt == nil and 1 or amt
+        local idx = self.t.index + amt
+        fill(self, idx)
+        local ret = {}
+        for i = 1, amt do
+            local c = self.la[self.t.index + 1]
+            if not c then
+                break
+            else
+                local off = slen(c)
+                self.t.file_char, self.t.file_byte = self.t.file_char + 1, self.t.file_byte + off
+                if c == '\n' then
+                    self.t.row, self.t.col, self.t.byte = self.t.row + 1, 1, 0
+                else
+                    self.t.col, self.t.byte = self.t.col + 1, self.t.byte + off
+                end
+                ret[i] = c
+            end
+            self.t.index = self.t.index + 1
+        end
+        normalize(self)
+        return #ret > 0 and concat(ret) or nil
+    end
+    char_stream.take = take
+
+    ---gets the stream's current position
+    ---@return position
+    function char_stream:pos()
+        local t = self.t
+        return position(t.row, t.col, t.byte, t.file_char, t.file_byte)
+    end
+
+    ---tries to consume a specified string. consumes nothing if the string does not match
+    ---@param s string
+    ---@return string|nil
+    function char_stream:try_consume_string(s)
+        local i = 0
+        for x in sutf8(s) do
+            local c = peek(self, i)
+            if c ~= x then
+                return
+            end
+            i = i + 1
+        end
+        return take(self, i)
+    end
+
+    ---consumes any subsequent whitespace characters
+    function char_stream:skipws()
+        if self.skip_ws_ctr == 0 then
+            while true do
+                local c = peek(self)
+                if c ~= ' ' and c ~= '\f' and c ~= '\n' and c ~= '\r' and c ~= '\t' and c ~= '\v' then
+                    break
+                end
+                take(self)
+            end
+        end
+    end
+
+    ---suspends automatic skipping of whitespace characters. must be paired with a call to resume_skip_ws
+    function char_stream:suspend_skip_ws()
+        self.skip_ws_ctr = self.skip_ws_ctr + 1
+    end
+
+    ---resumes automatic skipping of whitespace characters. must be paired with a preceding call to suspend_skip_ws
+    function char_stream:resume_skip_ws()
+        if self.skip_ws_ctr > 0 then
+            self.skip_ws_ctr = self.skip_ws_ctr - 1
+        end
+    end
+
+    local ascii = string.byte
+
+    ---tries to match and consume an alpha or underscore character
+    ---@param self char_stream
+    ---@return string|nil
+    char_stream.alpha = function(self)
+        local tok = peek(self)
+        if tok then
+            local byte = ascii(tok)
+            if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte == 95 then
+                take(self)
+                return tok
+            end
+        end
+    end
+
+    ---tries to match and consume a numeric character
+    ---@param self char_stream
+    ---@return string|nil
+    char_stream.numeric = function(self)
+        local tok = peek(self)
+        if tok then
+            local byte = ascii(tok)
+            if byte >= 48 and byte <= 57 then
+                return take(self)
+            end
+        end
+    end
+
+    ---tries to match and consume an alphanumeric or underscore character
+    ---@param self char_stream
+    ---@return string|nil
+    char_stream.alphanumeric = function(self)
+        local tok = peek(self)
+        if tok then
+            local byte = ascii(tok)
+            if byte >= 97 and byte <= 122 or byte >= 65 and byte <= 90 or byte >= 48 and byte <= 57 or byte == 95 then
+                return take(self)
+            end
+        end
+    end
+end
+
 local stpos = char_stream.pos
 local stpeek = char_stream.peek
 local sttake = char_stream.take
@@ -22,16 +1116,6 @@ local sttry_consume_string = char_stream.try_consume_string
 local stalpha = char_stream.alpha
 local stnumeric = char_stream.numeric
 local stalphanumeric = char_stream.alphanumeric
-local concat = table.concat
-local ipairs = ipairs
-local sescape = string.escape
-local sbyte = string.byte
-local slen = string.len
-local schar = string.char
-local ssub = string.sub
-local sfind = string.find
-local slower = string.lower
-local tostring = tostring
 
 local tokenizer
 do
@@ -761,146 +1845,6 @@ do
     end
 end
 
-local deque
-local setmetatable = setmetatable
-do
-    ---@class deque
-    ---@field size function()
-    ---@field push_back function(item)
-    ---@field push_front function(item)
-    ---@field pop_back function():any
-    ---@field pop_front function():any
-    ---@field peek_front function():any
-    ---@field peek_back function():any
-
-    ---creates a new deque
-    ---@return deque
-    deque = function()
-        local parity, head, tail, capacity, version, buf = false, 0, 0, 1, 0, {}
-        local function size()
-            if parity then
-                return capacity - (tail - head)
-            else
-                return head - tail
-            end
-        end
-
-        local MT = {
-            __metatable = function() end,
-            __index = function(_, key)
-                if type(key) == 'number' and key >= 1 and key <= size() then
-                    local i = tail + key
-                    if i > capacity then
-                        i = i - capacity
-                    end
-                    return buf[i]
-                end
-            end,
-        }
-        ---@type deque
-        local ret = setmetatable({ size = size }, MT)
-
-        local function iterator()
-            local h = head
-            local p = parity
-            local v = version
-
-            return function()
-                if v ~= version then
-                    error 'collection modified while being iterated'
-                end
-                if h == tail and not p then
-                    return nil
-                end
-                h = h + 1
-                local r = buf[h]
-                if h == capacity then
-                    p = not p
-                    h = 0
-                end
-                return r
-            end
-        end
-
-        local function grow()
-            local newbuf = {}
-            local i = 0
-            for x in iterator() do
-                i = i + 1
-                newbuf[i] = x
-            end
-            head = size()
-            buf = newbuf
-            capacity = capacity * 2
-            parity = false
-            tail = 0
-        end
-
-        function ret.push_back(item)
-            if parity and head == tail then
-                grow()
-            end
-            head = head + 1
-            buf[head] = item
-            if head == capacity then
-                parity, head = not parity, 0
-            end
-            version = version + 1
-        end
-
-        function ret.push_front(item)
-            if parity and head == tail then
-                grow()
-            end
-            if tail == 0 then
-                tail, parity = capacity, not parity
-            end
-            buf[tail] = item
-            tail = tail - 1
-            version = version + 1
-        end
-
-        function ret.pop_front()
-            if parity or head ~= tail then
-                tail = tail + 1
-                local r = buf[tail]
-                buf[tail] = nil
-                if tail == capacity then
-                    parity, tail = not parity, 0
-                end
-                version = version + 1
-                return r
-            end
-        end
-
-        function ret.pop_back()
-            if parity or head ~= tail then
-                if head == 0 then
-                    parity, head = not parity, capacity
-                end
-                local r = buf[head]
-                buf[head] = nil
-                head, version = head - 1, version + 1
-                return r
-            end
-        end
-
-        function ret.peek_front()
-            if parity or head ~= tail then
-                return buf[tail]
-            end
-        end
-
-        function ret.peek_back()
-            if parity or head ~= tail then
-                return buf[head]
-            end
-        end
-
-        return ret
-    end
-end
-
 ---@class parser_transaction
 ---@field index number
 ---@field pos position
@@ -1025,7 +1969,7 @@ end
 ---@param str string
 ---@return node_block
 function parser.parse(str)
-    return parse_from_stream(char_stream.new(utf8(str)))
+    return parse_from_stream(char_stream.new(sutf8(str)))
 end
 
 ---discards any consumed cached tokens if there are no pending transactions
