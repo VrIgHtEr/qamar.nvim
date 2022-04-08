@@ -44,6 +44,7 @@ return function(self)
         if names then
             local pos = range(tok.pos.left)
             local ret = N(nstat_localvar, pos, mt)
+            ret.names = names
             commit(self)
             tok = peek(self)
             if tok and tok.type == tassignment then
