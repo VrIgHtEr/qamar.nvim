@@ -10,7 +10,6 @@
 ---@field tc number
 ---@field t parser_transaction
 ---@field cache table
----@field cache_mapping deque
 ---@field on_flush function
 local parser = {}
 
@@ -227,7 +226,7 @@ local function commit(self)
     self.ts[self.tc], self.tc = nil, self.tc - 1
     normalize(self)
     if self.tc == 0 and self.on_flush then
-        self.on_flush(next_id(self))
+        self.on_flush()
     end
 end
 parser.commit = commit

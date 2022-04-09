@@ -657,13 +657,13 @@ do
 
         function ret.peek_front()
             if parity or head ~= tail then
-                return buf[tail]
+                return buf[tail + 1]
             end
         end
 
         function ret.peek_back()
             if parity or head ~= tail then
-                return buf[head]
+                return buf[head == 0 and capacity or head]
             end
         end
 
@@ -1692,7 +1692,6 @@ end
 ---@field tc number
 ---@field t parser_transaction
 ---@field cache table
----@field cache_mapping deque
 ---@field on_flush function
 local parser = {}
 
@@ -1896,7 +1895,7 @@ local function commit(self)
     self.ts[self.tc], self.tc = nil, self.tc - 1
     normalize(self)
     if self.tc == 0 and self.on_flush then
-        self.on_flush(next_id(self))
+        self.on_flush()
     end
 end
 parser.commit = commit
@@ -2622,9 +2621,9 @@ do
                     end
                 elseif tok.type == tcolon then
                     if peek(p) then
-                        local name = take(p)
-                        if name.type == tname then
-                            sname = name.value
+                        local nm = take(p)
+                        if nm.type == tname then
+                            sname = nm.value
 
                             local next = peek(p)
                             if next then
@@ -3001,7 +3000,6 @@ do
                 if not left then
                     if prec == 0 then
                         self.cache[id] = { last = next_id(self), value = false }
-                        self.cache_mapping.push_back(id)
                     end
                     undo(self)
                     return
@@ -3012,7 +3010,6 @@ do
                         commit(self)
                         if prec == 0 then
                             self.cache[id] = { last = next_id(), value = left }
-                            self.cache_mapping.push_back(id)
                         end
                         return left
                     end
@@ -3021,7 +3018,6 @@ do
                         commit(self)
                         if prec == 0 then
                             self.cache[id] = { last = next_id(), value = left }
-                            self.cache_mapping.push_back(id)
                         end
                         return left
                     end
@@ -3033,7 +3029,6 @@ do
                         undo(self)
                         if prec == 0 then
                             self.cache[id] = { last = next_id(self), value = left }
-                            self.cache_mapping.push_back(id)
                         end
                         return left
                     else
@@ -3044,16 +3039,13 @@ do
                 commit(self)
                 if prec == 0 then
                     self.cache[id] = { last = next_id(self), value = left }
-                    self.cache_mapping.push_back(id)
                 end
                 return left
             elseif prec == 0 then
                 self.cache[id] = { last = next_id(self), value = false }
-                self.cache_mapping.push_back(id)
             end
         elseif prec == 0 then
             self.cache[id] = { last = next_id(self), value = false }
-            self.cache_mapping.push_back(id)
         end
     end
 end
@@ -3086,8 +3078,8 @@ do
         end
         begintake(self)
 
-        local name = take(self)
-        if not name or name.type ~= tname then
+        local nm = take(self)
+        if not nm or nm.type ~= tname then
             undo(self)
             return
         end
@@ -3100,7 +3092,7 @@ do
 
         commit(self)
         local ret = N(nattrib, range(less.pos.left, greater.pos.right), mt)
-        ret.name = name.value
+        ret.name = nm.value
         return ret
     end
 end
@@ -3492,13 +3484,13 @@ do
             begintake(self)
             local kw_function = take(self)
             if kw_function and kw_function.type == tkw_function then
-                local funcname = name(self)
-                if funcname then
+                local fn = name(self)
+                if fn then
                     local body = funcbody(self)
                     if body then
                         commit(self)
                         local ret = N(nstat_localfunc, range(kw_local.pos.left, body.pos.right), mt)
-                        ret.name = funcname
+                        ret.name = fn
                         ret.body = body
                         return ret
                     end
@@ -4147,24 +4139,13 @@ do
     ---@return node_block
     chunk = function(self)
         if peek(self) then
-            local cache = {}
-            self.cache = cache
-            local cache_mapping = deque()
-            self.cache_mapping = cache_mapping
-            self.on_flush = function(id)
-                while true do
-                    local f = self.cache_mapping.peek_front()
-                    if not f or f >= id then
-                        break
-                    end
-                    cache[f] = nil
-                    self.cache_mapping.pop_front()
-                end
+            self.cache = {}
+            self.on_flush = function()
+                self.cache = {}
             end
             local success, ret = pcall(block, self)
             self.on_flush = nil
             self.cache = nil
-            self.cache_mapping = nil
             if not success then
                 error(ret)
             end
