@@ -25,10 +25,12 @@ local tname = token.name
 local tgreater = token.greater
 local nattrib = n.attrib
 
+local M = {}
+
 ---try to consume a lua variable attribute
 ---@param self parser
 ---@return node_attrib|nil
-return function(self)
+function M:parser()
     local less = peek(self)
     if not less or less.type ~= tless then
         return
@@ -52,3 +54,5 @@ return function(self)
     ret.name = name.value
     return ret
 end
+
+return M

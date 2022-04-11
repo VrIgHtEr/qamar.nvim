@@ -14,7 +14,7 @@ local mt = {
     end,
 }
 
-local name = require 'qamar.parser.production.name'
+local name = require('qamar.parser.production.name').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -25,10 +25,12 @@ local begintake = p.begintake
 local tdoublecolon = token.doublecolon
 local nlabel = n.label
 
+local M = {}
+
 ---try to consume a lua label
 ---@param self parser
 ---@return node_label|nil
-return function(self)
+function M:parser()
     local left = peek(self)
     if not left or left.type ~= tdoublecolon then
         return
@@ -52,3 +54,5 @@ return function(self)
     ret.name = nam.value
     return ret
 end
+
+return M

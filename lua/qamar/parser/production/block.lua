@@ -21,19 +21,21 @@ local p = require 'qamar.parser'
 local spos = p.pos
 local st, rst
 st = function(self)
-    st = require 'qamar.parser.production.stat'
+    st = require('qamar.parser.production.stat').parser
     return st(self)
 end
 rst = function(self)
-    rst = require 'qamar.parser.production.retstat'
+    rst = require('qamar.parser.production.retstat').parser
     return rst(self)
 end
 local nblock = n.block
 
+local M = {}
+
 ---consumes a lua block
 ---@param self parser
 ---@return node_block
-return function(self)
+function M:parser()
     local ret = N(nblock, nil, mt)
     local idx = 0
     while true do
@@ -53,3 +55,5 @@ return function(self)
     ret.pos = idx == 0 and range(spos(self), spos(self)) or range(ret[1].pos.left, ret[idx].pos.right)
     return ret
 end
+
+return M

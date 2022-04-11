@@ -5,7 +5,7 @@ local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
-local name = require 'qamar.parser.production.name'
+local name = require('qamar.parser.production.name').parser
 
 local mt = {
     ---@param self node_goto
@@ -25,10 +25,12 @@ local nstat_goto = n.stat_goto
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua goto statement
 ---@param self parser
 ---@return node_goto|nil
-return function(self)
+function M:parser()
     local kw_goto = peek(self)
     if kw_goto and kw_goto.type == tkw_goto then
         begintake(self)
@@ -42,3 +44,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

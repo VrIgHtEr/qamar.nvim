@@ -19,10 +19,12 @@ local take = p.take
 local tname = token.name
 local nname = n.name
 
+local M = {}
+
 ---try to consume a lua name
 ---@param self parser
 ---@return node_name|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tname then
         take(self)
@@ -31,3 +33,5 @@ return function(self)
         return ret
     end
 end
+
+return M

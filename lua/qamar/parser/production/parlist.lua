@@ -5,8 +5,8 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local namelist = require 'qamar.parser.production.namelist'
-local vararg = require 'qamar.parser.production.vararg'
+local namelist = require('qamar.parser.production.namelist').parser
+local vararg = require('qamar.parser.production.vararg').parser
 local ipairs = ipairs
 local nparlist = n.parlist
 local tcomma = token.comma
@@ -34,10 +34,12 @@ local begintake = p.begintake
 local commit = p.commit
 local undo = p.undo
 
+local M = {}
+
 ---try to consume a lua parameter list
 ---@param self parser
 ---@return node_parlist|nil
-return function(self)
+function M:parser()
     local v = vararg(self)
     if v then
         local ret = N(nparlist, v.pos, mt)
@@ -70,3 +72,5 @@ return function(self)
         end
     end
 end
+
+return M

@@ -7,8 +7,8 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local expression = require 'qamar.parser.production.expression'
-local block = require 'qamar.parser.production.block'
+local expression = require('qamar.parser.production.expression').parser
+local block = require('qamar.parser.production.block').parser
 local mt = {
     ---@param self node_if
     ---@return string
@@ -41,10 +41,12 @@ local nstat_if = n.stat_if
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua if statement
 ---@param self parser
 ---@return node_if|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_if then
         local kw_if = begintake(self)
@@ -114,3 +116,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

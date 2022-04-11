@@ -66,7 +66,7 @@ local chunk
 ---tries to parse a lua chunk
 ---@return node
 chunk = function(self)
-    chunk = require 'qamar.parser.production.chunk'
+    chunk = require('qamar.parser.production.chunk').parser
     return chunk(self)
 end
 

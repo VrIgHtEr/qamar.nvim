@@ -8,7 +8,7 @@ local tinsert = require('qamar.util.table').tinsert
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
-local name = require 'qamar.parser.production.name'
+local name = require('qamar.parser.production.name').parser
 local ipairs = ipairs
 
 local mt = {
@@ -39,10 +39,12 @@ local nfuncname = n.funcname
 local tdot = token.dot
 local tcolon = token.colon
 
+local M = {}
+
 ---try to consume a lua funcname
 ---@param self parser
 ---@return node_funcname
-return function(self)
+function M:parser()
     local v = name(self)
     if v then
         local pos = range(v.pos.left)
@@ -85,3 +87,5 @@ return function(self)
         return ret
     end
 end
+
+return M

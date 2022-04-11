@@ -16,13 +16,17 @@ local take = p.take
 local tsemicolon = token.semicolon
 local nstat_empty = n.stat_empty
 
+local M = {}
+
 ---try to consume a lua empty statement
 ---@param self parser
 ---@return node_empty|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tsemicolon then
         take(self)
         return N(nstat_empty, tok.pos, mt)
     end
 end
+
+return M

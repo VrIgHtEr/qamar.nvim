@@ -6,7 +6,7 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local explist = require 'qamar.parser.production.explist'
+local explist = require('qamar.parser.production.explist').parser
 
 local mt = {
     ---@param self node_retstat
@@ -28,11 +28,12 @@ local nretstat = n.retstat
 local tsemicolon = token.semicolon
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
+local M = {}
 
 ---try to consume a lua return statement
 ---@param self parser
 ---@return node_retstat|nil
-return function(self)
+function M:parser()
     local retkw = peek(self)
     if retkw and retkw.type == tkw_return then
         take(self)
@@ -49,3 +50,5 @@ return function(self)
         return ret
     end
 end
+
+return M

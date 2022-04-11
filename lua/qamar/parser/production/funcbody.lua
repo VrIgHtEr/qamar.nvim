@@ -7,8 +7,8 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local parlist = require 'qamar.parser.production.parlist'
-local block = require 'qamar.parser.production.block'
+local parlist = require('qamar.parser.production.parlist').parser
+local block = require('qamar.parser.production.block').parser
 
 local mt = {
     ---@param self node_funcbody
@@ -36,10 +36,12 @@ local nfuncbody = n.funcbody
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua function body
 ---@param self parser
 ---@return node_funcbody|nil
-return function(self)
+function M:parser()
     local lparen = peek(self)
     if lparen and lparen.type == tlparen then
         begintake(self)
@@ -61,3 +63,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

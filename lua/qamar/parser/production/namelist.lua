@@ -7,7 +7,7 @@ local tinsert = require('qamar.util.table').tinsert
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
-local name = require 'qamar.parser.production.name'
+local name = require('qamar.parser.production.name').parser
 local ipairs = ipairs
 local nnamelist = n.namelist
 local tcomma = token.comma
@@ -34,10 +34,12 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+local M = {}
+
 ---try to consume a lua name list
 ---@param self parser
 ---@return node_namelist|nil
-return function(self)
+function M:parser()
     local v = name(self)
     if v then
         local pos = range(v.pos.left)
@@ -65,3 +67,5 @@ return function(self)
         return ret
     end
 end
+
+return M

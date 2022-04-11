@@ -15,9 +15,9 @@ local mt = {
     end,
 }
 
-local namelist = require 'qamar.parser.production.namelist'
-local explist = require 'qamar.parser.production.explist'
-local block = require 'qamar.parser.production.block'
+local namelist = require('qamar.parser.production.namelist').parser
+local explist = require('qamar.parser.production.explist').parser
+local block = require('qamar.parser.production.block').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -33,10 +33,12 @@ local nstat_for_iter = n.stat_for_iter
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua iterator for loop
 ---@param self parser
 ---@return node_for_iter|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_for then
         local kw_for = begintake(self)
@@ -67,3 +69,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

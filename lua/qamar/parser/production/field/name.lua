@@ -5,7 +5,7 @@
 local tconcat = require('qamar.util.table').tconcat
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
-local expression = require 'qamar.parser.production.expression'
+local expression = require('qamar.parser.production.expression').parser
 local p = require 'qamar.parser'
 local peek = p.peek
 local begin = p.begin

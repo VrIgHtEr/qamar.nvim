@@ -16,13 +16,17 @@ local ttripledot = token.tripledot
 local nvararg = n.vararg
 local N = require 'qamar.parser.node'
 
+local M = {}
+
 ---try to consume a vararg token
 ---@param self parser
 ---@return node_vararg|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == ttripledot then
         take(self)
         return N(nvararg, tok.pos, mt)
     end
 end
+
+return M

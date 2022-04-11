@@ -52,7 +52,7 @@ local peek = p.peek
 local take = p.take
 local explist
 explist = function(self)
-    explist = require 'qamar.parser.production.explist'
+    explist = require('qamar.parser.production.explist').parser
     return explist(self)
 end
 

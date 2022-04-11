@@ -14,7 +14,7 @@ local peek = p.peek
 local take = p.take
 local pfieldlist
 pfieldlist = function(self)
-    pfieldlist = require 'qamar.parser.production.fieldlist'
+    pfieldlist = require('qamar.parser.production.fieldlist').parser
     return pfieldlist(self)
 end
 

@@ -14,8 +14,8 @@ local mt = {
 
 local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
-local block = require 'qamar.parser.production.block'
-local expression = require 'qamar.parser.production.expression'
+local block = require('qamar.parser.production.block').parser
+local expression = require('qamar.parser.production.expression').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -29,10 +29,12 @@ local nstat_repeat = n.stat_repeat
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua repeat statement
 ---@param self parser
 ---@return node_repeat|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_repeat then
         local kw_repeat = begintake(self)
@@ -54,3 +56,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

@@ -14,7 +14,7 @@ local MT = {
         return tconcat { 'function', self.value }
     end,
 }
-local funcbody = require 'qamar.parser.production.funcbody'
+local funcbody = require('qamar.parser.production.funcbody').parser
 
 ---parselet to consume a function definition
 ---@param self parselet

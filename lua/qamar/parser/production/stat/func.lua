@@ -6,8 +6,8 @@ local token = require 'qamar.tokenizer.types'
 local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 
-local name = require 'qamar.parser.production.funcname'
-local funcbody = require 'qamar.parser.production.funcbody'
+local name = require('qamar.parser.production.funcname').parser
+local funcbody = require('qamar.parser.production.funcbody').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -27,10 +27,12 @@ local mt = {
     end,
 }
 
+local M = {}
+
 ---try to consume a lua function statement
 ---@param self parser
 ---@return node_func|nil
-return function(self)
+function M:parser()
     local kw_function = peek(self)
     if kw_function and kw_function.type == tkw_function then
         begintake(self)
@@ -48,3 +50,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

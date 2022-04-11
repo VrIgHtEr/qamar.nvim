@@ -14,8 +14,8 @@ local mt = {
     end,
 }
 
-local expression = require 'qamar.parser.production.expression'
-local block = require 'qamar.parser.production.block'
+local expression = require('qamar.parser.production.expression').parser
+local block = require('qamar.parser.production.block').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -30,10 +30,12 @@ local nstat_while = n.stat_while
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua while statement
 ---@param self parser
 ---@return node_while|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_while then
         local kw_while = begintake(self)
@@ -57,3 +59,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

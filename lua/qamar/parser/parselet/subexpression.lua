@@ -25,7 +25,7 @@ local undo = p.undo
 local commit = p.commit
 local expression
 expression = function(self)
-    expression = require 'qamar.parser.production.expression'
+    expression = require('qamar.parser.production.expression').parser
     return expression(self)
 end
 

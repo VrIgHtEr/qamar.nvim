@@ -10,9 +10,9 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local name = require 'qamar.parser.production.name'
-local expression = require 'qamar.parser.production.expression'
-local block = require 'qamar.parser.production.block'
+local name = require('qamar.parser.production.name').parser
+local expression = require('qamar.parser.production.expression').parser
+local block = require('qamar.parser.production.block').parser
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
@@ -42,10 +42,12 @@ local tkw_do = token.kw_do
 local tkw_end = token.kw_end
 local nstat_for_num = n.stat_for_num
 
+local M = {}
+
 ---try to consume a lua for loop
 ---@param self parser
 ---@return node_for_num|nil
-return function(self)
+function M:parser()
     local kw_for = peek(self)
     if kw_for and kw_for.type == tkw_for then
         begintake(self)
@@ -93,3 +95,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

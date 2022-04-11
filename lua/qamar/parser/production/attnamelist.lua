@@ -9,8 +9,8 @@ local node = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local name = require 'qamar.parser.production.name'
-local attribute = require 'qamar.parser.production.attrib'
+local name = require('qamar.parser.production.name').parser
+local attribute = require('qamar.parser.production.attrib').parser
 
 local ipairs = ipairs
 local mt = {
@@ -43,10 +43,12 @@ local tcomma = token.comma
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua name attribute list
 ---@param self parser
 ---@return node_attnamelist|nil
-return function(self)
+function M:parser()
     local n = name(self)
     if n then
         local a = attribute(self)
@@ -81,3 +83,5 @@ return function(self)
         return ret
     end
 end
+
+return M

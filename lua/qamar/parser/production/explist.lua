@@ -7,7 +7,7 @@ local tinsert = require('qamar.util.table').tinsert
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
-local expression = require 'qamar.parser.production.expression'
+local expression = require('qamar.parser.production.expression').parser
 local ipairs = ipairs
 local nexplist = n.explist
 local tcomma = token.comma
@@ -34,10 +34,11 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+local M = {}
 ---try to consume an expression list
 ---@param self parser
 ---@return node_explist|nil
-return function(self)
+function M:parser()
     local v = expression(self)
     if v then
         local ret = N(nexplist, range(v.pos.left), mt)
@@ -65,3 +66,5 @@ return function(self)
         return ret
     end
 end
+
+return M

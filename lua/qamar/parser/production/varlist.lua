@@ -5,7 +5,7 @@ local n = require 'qamar.parser.types'
 local tconcat = require('qamar.util.table').tconcat
 local tinsert = require('qamar.util.table').tinsert
 
-local var = require 'qamar.parser.production.var'
+local var = require('qamar.parser.production.var').parser
 local ipairs = ipairs
 local nvarlist = n.varlist
 local tcomma = token.comma
@@ -34,10 +34,12 @@ local begin = p.begin
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua varlist
 ---@param self parser
 ---@return node_varlist|nil
-return function(self)
+function M:parser()
     local v = var(self)
     if v then
         local pos = range(v.pos.left)
@@ -65,3 +67,5 @@ return function(self)
         return ret
     end
 end
+
+return M

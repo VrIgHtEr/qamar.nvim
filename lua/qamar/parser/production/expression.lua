@@ -23,11 +23,13 @@ local function get_precedence(self)
     return 0
 end
 
+local M = {}
+
 ---try to consume a lua expression
 ---@param self parser
 ---@param precedence number|nil
 ---@return node_expression|nil
-return function(self, precedence)
+function M:parser(precedence)
     precedence = precedence or 0
     local id = next_id(self)
     if precedence == 0 then
@@ -97,3 +99,5 @@ return function(self, precedence)
         self.cache[id] = { last = next_id(self), value = false }
     end
 end
+
+return M

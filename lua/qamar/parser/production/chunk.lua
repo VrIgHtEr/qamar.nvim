@@ -1,6 +1,6 @@
 local p = require 'qamar.parser'
 local peek = p.peek
-local block = require 'qamar.parser.production.block'
+local block = require('qamar.parser.production.block').parser
 local N = require 'qamar.parser.node'
 local nblock = require('qamar.parser.types').block
 local range = require 'qamar.util.range'
@@ -11,10 +11,13 @@ local empty_mt = {
         return ''
     end,
 }
+
+local chunk = {}
+
 ---try to parse a lua chunk
 ---@param self parser
 ---@return node_block
-return function(self)
+function chunk:parser()
     if peek(self) then
         self.cache = {}
         self.on_flush = function()
@@ -42,3 +45,5 @@ return function(self)
         return N(nblock, range(spos(self), spos(self)), empty_mt)
     end
 end
+
+return chunk

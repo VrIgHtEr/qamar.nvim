@@ -19,8 +19,8 @@ local mt = {
     end,
 }
 
-local attnamelist = require 'qamar.parser.production.attnamelist'
-local explist = require 'qamar.parser.production.explist'
+local attnamelist = require('qamar.parser.production.attnamelist').parser
+local explist = require('qamar.parser.production.explist').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -33,10 +33,12 @@ local tassignment = token.assignment
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua local variable declaration
 ---@param self parser
 ---@return node_localvar|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_local then
         begintake(self)
@@ -65,3 +67,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

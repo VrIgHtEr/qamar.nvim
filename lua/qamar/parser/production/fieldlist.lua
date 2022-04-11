@@ -33,10 +33,12 @@ local commit = p.commit
 local undo = p.undo
 local begin = p.begin
 
+local M = {}
+
 ---try to consume a lua field list
 ---@param self parser
 ---@return node_fieldlist|nil
-return function(self)
+function M:parser()
     local f = field(self)
     if f then
         local pos = range(f.pos.left)
@@ -70,3 +72,5 @@ return function(self)
         return ret
     end
 end
+
+return M

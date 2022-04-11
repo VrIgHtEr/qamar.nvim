@@ -15,7 +15,7 @@ local mt = {
     end,
 }
 
-local block = require 'qamar.parser.production.block'
+local block = require('qamar.parser.production.block').parser
 
 local p = require 'qamar.parser'
 local peek = p.peek
@@ -27,10 +27,12 @@ local tkw_do = token.kw_do
 local tkw_end = token.kw_end
 local nstat_do = n.stat_do
 
+local M = {}
+
 ---try to consume a lue do...end statement
 ---@param self parser
 ---@return node_do|nil
-return function(self)
+function M:parser()
     local tok = peek(self)
     if tok and tok.type == tkw_do then
         local kw_do = begintake(self)
@@ -47,3 +49,5 @@ return function(self)
         undo(self)
     end
 end
+
+return M

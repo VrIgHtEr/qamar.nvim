@@ -13,8 +13,8 @@ local mt = {
         return tconcat { self.target, '=', self.value }
     end,
 }
-local varlist = require 'qamar.parser.production.varlist'
-local explist = require 'qamar.parser.production.explist'
+local varlist = require('qamar.parser.production.varlist').parser
+local explist = require('qamar.parser.production.explist').parser
 
 local p = require 'qamar.parser'
 local take = p.take
@@ -26,10 +26,12 @@ local nstat_assign = n.stat_assign
 local N = require 'qamar.parser.node'
 local range = require 'qamar.util.range'
 
+local M = {}
+
 ---try to consume a lua assignment statement
 ---@param self parser
 ---@return node_assign|nil
-return function(self)
+function M:parser()
     local target = varlist(self)
     if target then
         local tok = take(self)
@@ -47,3 +49,5 @@ return function(self)
         end
     end
 end
+
+return M
