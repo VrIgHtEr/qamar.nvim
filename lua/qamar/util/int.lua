@@ -277,10 +277,12 @@ end
 local x = int.new(5)
 x.digits, x.len = { mask, mask }, 2
 
+local sescape = require('qamar.util.string').escape
+
 for i = 1, 13 do
     x = x:multiply(x)
     print('ITER: ' .. i)
-    print(vim.inspect(x))
+    print(sescape(x, true))
 end
 
 return int

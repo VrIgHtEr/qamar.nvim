@@ -286,9 +286,9 @@ local function escape_char(c)
     return c
 end
 
-function string:escape()
+function string:escape(disallow_verbatim)
     local S = nil
-    if is_utf8(self) and not find(self, '\r') then
+    if not disallow_verbatim and is_utf8(self) and not find(self, '\r') then
         local term_parts = { ']', ']' }
         local idx = 2
         while find(self, concat(term_parts)) do

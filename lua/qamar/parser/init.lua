@@ -17,6 +17,7 @@ local deque, tokenizer = require 'qamar.util.deque', require 'qamar.tokenizer'
 local tokentypes = require 'qamar.tokenizer.types'
 local concat = table.concat
 local setmetatable = setmetatable
+local sescape = require('qamar.util.string').escape
 
 local MT = {
     __metatable = function() end,
@@ -37,7 +38,7 @@ local MT = {
                 line[index] = ' '
             end
             index = index + 1
-            line[index] = vim.inspect(x.value)
+            line[index] = sescape(x.value, true)
             idx = idx + 1
             ret[idx] = concat(line)
         end

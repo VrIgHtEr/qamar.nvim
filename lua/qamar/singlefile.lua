@@ -9,7 +9,7 @@ local tsort = table.sort
 local tconcat
 local tinsert
 
-local n = require 'qamar.parser.types'
+local n
 
 do
     n = {
@@ -306,9 +306,9 @@ do
         return c
     end
 
-    sescape = function(self)
+    sescape = function(self, disallow_verbatim)
         local S = nil
-        if is_utf8(self) and not sfind(self, '\r') then
+        if not disallow_verbatim and is_utf8(self) and not sfind(self, '\r') then
             local term_parts = { ']', ']' }
             local idx = 2
             while sfind(self, concat(term_parts)) do
@@ -418,7 +418,7 @@ do
     end
 end
 
-local E = require 'qamar.parser.node_expression'
+local E
 do
     ---@class node_expression:node
     ---@field precedence number
@@ -700,7 +700,7 @@ do
             for i = 1, self.la.size() do
                 local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
                 local c = self.la[i]
-                line[2] = vim.inspect(c)
+                line[2] = sescape(c, true)
                 idx = idx + 1
                 ret[idx] = concat(line)
             end
@@ -1674,7 +1674,7 @@ do
                     preview[i] = t
                 end
                 stundo(self)
-                error(tostring(stpos(self)) .. ':INVALID_TOKEN: ' .. vim.inspect(concat(preview)))
+                error(tostring(stpos(self)) .. ':INVALID_TOKEN: ' .. sescape(concat(preview), true))
             end
         end
     end
@@ -1725,7 +1725,7 @@ do
                     line[index] = ' '
                 end
                 index = index + 1
-                line[index] = vim.inspect(x.value)
+                line[index] = sescape(x.value, true)
                 idx = idx + 1
                 ret[idx] = concat(line)
             end

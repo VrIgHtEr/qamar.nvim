@@ -1,6 +1,6 @@
 local qamar = {}
 local util = require 'qamar.util'
-local parser = require 'qamar.singlefile'
+local parser = require 'qamar.parser'
 
 local function scandir(directory)
     local i, t, popen = 0, {}, io.popen

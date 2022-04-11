@@ -22,6 +22,7 @@ local concat = table.concat
 local slen = string.len
 local sutf8 = string.utf8
 local setmetatable = setmetatable
+local sescape = require('qamar.util.string').escape
 
 ---@type char_stream
 local M = {}
@@ -34,7 +35,7 @@ local MT = {
         for i = 1, self.la.size() do
             local line = { (i - 1 == self.t.index) and '==> ' or '    ' }
             local c = self.la[i]
-            line[2] = vim.inspect(c)
+            line[2] = sescape(c, true)
             idx = idx + 1
             ret[idx] = concat(line)
         end

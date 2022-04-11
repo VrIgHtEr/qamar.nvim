@@ -17,6 +17,7 @@ local take = s.take
 local undo = s.undo
 local skipws = s.skipws
 local tcomment = token.comment
+local sescape = require('qamar.util.string').escape
 
 ---tries to parse the next lua token
 ---@param self char_stream
@@ -45,7 +46,7 @@ return function(self)
                 preview[i] = t
             end
             undo(self)
-            error(tostring(spos(self)) .. ':INVALID_TOKEN: ' .. vim.inspect(concat(preview)))
+            error(tostring(spos(self)) .. ':INVALID_TOKEN: ' .. sescape(concat(preview), true))
         end
     end
 end
